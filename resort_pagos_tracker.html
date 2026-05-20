@@ -1,0 +1,845 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ResortMamaTingo · Tracker de pagos</title>
+  <style>
+    :root {
+      --font-sans: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --color-background-primary: #f7f8fb;
+      --color-background-secondary: #ffffff;
+      --color-background-success: #e6f4ea;
+      --color-background-warning: #fff4e5;
+      --color-background-info: #dbeafe;
+      --color-border-tertiary: #dfe3ea;
+      --color-text-primary: #111827;
+      --color-text-secondary: #6b7280;
+      --color-text-tertiary: #9ca3af;
+      --color-text-success: #15803d;
+      --color-text-danger: #b91c1c;
+      --color-text-info: #2563eb;
+      --border-radius-md: 12px;
+      --border-radius-lg: 18px;
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      background: #edf2f7;
+      font-family: var(--font-sans);
+      color: var(--color-text-primary);
+    }
+
+    body {
+      padding: 1.5rem;
+    }
+
+    .app-shell {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--color-border-tertiary);
+      margin-bottom: 1.5rem;
+    }
+
+    .header h1 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin: 0;
+    }
+
+    .header p {
+      margin: 0.4rem 0 0;
+      font-size: 0.9rem;
+      color: var(--color-text-secondary);
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 0.9rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .stat-card {
+      background: var(--color-background-secondary);
+      border-radius: var(--border-radius-md);
+      padding: 1rem;
+    }
+
+    .stat-card .label {
+      font-size: 0.8rem;
+      color: var(--color-text-secondary);
+      margin-bottom: 0.45rem;
+      display: block;
+    }
+
+    .stat-card .val {
+      font-size: 1.2rem;
+      font-weight: 600;
+    }
+
+    .stat-card .val.green {
+      color: var(--color-text-success);
+    }
+
+    .stat-card .val.red {
+      color: var(--color-text-danger);
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .toolbar input,
+    .toolbar select {
+      border: 1px solid var(--color-border-tertiary);
+      border-radius: 10px;
+      padding: 0.65rem 0.75rem;
+      font-size: 0.95rem;
+      background: var(--color-background-secondary);
+      color: var(--color-text-primary);
+    }
+
+    .toolbar input {
+      flex: 1;
+      min-width: 180px;
+    }
+
+    .button,
+    .button-primary {
+      border: none;
+      border-radius: 10px;
+      padding: 0.75rem 1rem;
+      font-size: 0.95rem;
+      cursor: pointer;
+    }
+
+    .button-primary {
+      background: var(--color-text-info);
+      color: white;
+    }
+
+    .habs-list {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .hab-card {
+      background: var(--color-background-primary);
+      border: 1px solid var(--color-border-tertiary);
+      border-radius: var(--border-radius-lg);
+      overflow: hidden;
+    }
+
+    .hab-header {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 1rem;
+      background: none;
+      border: none;
+      text-align: left;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    .hab-header:hover {
+      background: var(--color-background-secondary);
+    }
+
+    .hab-num,
+    .hab-tipo,
+    .hab-nombre,
+    .prog-wrap,
+    .badge-ok,
+    .badge-pend {
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .hab-num {
+      font-size: 0.8rem;
+      font-weight: 700;
+      background: var(--color-background-info);
+      color: var(--color-text-info);
+      padding: 0.3rem 0.6rem;
+      border-radius: 999px;
+    }
+
+    .hab-tipo {
+      font-size: 0.8rem;
+      color: var(--color-text-secondary);
+    }
+
+    .hab-nombre {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--color-text-primary);
+      flex: 1;
+      min-width: 0;
+    }
+
+    .prog-wrap {
+      flex: 0 0 90px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 0.25rem;
+    }
+
+    .prog-bar-bg {
+      width: 100%;
+      height: 6px;
+      background: var(--color-background-secondary);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .prog-bar-fill {
+      height: 100%;
+      border-radius: 999px;
+      background: #639922;
+      transition: width 0.3s ease;
+    }
+
+    .prog-pct {
+      font-size: 0.75rem;
+      color: var(--color-text-secondary);
+    }
+
+    .chevron {
+      font-size: 1rem;
+      color: var(--color-text-tertiary);
+      transition: transform 0.2s ease;
+    }
+
+    .chevron.open {
+      transform: rotate(180deg);
+    }
+
+    .hab-body {
+      display: none;
+      border-top: 1px solid var(--color-border-tertiary);
+      padding: 1rem;
+    }
+
+    .hab-body.open {
+      display: block;
+    }
+
+    .persona-row {
+      display: grid;
+      grid-template-columns: 1fr auto auto auto auto;
+      gap: 0.75rem;
+      align-items: center;
+      padding: 0.6rem 0;
+      border-bottom: 1px solid var(--color-border-tertiary);
+    }
+
+    .persona-row:last-child {
+      border-bottom: none;
+    }
+
+    .persona-nombre {
+      font-size: 0.95rem;
+      color: var(--color-text-primary);
+      margin-bottom: 0.25rem;
+    }
+
+    .persona-pagos {
+      font-size: 0.78rem;
+      color: var(--color-text-tertiary);
+    }
+
+    .persona-pagado,
+    .persona-pendiente {
+      font-size: 0.88rem;
+      font-weight: 600;
+      text-align: right;
+    }
+
+    .persona-pagado {
+      color: var(--color-text-success);
+    }
+
+    .persona-pendiente {
+      color: var(--color-text-danger);
+    }
+
+    .btn-pago {
+      border: 1px solid var(--color-border-tertiary);
+      border-radius: 10px;
+      background: var(--color-background-secondary);
+      padding: 0.45rem 0.75rem;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+
+    .nota-area {
+      width: 100%;
+      font-size: 0.9rem;
+      margin-top: 0.75rem;
+      min-height: 4rem;
+      padding: 0.75rem;
+      border: 1px solid var(--color-border-tertiary);
+      border-radius: 14px;
+      resize: vertical;
+      background: white;
+    }
+
+    .total-hab {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--color-border-tertiary);
+      font-size: 0.9rem;
+    }
+
+    .total-hab strong {
+      font-weight: 600;
+    }
+
+    .badge-ok,
+    .badge-pend {
+      border-radius: 999px;
+      padding: 0.3rem 0.65rem;
+      font-size: 0.75rem;
+      white-space: nowrap;
+    }
+
+    .badge-ok {
+      background: var(--color-background-success);
+      color: var(--color-text-success);
+    }
+
+    .badge-pend {
+      background: var(--color-background-warning);
+      color: #c16200;
+    }
+
+    .modal-bg {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+
+    .modal-bg.show {
+      display: flex;
+    }
+
+    .modal {
+      background: var(--color-background-secondary);
+      border-radius: var(--border-radius-lg);
+      border: 1px solid var(--color-border-tertiary);
+      padding: 1.5rem;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 20px 40px rgba(15, 23, 42, 0.12);
+    }
+
+    .modal h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin: 0 0 1rem;
+    }
+
+    .form-row {
+      margin-bottom: 0.85rem;
+    }
+
+    .form-row label {
+      display: block;
+      font-size: 0.82rem;
+      color: var(--color-text-secondary);
+      margin-bottom: 0.35rem;
+    }
+
+    .form-row input,
+    .form-row select {
+      width: 100%;
+      border: 1px solid var(--color-border-tertiary);
+      border-radius: 12px;
+      padding: 0.75rem;
+      font-size: 0.95rem;
+      background: white;
+      color: var(--color-text-primary);
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.75rem;
+      margin-top: 1rem;
+    }
+
+    .empty {
+      text-align: center;
+      padding: 2rem;
+      color: var(--color-text-secondary);
+      background: var(--color-background-secondary);
+      border-radius: var(--border-radius-md);
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="header">
+      <div>
+        <h1>ResortMamaTingo — Control de pagos</h1>
+        <p>Diciembre 2025 · Registro individual por persona</p>
+      </div>
+      <button class="button button-primary" id="btnAgregar" type="button">+ Agregar habitación</button>
+    </header>
+
+    <section class="stats-grid" id="statsGrid" aria-label="Estadísticas de pagos"></section>
+
+    <section class="toolbar" aria-label="Controles de búsqueda y filtro">
+      <input type="text" id="buscar" placeholder="Buscar habitación o persona..." aria-label="Buscar habitaciones y personas">
+      <select id="filtro" aria-label="Filtrar estado de pago">
+        <option value="todos">Todos</option>
+        <option value="pendiente">Con saldo pendiente</option>
+        <option value="completo">Pagados al 100%</option>
+      </select>
+    </section>
+
+    <main id="habsContainer" class="habs-list" aria-live="polite"></main>
+  </div>
+
+  <div class="modal-bg" id="modalAgregar" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalAgregarTitulo">
+      <h3 id="modalAgregarTitulo">Nueva habitación</h3>
+      <div class="form-row">
+        <label for="mHabNum">Número / ID</label>
+        <input type="text" id="mHabNum" placeholder="Ej: 101">
+      </div>
+      <div class="form-row">
+        <label for="mTipo">Tipo</label>
+        <select id="mTipo">
+          <option>Doble</option>
+          <option>Triple</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label for="mP1">Persona 1</label>
+        <input type="text" id="mP1" placeholder="Nombre completo">
+      </div>
+      <div class="form-row">
+        <label for="mP2">Persona 2</label>
+        <input type="text" id="mP2" placeholder="Nombre completo">
+      </div>
+      <div class="form-row" id="rowP3" style="display: none;">
+        <label for="mP3">Persona 3 (triple)</label>
+        <input type="text" id="mP3" placeholder="Nombre completo">
+      </div>
+      <div class="form-row" style="display:flex;align-items:center;gap:0.75rem;">
+        <button class="button" type="button" id="btnStackToggle" onclick="toggleStack()">STACK</button>
+        <span id="stackLabel" style="font-size:0.9rem;color:var(--color-text-secondary);">Habitación normal</span>
+      </div>
+      <div class="form-row">
+        <label for="mTotal">Total habitación ($)</label>
+        <input type="number" id="mTotal" placeholder="27700">
+      </div>
+      <div class="form-row">
+        <label for="mPrecioNino">Precio por niño ($)</label>
+        <input type="number" id="mPrecioNino" placeholder="0">
+      </div>
+      <div class="modal-actions">
+        <button class="button" type="button" onclick="cerrarModal()">Cancelar</button>
+        <button class="button button-primary" type="button" onclick="guardarHab()">Guardar ↗</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const habs = [];
+
+    let nextId = 1;
+    let expanded = {};
+    let pagoHabId = null;
+    let pagoPerIdx = null;
+    let moverHabId = null;
+    let moverPerIdx = null;
+
+    const elements = {
+      statsGrid: document.getElementById('statsGrid'),
+      buscar: document.getElementById('buscar'),
+      filtro: document.getElementById('filtro'),
+      habsContainer: document.getElementById('habsContainer'),
+      modalAgregar: document.getElementById('modalAgregar'),
+      mTipo: document.getElementById('mTipo'),
+      rowP3: document.getElementById('rowP3'),
+      mHabNum: document.getElementById('mHabNum'),
+      mP1: document.getElementById('mP1'),
+      mP2: document.getElementById('mP2'),
+      mP3: document.getElementById('mP3'),
+      mTotal: document.getElementById('mTotal'),
+      mPrecioNino: document.getElementById('mPrecioNino'),
+      btnStackToggle: document.getElementById('btnStackToggle'),
+      stackLabel: document.getElementById('stackLabel'),
+    };
+
+    const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+
+    function init() {
+      elements.buscar.addEventListener('input', renderHabs);
+      elements.filtro.addEventListener('change', renderHabs);
+      elements.mTipo.addEventListener('change', togglePersona3Row);
+      document.getElementById('btnAgregar').addEventListener('click', abrirModalAgregar);
+      elements.modalAgregar.addEventListener('click', (event) => {
+        if (event.target === elements.modalAgregar) cerrarModal();
+      });
+      updateStackUI();
+      renderHabs();
+    }
+
+    function togglePersona3Row() {
+      elements.rowP3.style.display = elements.mTipo.value === 'Triple' ? 'grid' : 'none';
+    }
+
+    function totalPagado(hab) {
+      return hab.personas.reduce((sum, persona) => sum + persona.pagos.reduce((total, pago) => total + pago.monto, 0), 0);
+    }
+
+    function pct(hab) {
+      return hab.total ? Math.min(100, Math.round(totalPagado(hab) / hab.total * 100)) : 0;
+    }
+
+    function fmt(valor) {
+      return '$' + Math.round(valor).toLocaleString('es-DO');
+    }
+
+    function updateStats() {
+      const total = habs.reduce((sum, hab) => sum + hab.total, 0);
+      const pagado = habs.reduce((sum, hab) => sum + totalPagado(hab), 0);
+      const pendiente = habs.reduce((sum, hab) => sum + Math.max(0, hab.total - totalPagado(hab)), 0);
+      const completas = habs.filter(hab => hab.stack || totalPagado(hab) >= hab.total).length;
+      const stackCount = habs.filter(hab => hab.stack).length;
+
+      elements.statsGrid.innerHTML = `
+        <div class="stat-card"><span class="label">Total por cobrar</span><span class="val">${fmt(total)}</span></div>
+        <div class="stat-card"><span class="label">Recaudado</span><span class="val green">${fmt(pagado)}</span></div>
+        <div class="stat-card"><span class="label">Pendiente</span><span class="val red">${fmt(pendiente)}</span></div>
+        <div class="stat-card"><span class="label">Habitaciones</span><span class="val">${habs.length}</span></div>
+        <div class="stat-card"><span class="label">STACK</span><span class="val">${stackCount}</span></div>
+        <div class="stat-card"><span class="label">Completadas</span><span class="val green">${completas}</span></div>
+      `;
+    }
+
+    function renderHabs() {
+      updateStats();
+      const busqueda = elements.buscar.value.toLowerCase();
+      const filtro = elements.filtro.value;
+
+      const listaFiltrada = habs.filter(hab => {
+        const texto = `${hab.num} ${hab.tipo} ${hab.personas.map(p => p.n).join(' ')}`.toLowerCase();
+        if (busqueda && !texto.includes(busqueda)) return false;
+
+        const porcentaje = pct(hab);
+        const pendienteHab = Math.max(0, hab.total - totalPagado(hab));
+        const completaHab = hab.stack || totalPagado(hab) >= hab.total;
+        if (filtro === 'pendiente' && pendienteHab <= 0) return false;
+        if (filtro === 'completo' && !completaHab) return false;
+        return true;
+      });
+
+      if (!listaFiltrada.length) {
+        elements.habsContainer.innerHTML = '<div class="empty">No hay habitaciones que coincidan.</div>';
+        return;
+      }
+
+      elements.habsContainer.innerHTML = listaFiltrada.map(renderHab).join('');
+      listaFiltrada.forEach(hab => {
+        if (expanded[hab.id]) {
+          document.getElementById(`body_${hab.id}`)?.classList.add('open');
+          document.getElementById(`chev_${hab.id}`)?.classList.add('open');
+        }
+      });
+    }
+
+    function renderHab(hab) {
+      const porcentaje = pct(hab);
+      const pagado = totalPagado(hab);
+      const cantidadPersonas = hab.personas.filter(p => p.n).length;
+      const personasHtml = hab.personas.map((persona, index) => {
+        if (!persona.n) return '';
+        const pagadoPersona = persona.pagos.reduce((sum, pago) => sum + pago.monto, 0);
+        const cuotaIdeal = cantidadPersonas ? Math.round(hab.total / cantidadPersonas) : 0;
+        const pendiente = Math.max(0, cuotaIdeal - pagadoPersona);
+        const estado = pendiente > 0 ? `-${fmt(pendiente)}` : '✓';
+        const estadoClase = pendiente > 0 ? 'persona-pendiente' : 'persona-pagado';
+
+        return `
+          <div class="persona-row">
+            <div>
+              <div class="persona-nombre">${persona.n || '(sin nombre)'}</div>
+              <div class="persona-pagos">${persona.pagos.map(pago => `${pago.mes} ${fmt(pago.monto)}`).join(' · ') || 'Sin pagos'}</div>
+            </div>
+            <div class="persona-pagado">${fmt(pagadoPersona)}</div>
+            <div class="${estadoClase}">${estado}</div>
+            <button class="btn-pago" type="button" onclick="registrarPago(${hab.id}, ${index})">+ pago</button>
+            <button class="btn-pago" type="button" onclick="moverPersona(${hab.id}, ${index})">Mover</button>
+          </div>
+        `;
+      }).join('');
+
+      return `
+        <article class="hab-card" id="hab_${hab.id}">
+          <button class="hab-header" type="button" onclick="toggle(${hab.id})" aria-expanded="${!!expanded[hab.id]}">
+            <span class="hab-num">Hab ${hab.num}</span>
+            <span class="hab-tipo">${hab.tipo}</span>
+            <span class="hab-nombre">${hab.personas.filter(p => p.n).map(p => p.n).join(' & ')}</span>
+            <div class="prog-wrap">
+              <div class="prog-bar-bg"><div class="prog-bar-fill" style="width:${porcentaje}%"></div></div>
+              <span class="prog-pct">${porcentaje}%</span>
+            </div>
+            <span class="${hab.stack ? 'badge-ok' : porcentaje >= 100 ? 'badge-ok' : 'badge-pend'}">${hab.stack ? 'STACK' : porcentaje >= 100 ? 'Pagado' : 'Pendiente'}</span>
+            <i class="ti ti-chevron-down chevron ${expanded[hab.id] ? 'open' : ''}" id="chev_${hab.id}" aria-hidden="true"></i>
+          </button>
+          <div class="hab-body ${expanded[hab.id] ? 'open' : ''}" id="body_${hab.id}">
+            ${personasHtml}
+            <textarea class="nota-area" placeholder="Notas..." oninput="guardarNota(${hab.id}, this.value)">${hab.nota}</textarea>
+            <div class="total-hab">
+              <span>Total hab: <strong>${hab.stack ? 'STACK' : fmt(hab.total)}</strong></span>
+              ${hab.stack ? '' : hab.precioNino ? `<span>Precio niño: <strong>${fmt(hab.precioNino)}</strong></span>` : ''}
+              <span>Recaudado: <strong style="color: var(--color-text-success)">${fmt(pagado)}</strong></span>
+              <span>Pendiente: <strong style="color: var(--color-text-danger)">${fmt(hab.stack ? 0 : hab.total - pagado)}</strong></span>
+            </div>
+            <div style="display:flex;gap:0.75rem;margin-top:1rem;flex-wrap:wrap;">
+              <button class="button" type="button" onclick="eliminarHab(${hab.id})">Eliminar habitación</button>
+            </div>
+          </div>
+        </article>
+      `;
+    }
+
+    function toggle(id) {
+      expanded[id] = !expanded[id];
+      document.getElementById(`body_${id}`)?.classList.toggle('open', expanded[id]);
+      document.getElementById(`chev_${id}`)?.classList.toggle('open', expanded[id]);
+    }
+
+    function guardarNota(habId, valor) {
+      const habitacion = habs.find(hab => hab.id === habId);
+      if (habitacion) habitacion.nota = valor;
+    }
+
+    function abrirModalAgregar() {
+      stackActivo = false;
+      updateStackUI();
+      elements.modalAgregar.classList.add('show');
+      elements.modalAgregar.setAttribute('aria-hidden', 'false');
+      elements.mHabNum.focus();
+    }
+
+    function cerrarModal() {
+      elements.modalAgregar.classList.remove('show');
+      elements.modalAgregar.setAttribute('aria-hidden', 'true');
+    }
+
+    function guardarHab() {
+      const numero = elements.mHabNum.value.trim();
+      const tipo = elements.mTipo.value;
+      const persona1 = elements.mP1.value.trim();
+      const persona2 = elements.mP2.value.trim();
+      const persona3 = elements.mP3.value.trim();
+      const total = stackActivo ? 0 : parseFloat(elements.mTotal.value) || 0;
+      const precioNino = stackActivo ? 0 : parseFloat(elements.mPrecioNino.value) || 0;
+
+      if (!numero || !persona1 || !persona2 || (!stackActivo && !total)) {
+        alert('Complete los datos obligatorios.');
+        return;
+      }
+
+      habs.push({
+        id: nextId++,
+        num: numero,
+        tipo,
+        total,
+        precioNino,
+        stack: stackActivo,
+        nota: '',
+        personas: [
+          { n: persona1, pagos: [] },
+          { n: persona2, pagos: [] },
+          ...(tipo === 'Triple' ? [{ n: persona3 || '', pagos: [] }] : []),
+        ],
+      });
+
+      elements.mHabNum.value = '';
+      elements.mP1.value = '';
+      elements.mP2.value = '';
+      elements.mP3.value = '';
+      elements.mTotal.value = '';
+      elements.mPrecioNino.value = '';
+      elements.mTipo.value = 'Doble';
+      stackActivo = false;
+      updateStackUI();
+      togglePersona3Row();
+      cerrarModal();
+      renderHabs();
+    }
+
+    function toggleStack() {
+      stackActivo = !stackActivo;
+      updateStackUI();
+    }
+
+    function updateStackUI() {
+      elements.mTotal.disabled = stackActivo;
+      elements.mPrecioNino.disabled = stackActivo;
+      elements.btnStackToggle.textContent = stackActivo ? 'STACK ✓' : 'STACK';
+      elements.stackLabel.textContent = stackActivo ? 'Habitación stack (no paga)' : 'Habitación normal';
+      if (stackActivo) {
+        elements.mTotal.value = '';
+        elements.mPrecioNino.value = '';
+      }
+    }
+
+    function eliminarHab(habId) {
+      if (!confirm('¿Eliminar esta habitación? Esta acción no se puede deshacer.')) return;
+      const index = habs.findIndex(hab => hab.id === habId);
+      if (index >= 0) {
+        habs.splice(index, 1);
+        delete expanded[habId];
+        renderHabs();
+      }
+    }
+
+    function moverPersona(habId, perIdx) {
+      moverHabId = habId;
+      moverPerIdx = perIdx;
+      const habitacion = habs.find(hab => hab.id === habId);
+      const persona = habitacion.personas[perIdx];
+      const opciones = habs
+        .filter(hab => hab.id !== habId)
+        .filter(hab => hab.personas.filter(p => p.n).length < (hab.tipo === 'Triple' ? 3 : 2))
+        .map(hab => `<option value="${hab.id}">Hab ${hab.num} (${hab.tipo})</option>`)
+        .join('');
+
+      if (!opciones) {
+        alert('No hay habitaciones disponibles con espacio suficiente para mover a esta persona.');
+        return;
+      }
+
+      const moverModal = document.createElement('div');
+      moverModal.className = 'modal-bg show';
+      moverModal.id = 'modalMover';
+      moverModal.innerHTML = `
+        <div class="modal" role="dialog" aria-modal="true">
+          <h3>Mover persona — ${persona.n || '(sin nombre)'}</h3>
+          <div class="form-row">
+            <label for="destHab">Destino</label>
+            <select id="destHab">${opciones}</select>
+          </div>
+          <div class="modal-actions">
+            <button class="button" type="button" onclick="document.getElementById('modalMover').remove()">Cancelar</button>
+            <button class="button button-primary" type="button" onclick="confirmarMover()">Mover</button>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(moverModal);
+    }
+
+    function confirmarMover() {
+      const destinoId = parseInt(document.getElementById('destHab').value, 10);
+      const origen = habs.find(hab => hab.id === moverHabId);
+      const destino = habs.find(hab => hab.id === destinoId);
+      if (!origen || !destino) return;
+
+      const persona = origen.personas[moverPerIdx];
+      if (!persona || !persona.n) return;
+
+      const ocupadoDestino = destino.personas.filter(p => p.n).length;
+      const capacidadDestino = destino.tipo === 'Triple' ? 3 : 2;
+      if (ocupadoDestino >= capacidadDestino) {
+        alert('La habitación de destino ya no tiene espacio.');
+        return;
+      }
+
+      destino.personas.push({ n: persona.n, pagos: [...persona.pagos] });
+      origen.personas.splice(moverPerIdx, 1);
+      document.getElementById('modalMover')?.remove();
+      renderHabs();
+    }
+
+    function registrarPago(habId, perIdx) {
+      pagoHabId = habId;
+      pagoPerIdx = perIdx;
+      const habitacion = habs.find(hab => hab.id === habId);
+      const persona = habitacion.personas[perIdx];
+      const cantidadPersonas = habitacion.personas.filter(p => p.n).length;
+      const cuotaIdeal = cantidadPersonas ? Math.round(habitacion.total / cantidadPersonas) : 0;
+      const pagadoPersona = persona.pagos.reduce((sum, pago) => sum + pago.monto, 0);
+      const pendiente = Math.max(0, cuotaIdeal - pagadoPersona);
+      const mesActual = meses[new Date().getMonth()];
+
+      const pagoModal = document.createElement('div');
+      pagoModal.className = 'modal-bg show';
+      pagoModal.id = 'modalPago';
+      pagoModal.innerHTML = `
+        <div class="modal" role="dialog" aria-modal="true">
+          <h3>Registrar pago — ${persona.n}</h3>
+          <p style="font-size:0.9rem;color:var(--color-text-secondary);margin-bottom:1rem">Pendiente: ${fmt(pendiente)}</p>
+          <div class="form-row">
+            <label for="pMes">Mes</label>
+            <select id="pMes">${meses.map(m => `<option${m === mesActual ? ' selected' : ''}>${m}</option>`).join('')}</select>
+          </div>
+          <div class="form-row">
+            <label for="pMonto">Monto ($)</label>
+            <input id="pMonto" type="number" value="${pendiente}" placeholder="0">
+          </div>
+          <div class="modal-actions">
+            <button class="button" type="button" onclick="document.getElementById('modalPago').remove()">Cancelar</button>
+            <button class="button button-primary" type="button" onclick="confirmarPago()">Guardar ↗</button>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(pagoModal);
+    }
+
+    function confirmarPago() {
+      const mes = document.getElementById('pMes').value;
+      const monto = parseFloat(document.getElementById('pMonto').value) || 0;
+      if (!monto) return;
+
+      const habitacion = habs.find(hab => hab.id === pagoHabId);
+      habitacion.personas[pagoPerIdx].pagos.push({ mes, monto });
+      document.getElementById('modalPago')?.remove();
+      renderHabs();
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>

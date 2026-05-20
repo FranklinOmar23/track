@@ -1,0 +1,187 @@
+/* Overlay del modal */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  animation: modalOverlayIn 0.2s ease;
+  backdrop-filter: blur(2px);
+}
+
+/* Contenedor del modal */
+.modal {
+  background: var(--color-background-secondary);
+  border-radius: var(--border-radius-lg);
+  border: 1px solid var(--color-border-tertiary);
+  padding: 1.75rem;
+  width: 100%;
+  max-width: 450px;
+  box-shadow: var(--shadow-modal);
+  animation: modalContentIn 0.3s ease;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modalTitulo {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0 0 1.5rem;
+  color: var(--color-text-primary);
+}
+
+.modalSubtitulo {
+  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+  margin-bottom: 1.5rem;
+  line-height: 1.5;
+}
+
+/* Filas de formulario */
+.formRow {
+  margin-bottom: 1rem;
+}
+
+.formRow:last-child {
+  margin-bottom: 0;
+}
+
+.formRow label {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  margin-bottom: 0.4rem;
+  font-weight: 500;
+}
+
+.formRow input,
+.formRow select {
+  width: 100%;
+  border: 1px solid var(--color-border-tertiary);
+  border-radius: 12px;
+  padding: 0.75rem;
+  font-size: 0.95rem;
+  background: white;
+  color: var(--color-text-primary);
+  transition: all 0.2s ease;
+}
+
+.formRow input:hover,
+.formRow select:hover {
+  border-color: #cbd5e1;
+}
+
+.formRow input:focus,
+.formRow select:focus {
+  border-color: var(--color-text-info);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.formRow input:disabled,
+.formRow select:disabled {
+  background: #f1f5f9;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Toggle Stack */
+.stackToggle {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: #f8fafc;
+  border-radius: 12px;
+}
+
+.stackLabel {
+  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+  flex: 1;
+}
+
+.stackLabelActive {
+  color: #6b21a8;
+  font-weight: 500;
+}
+
+/* Acciones del modal */
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #f1f5f9;
+}
+
+/* Modal de confirmación */
+.modalConfirm {
+  text-align: center;
+}
+
+.modalConfirmIcon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+/* Modal de mover persona */
+.modalMoverInfo {
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.modalMoverInfo strong {
+  color: var(--color-text-info);
+}
+
+/* Lista de habitaciones en modal */
+.habitacionesList {
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid var(--color-border-tertiary);
+  border-radius: 12px;
+}
+
+.habitacionOption {
+  padding: 0.75rem;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.habitacionOption:last-child {
+  border-bottom: none;
+}
+
+.habitacionOption:hover {
+  background: #f1f5f9;
+}
+
+.habitacionOptionSelected {
+  background: var(--color-background-info);
+  color: var(--color-text-info);
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .modal {
+    padding: 1.25rem;
+    margin: 0.5rem;
+  }
+  
+  .modalActions {
+    flex-direction: column;
+  }
+  
+  .modalActions button {
+    width: 100%;
+  }
+}

@@ -1,0 +1,210 @@
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1rem;
+  animation: fadeIn 0.3s ease;
+}
+
+.statCard {
+  background: var(--color-background-secondary);
+  border-radius: var(--border-radius-md);
+  padding: 1.25rem;
+  border: 1px solid #f1f5f9;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.statCard:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  transform: translateY(-2px);
+}
+
+.statCardClickable {
+  cursor: pointer;
+}
+
+.statCardClickable:hover {
+  border-color: var(--color-text-info);
+}
+
+.statLabel {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 500;
+}
+
+.statValue {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.statValueGreen {
+  color: var(--color-text-success);
+}
+
+.statValueRed {
+  color: var(--color-text-danger);
+}
+
+.statValueBlue {
+  color: var(--color-text-info);
+}
+
+.statValuePurple {
+  color: #6b21a8;
+}
+
+.statSubinfo {
+  font-size: 0.8rem;
+  color: var(--color-text-tertiary);
+  margin-top: 0.25rem;
+}
+
+/* Variantes de tarjetas */
+.statCardSuccess {
+  border-left: 4px solid var(--color-text-success);
+}
+
+.statCardWarning {
+  border-left: 4px solid #f59e0b;
+}
+
+.statCardDanger {
+  border-left: 4px solid var(--color-text-danger);
+}
+
+.statCardInfo {
+  border-left: 4px solid var(--color-text-info);
+}
+
+/* Estadística con progreso */
+.statWithProgress {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.statProgressBar {
+  width: 100%;
+  height: 4px;
+  background: #f1f5f9;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.statProgressFill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.5s ease;
+}
+
+.statProgressFill.success {
+  background: var(--color-text-success);
+}
+
+.statProgressFill.warning {
+  background: #f59e0b;
+}
+
+.statProgressFill.danger {
+  background: var(--color-text-danger);
+}
+
+/* Tooltip en estadísticas */
+.statTooltip {
+  position: relative;
+}
+
+.statTooltip:hover .statTooltipContent {
+  display: block;
+}
+
+.statTooltipContent {
+  display: none;
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1e293b;
+  color: white;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  z-index: 10;
+  margin-bottom: 0.5rem;
+}
+
+.statTooltipContent::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: #1e293b;
+}
+
+/* Animación de números */
+@keyframes countUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.statValueAnimated {
+  animation: countUp 0.5s ease;
+}
+
+/* Layout de estadísticas compacto */
+.statsGridCompact {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+}
+
+.statsGridCompact .statCard {
+  flex: 0 0 180px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .statsGrid {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 0.75rem;
+  }
+  
+  .statCard {
+    padding: 1rem;
+  }
+  
+  .statValue {
+    font-size: 1.25rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .statsGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+  }
+  
+  .statCard {
+    padding: 0.75rem;
+  }
+  
+  .statValue {
+    font-size: 1.1rem;
+  }
+}

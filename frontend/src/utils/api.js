@@ -1,0 +1,43 @@
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+
+const request = async (path, options = {}) => {
+  const response = await fetch(`${API_BASE}${path}`, {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    ...options,
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.error || response.statusText || 'Error de red');
+  }
+
+  return response.json();
+};
+
+export const fetchHabitaciones = () => request('/api/habitaciones');
+export const crearHabitacion = (habitacion) =>
+  request('/api/habitaciones', {
+    method: 'POST',
+    body: JSON.stringify(habitacion),
+  });
+export const eliminarHabitacion = (id) =>
+  request(`/api/habitaciones/${id}`, {
+    method: 'DELETE',
+  });
+export const actualizarNota = (id, nota) =>
+  request(`/api/habitaciones/${id}/nota`, {
+    method: 'PUT',
+    body: JSON.stringify({ nota }),
+  });
+export const registrarPago = (personaId, pago) =>
+  request(`/api/personas/${personaId}/pagos`, {
+    method: 'POST',
+    body: JSON.stringify(pago),
+  });
+export const moverPersona = (personaId, destinoHabitacionId) =>
+  request('/api/movimientos', {
+    method: 'POST',
+    body: JSON.stringify({ personaId, destinoHabitacionId }),
+  });
