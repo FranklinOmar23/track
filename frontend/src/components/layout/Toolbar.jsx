@@ -1,7 +1,7 @@
 import React from 'react';
 import { useHabitacionesContext } from '../../context/HabitacionesContext';
 
-const Toolbar = ({ onOpenAgregar }) => {
+const Toolbar = ({ onOpenAgregar, onOpenDesglose }) => {
   const { state, setFiltros } = useHabitacionesContext();
   const { busqueda, estado } = state.filtros;
 
@@ -35,6 +35,9 @@ const Toolbar = ({ onOpenAgregar }) => {
       </select>
       <button className="button button-primary" type="button" onClick={onOpenAgregar} style={{ whiteSpace: 'nowrap' }}>
         + Agregar habitación
+      </button>
+      <button className="button" type="button" onClick={onOpenDesglose} style={{ whiteSpace: 'nowrap' }}>
+        Desglose general
       </button>
     </section>
   );

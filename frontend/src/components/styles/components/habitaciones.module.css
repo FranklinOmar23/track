@@ -184,6 +184,25 @@
   font-size: 0.78rem;
   color: var(--color-text-tertiary);
   line-height: 1.4;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.pagoChip {
+  border: 1px solid var(--color-border-tertiary);
+  background: var(--color-background-primary);
+  color: var(--color-text-primary);
+  border-radius: 999px;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.pagoChip:hover {
+  background: #f8fafc;
+  border-color: var(--color-text-info);
 }
 
 .personaPagado {
@@ -335,5 +354,17 @@
   .totalHab {
     flex-direction: column;
     gap: 0.5rem;
+  }
+
+  /* En dispositivos pequeños permitir que el nombre haga wrap en varias líneas */
+  .habNombre {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+  }
+
+  /* Ajuste para que el header permita contenido de varias líneas */
+  .habHeader {
+    align-items: flex-start;
   }
 }

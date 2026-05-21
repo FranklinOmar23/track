@@ -1,30 +1,49 @@
 import React, { useState, useEffect } from 'react';
 import { useHabitacionesContext } from '../../context/HabitacionesContext';
-import { formatCurrency, MESES } from '../../utils/formatters';
+import { MESES } from '../../utils/formatters';
 import styles from '../styles/components/modals.module.css';
 
-const ModalRegistrarPago = ({ habId, perIdx, persona, onClose }) => {
-  const { state, registrarPago } = useHabitacionesContext();
+const ModalRegistrarPago = ({ habId, perIdx, persona, pago = null, onClose }) => {
+  const { state, registrarPago, actualizarPago, eliminarPago } = useHabitacionesContext();
   const [mes, setMes] = useState('');
   const [monto, setMonto] = useState('');
-  
-  const habitacion = state.habitaciones.find(hab => hab.id === habId);
-  
+
+  const habitacion = state.habitaciones.find((hab) => hab.id === habId);
+
   useEffect(() => {
+    if (pago) {
+      setMes(pago.mes);
+      setMonto(pago.monto);
+      return;
+    }
+
     const fechaActual = new Date();
     setMes(MESES[fechaActual.getMonth()]);
-    
-    // Calcular pendiente
-    const cantidadPersonas = habitacion.personas.filter(p => p.n).length;
+
+    const cantidadPersonas = habitacion.personas.filter((p) => p.n).length;
     const cuotaIdeal = Math.round(habitacion.total / cantidadPersonas);
-    const pagadoPersona = persona.pagos.reduce((sum, pago) => sum + pago.monto, 0);
+    const pagadoPersona = persona.pagos.reduce((sum, pagoItem) => sum + pagoItem.monto, 0);
     const pendiente = Math.max(0, cuotaIdeal - pagadoPersona);
     setMonto(pendiente);
-  }, []);
-  
+  }, [habitacion, pago, persona.pagos]);
+
   const handleSubmit = () => {
-    if (!monto) return;
-    registrarPago(habId, perIdx, { mes, monto: parseFloat(monto) });
+    if (!mes || !monto) return;
+
+    const pagoData = { mes, monto: parseFloat(monto) };
+
+    if (pago?.id) {
+      actualizarPago(habId, perIdx, pago.id, pagoData);
+    } else {
+      registrarPago(habId, perIdx, pagoData);
+    }
+
+    onClose();
+  };
+
+  const handleDelete = () => {
+    if (!pago?.id) return;
+    eliminarPago(habId, perIdx, pago.id);
     onClose();
   };
   
@@ -51,7 +70,12 @@ const ModalRegistrarPago = ({ habId, perIdx, persona, onClose }) => {
         </div>
         <div className={styles.modalActions}>
           <button className="button" onClick={onClose}>Cancelar</button>
-          <button className="button-primary" onClick={handleSubmit}>Guardar ↗</button>
+          {pago?.id && (
+            <button className="button button-danger" onClick={handleDelete} style={{ marginLeft: '0.5rem' }}>
+              Eliminar
+            </button>
+          )}
+          <button className="button-primary" onClick={handleSubmit} style={{ marginLeft: '0.5rem' }}>Guardar ↗</button>
         </div>
       </div>
     </div>

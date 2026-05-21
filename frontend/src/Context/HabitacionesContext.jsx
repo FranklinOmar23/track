@@ -62,6 +62,44 @@ function habitacionesReducer(state, action) {
         }),
       };
 
+    case 'ACTUALIZAR_PAGO':
+      return {
+        ...state,
+        habitaciones: state.habitaciones.map(hab => {
+          if (hab.id !== action.payload.habId) return hab;
+          return {
+            ...hab,
+            personas: hab.personas.map((persona, idx) => {
+              if (idx !== action.payload.perIdx) return persona;
+              return {
+                ...persona,
+                pagos: persona.pagos.map(pago =>
+                  pago.id === action.payload.pago.id ? { ...pago, ...action.payload.pago } : pago
+                ),
+              };
+            }),
+          };
+        }),
+      };
+
+    case 'ELIMINAR_PAGO':
+      return {
+        ...state,
+        habitaciones: state.habitaciones.map(hab => {
+          if (hab.id !== action.payload.habId) return hab;
+          return {
+            ...hab,
+            personas: hab.personas.map((persona, idx) => {
+              if (idx !== action.payload.perIdx) return persona;
+              return {
+                ...persona,
+                pagos: (persona.pagos || []).filter(p => p.id !== action.payload.pagoId),
+              };
+            }),
+          };
+        }),
+      };
+
     case 'MOVER_PERSONA': {
       const { habOrigen, habDestino, personaId } = action.payload;
       const nuevasHabitaciones = state.habitaciones.map((hab) => ({ ...hab, personas: [...hab.personas] }));
@@ -146,10 +184,36 @@ export const HabitacionesProvider = ({ children }) => {
       const persona = habitacion?.personas[perIdx];
       if (!persona?.id) return;
 
-      await api.registrarPago(persona.id, pago);
-      dispatch({ type: 'REGISTRAR_PAGO', payload: { habId, perIdx, pago } });
+      const nuevoPago = await api.registrarPago(persona.id, pago);
+      dispatch({ type: 'REGISTRAR_PAGO', payload: { habId, perIdx, pago: nuevoPago } });
     } catch (error) {
       console.error('Error registrando pago:', error);
+    }
+  };
+
+  const actualizarPago = async (habId, perIdx, pagoId, pago) => {
+    try {
+      const habitacion = state.habitaciones.find((hab) => hab.id === habId);
+      const persona = habitacion?.personas[perIdx];
+      if (!persona?.id) return;
+
+      const pagoActualizado = await api.actualizarPago(persona.id, pagoId, pago);
+      dispatch({ type: 'ACTUALIZAR_PAGO', payload: { habId, perIdx, pago: pagoActualizado } });
+    } catch (error) {
+      console.error('Error actualizando pago:', error);
+    }
+  };
+
+  const eliminarPago = async (habId, perIdx, pagoId) => {
+    try {
+      const habitacion = state.habitaciones.find((hab) => hab.id === habId);
+      const persona = habitacion?.personas[perIdx];
+      if (!persona?.id) return;
+
+      await api.eliminarPago(persona.id, pagoId);
+      dispatch({ type: 'ELIMINAR_PAGO', payload: { habId, perIdx, pagoId } });
+    } catch (error) {
+      console.error('Error eliminando pago:', error);
     }
   };
 
@@ -186,6 +250,8 @@ export const HabitacionesProvider = ({ children }) => {
     eliminarHabitacion,
     toggleExpanded: (id) => dispatch({ type: 'TOGGLE_EXPANDED', payload: id }),
     registrarPago,
+    actualizarPago,
+    eliminarPago,
     moverPersona,
     actualizarNota,
     setFiltros,

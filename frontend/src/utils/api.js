@@ -41,3 +41,14 @@ export const moverPersona = (personaId, destinoHabitacionId) =>
     method: 'POST',
     body: JSON.stringify({ personaId, destinoHabitacionId }),
   });
+
+export const actualizarPago = (personaId, pagoId, pago) =>
+  request(`/api/personas/${personaId}/pagos/${pagoId}`, {
+    method: 'PUT',
+    body: JSON.stringify(pago),
+  });
+
+export const eliminarPago = (personaId, pagoId) =>
+  request(`/api/personas/${personaId}/pagos/${pagoId}`, {
+    method: 'DELETE',
+  });
