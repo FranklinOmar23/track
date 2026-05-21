@@ -5,7 +5,7 @@ import styles from '../styles/components/modals.module.css';
 const ModalAgregarHabitacion = ({ open, onClose }) => {
   const { agregarHabitacion } = useHabitacionesContext();
   const [numero, setNumero] = useState('');
-  const [tipo, setTipo] = useState('Doble');
+  const [tipo, setTipo] = useState('Single');
   const [persona1, setPersona1] = useState('');
   const [persona2, setPersona2] = useState('');
   const [persona3, setPersona3] = useState('');
@@ -16,7 +16,7 @@ const ModalAgregarHabitacion = ({ open, onClose }) => {
   useEffect(() => {
     if (!open) {
       setNumero('');
-      setTipo('Doble');
+      setTipo('Single');
       setPersona1('');
       setPersona2('');
       setPersona3('');
@@ -29,10 +29,15 @@ const ModalAgregarHabitacion = ({ open, onClose }) => {
   if (!open) return null;
 
   const handleGuardar = () => {
-    if (!numero.trim() || !persona1.trim() || !persona2.trim() || (!stackActivo && !total)) {
+    if (!numero.trim() || !persona1.trim() || (!stackActivo && !total)) {
       alert('Complete los datos obligatorios.');
       return;
     }
+
+    const personas = [];
+    if (persona1.trim()) personas.push({ n: persona1.trim(), pagos: [] });
+    if (persona2.trim()) personas.push({ n: persona2.trim(), pagos: [] });
+    if (tipo === 'Triple' && persona3.trim()) personas.push({ n: persona3.trim(), pagos: [] });
 
     agregarHabitacion({
       num: numero.trim(),
@@ -41,11 +46,7 @@ const ModalAgregarHabitacion = ({ open, onClose }) => {
       precioNino: stackActivo ? 0 : parseFloat(precioNino) || 0,
       stack: stackActivo,
       nota: '',
-      personas: [
-        { n: persona1.trim(), pagos: [] },
-        { n: persona2.trim(), pagos: [] },
-        ...(tipo === 'Triple' ? [{ n: persona3.trim() || '', pagos: [] }] : []),
-      ],
+      personas,
     });
 
     onClose();
@@ -62,6 +63,7 @@ const ModalAgregarHabitacion = ({ open, onClose }) => {
         <div className={styles.formRow}>
           <label htmlFor="mTipo">Tipo</label>
           <select id="mTipo" value={tipo} onChange={(e) => setTipo(e.target.value)}>
+            <option>Single</option>
             <option>Doble</option>
             <option>Triple</option>
           </select>
@@ -71,15 +73,13 @@ const ModalAgregarHabitacion = ({ open, onClose }) => {
           <input id="mP1" type="text" value={persona1} onChange={(e) => setPersona1(e.target.value)} placeholder="Nombre completo" />
         </div>
         <div className={styles.formRow}>
-          <label htmlFor="mP2">Persona 2</label>
+          <label htmlFor="mP2">Persona 2 {tipo !== 'Single' && <span style={{ fontSize: '0.85em', color: '#666' }}>(opcional)</span>}</label>
           <input id="mP2" type="text" value={persona2} onChange={(e) => setPersona2(e.target.value)} placeholder="Nombre completo" />
         </div>
-        {tipo === 'Triple' && (
-          <div className={styles.formRow}>
-            <label htmlFor="mP3">Persona 3 (triple)</label>
-            <input id="mP3" type="text" value={persona3} onChange={(e) => setPersona3(e.target.value)} placeholder="Nombre completo" />
-          </div>
-        )}
+        <div className={styles.formRow}>
+          <label htmlFor="mP3">Persona 3 {tipo === 'Triple' && <span style={{ fontSize: '0.85em', color: '#666' }}>(opcional)</span>}</label>
+          <input id="mP3" type="text" value={persona3} onChange={(e) => setPersona3(e.target.value)} placeholder="Nombre completo" disabled={tipo !== 'Triple'} />
+        </div>
         <div className={`${styles.formRow} ${styles.stackToggle}`}>
           <button type="button" className={stackActivo ? 'button button-primary' : 'button'} onClick={() => setStackActivo(!stackActivo)}>
             STACK

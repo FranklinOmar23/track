@@ -56,6 +56,11 @@ export const eliminarPago = (personaId, pagoId) =>
     method: 'DELETE',
   });
 
+export const eliminarPersona = (personaId) =>
+  request(`/api/personas/${personaId}`, {
+    method: 'DELETE',
+  });
+
 export const fetchViajes = () => request('/api/viajes');
 export const crearViaje = (viaje) =>
   request('/api/viajes', {

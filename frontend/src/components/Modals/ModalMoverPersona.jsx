@@ -7,8 +7,8 @@ const ModalMoverPersona = ({ habOrigen, perIdx, persona, onClose }) => {
   const destinos = state.habitaciones.filter((hab) => {
     if (hab.id === habOrigen) return false;
     const ocupados = hab.personas.filter((p) => p.n).length;
-    const capacidad = hab.tipo === 'Triple' ? 3 : 2;
-    return ocupados < capacidad;
+    const capacidad = hab.tipo === 'Triple' ? 3 : hab.tipo === 'Single' ? 1 : 2;
+    return ocupados <= capacidad;
   });
 
   const [destinoSeleccionado, setDestinoSeleccionado] = useState(destinos[0]?.id || '');
@@ -36,11 +36,17 @@ const ModalMoverPersona = ({ habOrigen, perIdx, persona, onClose }) => {
             <div className={styles.formRow}>
               <label htmlFor="destHab">Destino</label>
               <select id="destHab" value={destinoSeleccionado} onChange={(event) => setDestinoSeleccionado(event.target.value)}>
-                {destinos.map((hab) => (
-                  <option key={hab.id} value={hab.id}>
-                    Hab {hab.num} ({hab.tipo})
-                  </option>
-                ))}
+                {destinos.map((hab) => {
+                  const ocupados = hab.personas.filter((p) => p.n).length;
+                  const capacidad = hab.tipo === 'Triple' ? 3 : hab.tipo === 'Single' ? 1 : 2;
+                  const llena = ocupados >= capacidad;
+                  const label = llena ? `Hab ${hab.num} (${hab.tipo} → será ${hab.tipo === 'Single' ? 'Doble' : 'Triple'})` : `Hab ${hab.num} (${hab.tipo})`;
+                  return (
+                    <option key={hab.id} value={hab.id}>
+                      {label}
+                    </option>
+                  );
+                })}
               </select>
             </div>
             <div className={styles.modalActions}>

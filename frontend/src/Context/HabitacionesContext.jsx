@@ -298,6 +298,19 @@ export const HabitacionesProvider = ({ children }) => {
     }
   };
 
+  const eliminarPersona = async (habId, perIdx) => {
+    try {
+      const habitacion = state.habitaciones.find((hab) => hab.id === habId);
+      const persona = habitacion?.personas[perIdx];
+      if (!persona?.id) return;
+
+      await api.eliminarPersona(persona.id);
+      await cargarHabitaciones(state.selectedViajeId);
+    } catch (error) {
+      console.error('Error eliminando persona:', error);
+    }
+  };
+
   const moverPersona = async (habOrigen, habDestino, perIdx) => {
     try {
       const habitacion = state.habitaciones.find((hab) => hab.id === habOrigen);
@@ -305,7 +318,7 @@ export const HabitacionesProvider = ({ children }) => {
       if (!persona?.id) return;
 
       await api.moverPersona(persona.id, habDestino);
-      dispatch({ type: 'MOVER_PERSONA', payload: { habOrigen, habDestino, personaId: persona.id } });
+      await cargarHabitaciones(state.selectedViajeId);
     } catch (error) {
       console.error('Error moviendo persona:', error);
     }
@@ -335,6 +348,7 @@ export const HabitacionesProvider = ({ children }) => {
     registrarPago,
     actualizarPago,
     eliminarPago,
+    eliminarPersona,
     moverPersona,
     actualizarNota,
     setFiltros,

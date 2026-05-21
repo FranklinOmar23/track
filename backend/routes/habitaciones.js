@@ -148,6 +148,30 @@ router.delete('/:id', async (req, res) => {
   res.json({ ok: true });
 });
 
+router.patch('/:id/tipo', async (req, res) => {
+  const habitacionId = Number(req.params.id);
+  const { nuevoTipo } = req.body;
+
+  if (!nuevoTipo || !['Single', 'Doble', 'Triple'].includes(nuevoTipo)) {
+    return res.status(400).json({ error: 'Tipo inválido.' });
+  }
+
+  const [hab] = await pool.query(
+    'SELECT COUNT(*) as ocupados FROM personas WHERE habitacion_id = ? AND nombre IS NOT NULL AND nombre != ""',
+    [habitacionId]
+  );
+
+  const ocupados = hab[0].ocupados;
+  const capacidadRequerida = nuevoTipo === 'Triple' ? 3 : nuevoTipo === 'Single' ? 1 : 2;
+
+  if (ocupados > capacidadRequerida) {
+    return res.status(400).json({ error: `No se puede cambiar a ${nuevoTipo} con ${ocupados} personas.` });
+  }
+
+  await pool.query('UPDATE habitaciones SET tipo = ? WHERE id = ?', [nuevoTipo, habitacionId]);
+  res.json({ ok: true });
+});
+
 router.put('/:id/nota', async (req, res) => {
   const habitacionId = Number(req.params.id);
   const { nota } = req.body;

@@ -2,7 +2,7 @@ import React from 'react';
 import { formatCurrency } from '../../utils/formatters';
 import styles from '../styles/components/habitaciones.module.css';
 
-const PersonaRow = ({ persona, totalHabitacion, cantidadPersonas, onRegistrarPago, onMover, onEditarPago }) => {
+const PersonaRow = ({ persona, totalHabitacion, cantidadPersonas, onRegistrarPago, onMover, onEditarPago, onEliminar }) => {
   const pagadoPersona = persona.pagos.reduce((sum, pago) => sum + pago.monto, 0);
   const cuotaIdeal = cantidadPersonas ? Math.round(totalHabitacion / cantidadPersonas) : 0;
   const pendiente = Math.max(0, cuotaIdeal - pagadoPersona);
@@ -32,12 +32,17 @@ const PersonaRow = ({ persona, totalHabitacion, cantidadPersonas, onRegistrarPag
       <div className={pendiente > 0 ? styles.personaPendiente : styles.personaOk}>
         {pendiente > 0 ? `-${formatCurrency(pendiente)}` : '✓'}
       </div>
-      <button className={styles.btnPago} type="button" onClick={onRegistrarPago}>
-        + pago
-      </button>
-      <button className={styles.btnPago} type="button" onClick={onMover}>
-        Mover
-      </button>
+      <div style={{ display: 'flex', gap: '6px' }}>
+        <button className={styles.btnPago} type="button" onClick={onRegistrarPago}>
+          + pago
+        </button>
+        <button className={styles.btnPago} type="button" onClick={onMover}>
+          Mover
+        </button>
+        <button className={`${styles.btnPago} ${styles.btnEliminar}`} type="button" onClick={onEliminar}>
+          ✕
+        </button>
+      </div>
     </div>
   );
 };

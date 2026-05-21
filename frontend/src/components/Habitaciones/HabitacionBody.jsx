@@ -9,7 +9,7 @@ import { calcularTotalPagado } from '../../utils/calculos';
 import { formatCurrency } from '../../utils/formatters';
 
 const HabitacionBody = ({ habitacion }) => {
-  const { actualizarNota, eliminarHabitacion } = useHabitacionesContext();
+  const { actualizarNota, eliminarHabitacion, eliminarPersona } = useHabitacionesContext();
   const [modalPago, setModalPago] = useState(null);
   const [modalMover, setModalMover] = useState(null);
   const [modalDesglose, setModalDesglose] = useState(false);
@@ -29,6 +29,7 @@ const HabitacionBody = ({ habitacion }) => {
           onRegistrarPago={() => setModalPago({ perIdx: index, persona, pago: null })}
           onMover={() => setModalMover({ perIdx: index, persona })}
           onEditarPago={(pago) => setModalPago({ perIdx: index, persona, pago })}
+          onEliminar={() => eliminarPersona(habitacion.id, index)}
         />
       ))}
 

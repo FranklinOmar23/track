@@ -66,4 +66,55 @@ router.delete('/:id/pagos/:pagoId', async (req, res) => {
   res.json({ ok: true });
 });
 
+router.delete('/:id', async (req, res) => {
+  const personaId = Number(req.params.id);
+  const connection = await pool.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    const [personaRows] = await connection.query(
+      'SELECT habitacion_id FROM personas WHERE id = ?',
+      [personaId]
+    );
+
+    if (!personaRows.length) {
+      await connection.rollback();
+      return res.status(404).json({ error: 'Persona no encontrada.' });
+    }
+
+    const habitacionId = personaRows[0].habitacion_id;
+
+    await connection.query('DELETE FROM personas WHERE id = ?', [personaId]);
+
+    const [remaining] = await connection.query(
+      'SELECT COUNT(*) as count FROM personas WHERE habitacion_id = ? AND nombre IS NOT NULL AND nombre != ""',
+      [habitacionId]
+    );
+
+    const newOccupancy = remaining[0].count;
+    const newTipo = newOccupancy === 1 ? 'Single' : newOccupancy === 2 ? 'Doble' : 'Triple';
+
+    const [habitacion] = await connection.query(
+      'SELECT tipo FROM habitaciones WHERE id = ?',
+      [habitacionId]
+    );
+
+    if (habitacion.length && newTipo !== habitacion[0].tipo) {
+      await connection.query(
+        'UPDATE habitaciones SET tipo = ? WHERE id = ?',
+        [newTipo, habitacionId]
+      );
+    }
+
+    await connection.commit();
+    res.json({ ok: true });
+  } catch (error) {
+    await connection.rollback();
+    res.status(500).json({ error: error.message });
+  } finally {
+    connection.release();
+  }
+});
+
 export default router;

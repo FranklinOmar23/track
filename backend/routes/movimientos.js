@@ -28,13 +28,17 @@ router.post('/', async (req, res) => {
       return res.status(404).json({ error: 'Habitación de destino no encontrada.' });
     }
 
-    const capacidad = destHabRows[0].tipo === 'Triple' ? 3 : 2;
+    const destTipoActual = destHabRows[0].tipo;
+    const capacidadActual = destTipoActual === 'Triple' ? 3 : destTipoActual === 'Single' ? 1 : 2;
+
     const [ocupacionRows] = await connection.query(
-      'SELECT COUNT(*) AS total FROM personas WHERE habitacion_id = ?',
+      'SELECT COUNT(*) AS total FROM personas WHERE habitacion_id = ? AND nombre IS NOT NULL AND nombre != ""',
       [destinoHabitacionId]
     );
 
-    if (ocupacionRows[0].total >= capacidad) {
+    const ocupadosDestino = ocupacionRows[0].total;
+
+    if (ocupadosDestino > capacidadActual) {
       await connection.rollback();
       return res.status(400).json({ error: 'La habitación destino no tiene espacio disponible.' });
     }
@@ -55,6 +59,31 @@ router.post('/', async (req, res) => {
       'INSERT INTO historial_movimientos (persona_id, habitacion_origen_id, habitacion_destino_id) VALUES (?, ?, ?)',
       [personaId, habitacionOrigenId, destinoHabitacionId]
     );
+
+    // Auto-actualizar tipo de habitación destino
+    const nuevoOcupadosDestino = ocupadosDestino + 1;
+    const nuevoTipoDestino = nuevoOcupadosDestino === 1 ? 'Single' : nuevoOcupadosDestino === 2 ? 'Doble' : 'Triple';
+
+    if (nuevoTipoDestino !== destTipoActual) {
+      await connection.query('UPDATE habitaciones SET tipo = ? WHERE id = ?', [nuevoTipoDestino, destinoHabitacionId]);
+    }
+
+    // Auto-actualizar tipo de habitación origen
+    const [ocupacionOrigenRows] = await connection.query(
+      'SELECT COUNT(*) AS total FROM personas WHERE habitacion_id = ? AND nombre IS NOT NULL AND nombre != ""',
+      [habitacionOrigenId]
+    );
+
+    const nuevoOcupadosOrigen = ocupacionOrigenRows[0].total - 1;
+
+    if (nuevoOcupadosOrigen > 0) {
+      const nuevoTipoOrigen = nuevoOcupadosOrigen === 1 ? 'Single' : nuevoOcupadosOrigen === 2 ? 'Doble' : 'Triple';
+      const [habOrigenTipo] = await connection.query('SELECT tipo FROM habitaciones WHERE id = ?', [habitacionOrigenId]);
+
+      if (nuevoTipoOrigen !== habOrigenTipo[0].tipo) {
+        await connection.query('UPDATE habitaciones SET tipo = ? WHERE id = ?', [nuevoTipoOrigen, habitacionOrigenId]);
+      }
+    }
 
     await connection.commit();
     res.json({ ok: true });
