@@ -1,22 +1,35 @@
-import React from 'react';
+import React, { useState } from 'react';
 import HabitacionHeader from './HabitacionHeader';
-import HabitacionBody from './HabitacionBody';
-import { useHabitacionesContext } from '../../Context/HabitacionesContext';
+import ModalDetallesHabitacion from '../Modals/ModalDetallesHabitacion';
 import styles from '../styles/components/habitaciones.module.css';
 
 const HabitacionCard = ({ habitacion }) => {
-  const { state, toggleExpanded } = useHabitacionesContext();
-  const isExpanded = state.expandedHabs[habitacion.id] || false;
+  const [isModalOpen, setIsModalOpen] = useState(false);
   
   return (
-    <article className={styles.habCard}>
-      <HabitacionHeader 
-        habitacion={habitacion}
-        isExpanded={isExpanded}
-        onToggle={() => toggleExpanded(habitacion.id)}
-      />
-      {isExpanded && <HabitacionBody habitacion={habitacion} />}
-    </article>
+    <>
+      <article className={styles.habCard}>
+        <button 
+          type="button"
+          className={styles.habHeader}
+          onClick={() => setIsModalOpen(true)}
+          style={{ width: '100%', padding: '0.75rem 0.75rem', background: 'none', border: 'none', cursor: 'pointer' }}
+        >
+          <HabitacionHeader 
+            habitacion={habitacion}
+            isExpanded={false}
+            onToggle={() => setIsModalOpen(true)}
+          />
+        </button>
+      </article>
+
+      {isModalOpen && (
+        <ModalDetallesHabitacion 
+          habitacion={habitacion} 
+          onClose={() => setIsModalOpen(false)} 
+        />
+      )}
+    </>
   );
 };
 
