@@ -22,7 +22,11 @@ const Toolbar = ({ onOpenAgregar, onOpenDesglose }) => {
     <section className="toolbar" aria-label="Controles de viaje, búsqueda y filtro" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center', marginBottom: '1rem' }}>
       <select
         value={selectedViajeId || ''}
-        onChange={(event) => seleccionarViaje(event.target.value ? Number(event.target.value) : null)}
+        onChange={(event) => {
+          const value = event.target.value;
+          const viajeId = value === '' ? null : value;
+          seleccionarViaje(viajeId);
+        }}
         aria-label="Seleccionar viaje"
         style={{ minWidth: '200px', border: '1px solid var(--color-border-tertiary)', borderRadius: '10px', padding: '0.65rem 0.75rem', fontSize: '0.95rem', background: 'var(--color-background-secondary)', color: 'var(--color-text-primary)' }}
       >

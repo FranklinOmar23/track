@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+const API_BASE = import.meta.env.VITE_API_URL || 'https://coral-butterfly-408024.hostingersite.com';
 
 const request = async (path, options = {}) => {
   const response = await fetch(`${API_BASE}${path}`, {
@@ -61,4 +61,8 @@ export const crearViaje = (viaje) =>
   request('/api/viajes', {
     method: 'POST',
     body: JSON.stringify(viaje),
+  });
+export const ensureDefaultViaje = () =>
+  request('/api/viajes/default', {
+    method: 'POST',
   });

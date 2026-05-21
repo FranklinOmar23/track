@@ -4,6 +4,8 @@ import * as api from '../utils/api';
 
 const HabitacionesContext = createContext();
 
+const DEFAULT_VIAJE_ID = 'default';
+
 const initialState = {
   viajes: [],
   selectedViajeId: null,
@@ -170,6 +172,30 @@ export const HabitacionesProvider = ({ children }) => {
   const cargarViajes = async () => {
     try {
       const viajes = await api.fetchViajes();
+
+      if (!viajes.length) {
+        try {
+          const viajePredeterminado = await api.ensureDefaultViaje();
+          dispatch({ type: 'SET_VIAJES', payload: [viajePredeterminado] });
+          dispatch({ type: 'SET_SELECTED_VIAJE', payload: viajePredeterminado.id });
+          await cargarHabitaciones(viajePredeterminado.id);
+          return;
+        } catch (error) {
+          console.error('No se pudo crear el viaje predeterminado:', error);
+          const fallbackViaje = {
+            id: DEFAULT_VIAJE_ID,
+            nombre: 'Resort MamaTingo',
+            fechaInicio: null,
+            fechaFin: null,
+            nota: 'Viaje predeterminado para pagos existentes',
+          };
+          dispatch({ type: 'SET_VIAJES', payload: [fallbackViaje] });
+          dispatch({ type: 'SET_SELECTED_VIAJE', payload: DEFAULT_VIAJE_ID });
+          await cargarHabitaciones(DEFAULT_VIAJE_ID);
+          return;
+        }
+      }
+
       dispatch({ type: 'SET_VIAJES', payload: viajes });
       if (viajes.length && !state.selectedViajeId) {
         dispatch({ type: 'SET_SELECTED_VIAJE', payload: viajes[0].id });
@@ -182,7 +208,8 @@ export const HabitacionesProvider = ({ children }) => {
 
   const cargarHabitaciones = async (viajeId = null) => {
     try {
-      const habitaciones = await api.fetchHabitaciones(viajeId);
+      const effectiveViajeId = viajeId === DEFAULT_VIAJE_ID ? null : viajeId;
+      const habitaciones = await api.fetchHabitaciones(effectiveViajeId);
       dispatch({ type: 'SET_HABITACIONES', payload: habitaciones });
     } catch (error) {
       console.error('Error cargando habitaciones:', error);
@@ -206,8 +233,9 @@ export const HabitacionesProvider = ({ children }) => {
 
   const seleccionarViaje = async (viajeId) => {
     try {
+      const effectiveViajeId = viajeId === DEFAULT_VIAJE_ID ? null : viajeId;
       dispatch({ type: 'SET_SELECTED_VIAJE', payload: viajeId });
-      await cargarHabitaciones(viajeId);
+      await cargarHabitaciones(effectiveViajeId);
     } catch (error) {
       console.error('Error seleccionando viaje:', error);
     }
