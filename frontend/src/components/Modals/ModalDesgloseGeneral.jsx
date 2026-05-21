@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { useHabitacionesContext } from '../../context/HabitacionesContext';
+import { useHabitacionesContext } from '../../Context/HabitacionesContext';
 import styles from '../styles/components/modals.module.css';
 import { MESES, formatCurrency } from '../../utils/formatters';
 

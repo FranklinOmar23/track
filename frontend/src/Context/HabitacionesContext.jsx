@@ -5,6 +5,8 @@ import * as api from '../utils/api';
 const HabitacionesContext = createContext();
 
 const initialState = {
+  viajes: [],
+  selectedViajeId: null,
   habitaciones: [],
   expandedHabs: {},
   filtros: {
@@ -19,6 +21,24 @@ function habitacionesReducer(state, action) {
       return {
         ...state,
         habitaciones: action.payload,
+      };
+
+    case 'SET_VIAJES':
+      return {
+        ...state,
+        viajes: action.payload,
+      };
+
+    case 'SET_SELECTED_VIAJE':
+      return {
+        ...state,
+        selectedViajeId: action.payload,
+      };
+
+    case 'AGREGAR_VIAJE':
+      return {
+        ...state,
+        viajes: [action.payload, ...state.viajes],
       };
 
     case 'AGREGAR_HABITACION':
@@ -147,9 +167,22 @@ export const useHabitacionesContext = () => {
 export const HabitacionesProvider = ({ children }) => {
   const [state, dispatch] = useReducer(habitacionesReducer, initialState);
 
-  const cargarHabitaciones = async () => {
+  const cargarViajes = async () => {
     try {
-      const habitaciones = await api.fetchHabitaciones();
+      const viajes = await api.fetchViajes();
+      dispatch({ type: 'SET_VIAJES', payload: viajes });
+      if (viajes.length && !state.selectedViajeId) {
+        dispatch({ type: 'SET_SELECTED_VIAJE', payload: viajes[0].id });
+        await cargarHabitaciones(viajes[0].id);
+      }
+    } catch (error) {
+      console.error('Error cargando viajes:', error);
+    }
+  };
+
+  const cargarHabitaciones = async (viajeId = null) => {
+    try {
+      const habitaciones = await api.fetchHabitaciones(viajeId);
       dispatch({ type: 'SET_HABITACIONES', payload: habitaciones });
     } catch (error) {
       console.error('Error cargando habitaciones:', error);
@@ -157,12 +190,32 @@ export const HabitacionesProvider = ({ children }) => {
   };
 
   useEffect(() => {
-    cargarHabitaciones();
+    cargarViajes();
   }, []);
+
+  const crearViaje = async (viaje) => {
+    try {
+      const nuevoViaje = await api.crearViaje(viaje);
+      dispatch({ type: 'AGREGAR_VIAJE', payload: nuevoViaje });
+      dispatch({ type: 'SET_SELECTED_VIAJE', payload: nuevoViaje.id });
+      await cargarHabitaciones(nuevoViaje.id);
+    } catch (error) {
+      console.error('Error creando viaje:', error);
+    }
+  };
+
+  const seleccionarViaje = async (viajeId) => {
+    try {
+      dispatch({ type: 'SET_SELECTED_VIAJE', payload: viajeId });
+      await cargarHabitaciones(viajeId);
+    } catch (error) {
+      console.error('Error seleccionando viaje:', error);
+    }
+  };
 
   const agregarHabitacion = async (hab) => {
     try {
-      const nuevaHabitacion = await api.crearHabitacion(hab);
+      const nuevaHabitacion = await api.crearHabitacion({ ...hab, viajeId: state.selectedViajeId });
       dispatch({ type: 'AGREGAR_HABITACION', payload: nuevaHabitacion });
     } catch (error) {
       console.error('Error creando habitación:', error);
@@ -246,6 +299,8 @@ export const HabitacionesProvider = ({ children }) => {
   const value = {
     state,
     cargarHabitaciones,
+    crearViaje,
+    seleccionarViaje,
     agregarHabitacion,
     eliminarHabitacion,
     toggleExpanded: (id) => dispatch({ type: 'TOGGLE_EXPANDED', payload: id }),

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { HabitacionesProvider } from './context/HabitacionesContext';
+import { HabitacionesProvider } from './Context/HabitacionesContext';
 import Header from './components/layout/Header';
 import StatsGrid from './components/layout/StatsGrid';
 import Toolbar from './components/layout/Toolbar';

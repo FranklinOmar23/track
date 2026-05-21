@@ -16,7 +16,10 @@ const request = async (path, options = {}) => {
   return response.json();
 };
 
-export const fetchHabitaciones = () => request('/api/habitaciones');
+export const fetchHabitaciones = (viajeId) => {
+  const query = viajeId ? `?viajeId=${viajeId}` : '';
+  return request(`/api/habitaciones${query}`);
+};
 export const crearHabitacion = (habitacion) =>
   request('/api/habitaciones', {
     method: 'POST',
@@ -51,4 +54,11 @@ export const actualizarPago = (personaId, pagoId, pago) =>
 export const eliminarPago = (personaId, pagoId) =>
   request(`/api/personas/${personaId}/pagos/${pagoId}`, {
     method: 'DELETE',
+  });
+
+export const fetchViajes = () => request('/api/viajes');
+export const crearViaje = (viaje) =>
+  request('/api/viajes', {
+    method: 'POST',
+    body: JSON.stringify(viaje),
   });

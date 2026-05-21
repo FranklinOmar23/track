@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useHabitacionesContext } from '../../context/HabitacionesContext';
+import { useHabitacionesContext } from '../../Context/HabitacionesContext';
 import { MESES } from '../../utils/formatters';
 import styles from '../styles/components/modals.module.css';
 

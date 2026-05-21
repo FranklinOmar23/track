@@ -1,9 +1,11 @@
-import React from 'react';
-import { useHabitacionesContext } from '../../context/HabitacionesContext';
+import React, { useState } from 'react';
+import { useHabitacionesContext } from '../../Context/HabitacionesContext';
+import ModalAgregarViaje from '../Modals/ModalAgregarViaje';
 
 const Toolbar = ({ onOpenAgregar, onOpenDesglose }) => {
-  const { state, setFiltros } = useHabitacionesContext();
+  const { state, setFiltros, crearViaje, seleccionarViaje } = useHabitacionesContext();
   const { busqueda, estado } = state.filtros;
+  const [isAgregarViajeOpen, setIsAgregarViajeOpen] = useState(false);
 
   const handleSearchChange = (event) => {
     setFiltros({ ...state.filtros, busqueda: event.target.value });
@@ -13,8 +15,25 @@ const Toolbar = ({ onOpenAgregar, onOpenDesglose }) => {
     setFiltros({ ...state.filtros, estado: event.target.value });
   };
 
+  const viajes = state?.viajes || [];
+  const selectedViajeId = state?.selectedViajeId ?? '';
+
   return (
-    <section className="toolbar" aria-label="Controles de búsqueda y filtro" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center', marginBottom: '1rem' }}>
+    <section className="toolbar" aria-label="Controles de viaje, búsqueda y filtro" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center', marginBottom: '1rem' }}>
+      <select
+        value={selectedViajeId || ''}
+        onChange={(event) => seleccionarViaje(event.target.value ? Number(event.target.value) : null)}
+        aria-label="Seleccionar viaje"
+        style={{ minWidth: '200px', border: '1px solid var(--color-border-tertiary)', borderRadius: '10px', padding: '0.65rem 0.75rem', fontSize: '0.95rem', background: 'var(--color-background-secondary)', color: 'var(--color-text-primary)' }}
+      >
+        <option value="">Seleccionar viaje</option>
+        {viajes.map((viaje) => (
+          <option key={viaje.id} value={viaje.id}>{viaje.nombre}</option>
+        ))}
+      </select>
+      <button className="button" type="button" onClick={() => setIsAgregarViajeOpen(true)} style={{ whiteSpace: 'nowrap' }}>
+        + Nuevo viaje
+      </button>
       <input
         type="text"
         value={busqueda}
@@ -39,6 +58,16 @@ const Toolbar = ({ onOpenAgregar, onOpenDesglose }) => {
       <button className="button" type="button" onClick={onOpenDesglose} style={{ whiteSpace: 'nowrap' }}>
         Desglose general
       </button>
+      {isAgregarViajeOpen && (
+        <ModalAgregarViaje
+          open={isAgregarViajeOpen}
+          onClose={() => setIsAgregarViajeOpen(false)}
+          onCreate={(viaje) => {
+            crearViaje(viaje);
+            setIsAgregarViajeOpen(false);
+          }}
+        />
+      )}
     </section>
   );
 };

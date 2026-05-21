@@ -1,5 +1,5 @@
 import React from 'react';
-import { useHabitacionesContext } from '../../context/HabitacionesContext';
+import { useHabitacionesContext } from '../../Context/HabitacionesContext';
 import { calcularEstadisticas, calcularTotalPagado } from '../../utils/calculos';
 import styles from '../styles/components/stats.module.css';
 

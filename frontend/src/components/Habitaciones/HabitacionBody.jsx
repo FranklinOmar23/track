@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useHabitacionesContext } from '../../context/HabitacionesContext';
+import { useHabitacionesContext } from '../../Context/HabitacionesContext';
 import PersonaRow from './PersonaRow';
 import ModalRegistrarPago from '../Modals/ModalRegistrarPago';
 import ModalMoverPersona from '../Modals/ModalMoverPersona';

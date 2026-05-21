@@ -1,7 +1,7 @@
 import React from 'react';
 import HabitacionHeader from './HabitacionHeader';
 import HabitacionBody from './HabitacionBody';
-import { useHabitacionesContext } from '../../context/HabitacionesContext';
+import { useHabitacionesContext } from '../../Context/HabitacionesContext';
 import styles from '../styles/components/habitaciones.module.css';
 
 const HabitacionCard = ({ habitacion }) => {

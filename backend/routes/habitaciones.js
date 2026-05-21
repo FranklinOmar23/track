@@ -51,6 +51,15 @@ const mapHabitaciones = (rows) => {
 };
 
 router.get('/', async (req, res) => {
+  const viajeId = req.query.viajeId ? Number(req.query.viajeId) : null;
+  const query = [];
+  const params = [];
+
+  if (viajeId) {
+    query.push('WHERE h.viaje_id = ?');
+    params.push(viajeId);
+  }
+
   const [rows] = await pool.query(`
     SELECT
       h.id AS habitacion_id,
@@ -69,8 +78,9 @@ router.get('/', async (req, res) => {
     FROM habitaciones h
     LEFT JOIN personas p ON p.habitacion_id = h.id
     LEFT JOIN pagos pag ON pag.persona_id = p.id
+    ${query.join(' ')}
     ORDER BY h.id, p.posicion, pag.id
-  `);
+  `, params);
 
   res.json(mapHabitaciones(rows));
 });
@@ -88,8 +98,8 @@ router.post('/', async (req, res) => {
     await connection.beginTransaction();
 
     const [result] = await connection.query(
-      'INSERT INTO habitaciones (numero, tipo, total, precio_nino, es_stack, nota) VALUES (?, ?, ?, ?, ?, ?)',
-      [num, tipo, total || 0, precioNino || 0, stack ? 1 : 0, nota || '']
+      'INSERT INTO habitaciones (numero, tipo, total, precio_nino, es_stack, nota, viaje_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [num, tipo, total || 0, precioNino || 0, stack ? 1 : 0, nota || '', req.body.viajeId || null]
     );
 
     const habitacionId = result.insertId;
