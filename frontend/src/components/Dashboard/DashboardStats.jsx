@@ -4,14 +4,14 @@ import { Plane, Building2, Bus, DollarSign, TrendingUp } from 'lucide-react';
 
 const StatCard = ({ title, value, icon: Icon, iconBgColor, iconColor }) => {
   return (
-    <Card className="p-5 border-none shadow-sm hover:shadow-md transition-shadow">
+    <Card className="p-4 sm:p-5 border-none shadow-sm hover:shadow-md transition-shadow">
       <div className="flex items-start justify-between">
         <div className="flex flex-col">
-          <span className="text-sm text-muted-foreground font-medium">{title}</span>
-          <span className="text-2xl font-bold text-foreground mt-1">{value}</span>
+          <span className="text-xs sm:text-sm text-muted-foreground font-medium">{title}</span>
+          <span className="text-xl sm:text-2xl font-bold text-foreground mt-1">{value}</span>
         </div>
-        <div className={`p-2.5 rounded-xl ${iconBgColor}`}>
-          <Icon className={`h-5 w-5 ${iconColor}`} />
+        <div className={`p-2 rounded-xl ${iconBgColor}`}>
+          <Icon className={`h-4 w-4 sm:h-5 sm:w-5 ${iconColor}`} />
         </div>
       </div>
     </Card>

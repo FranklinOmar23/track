@@ -27,7 +27,7 @@ export const DashboardFull = ({ onSelectViaje }) => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
+      <div className="flex items-center justify-center h-64 ">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
@@ -66,7 +66,7 @@ export const DashboardFull = ({ onSelectViaje }) => {
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('es-DO', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'DOP',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(value);

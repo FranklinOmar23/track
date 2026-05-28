@@ -21,37 +21,34 @@ const HomeViajes = ({ onSelectViaje }) => {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
-      {/* Header con botones de navegación */}
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex flex-col gap-4 mb-8 sm:flex-row sm:justify-between sm:items-center">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Mis Viajes</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Mis Viajes</h1>
+          <p className="text-muted-foreground mt-1 text-sm">
             Selecciona un viaje para gestionar sus habitaciones
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-2 flex-wrap">
           <button
             onClick={() => setActiveView('dashboard')}
-            className={`px-4 py-2 rounded-lg transition-colors ${
-              activeView === 'dashboard'
+            className={`flex-1 sm:flex-none px-4 py-2 rounded-lg transition-colors text-sm ${activeView === 'dashboard'
                 ? 'bg-primary text-primary-foreground'
                 : 'bg-muted text-muted-foreground hover:bg-muted/80'
-            }`}
+              }`}
           >
             Dashboard
           </button>
           <button
             onClick={() => setActiveView('viajes')}
-            className={`px-4 py-2 rounded-lg transition-colors ${
-              activeView === 'viajes'
+            className={`flex-1 sm:flex-none px-4 py-2 rounded-lg transition-colors text-sm ${activeView === 'viajes'
                 ? 'bg-primary text-primary-foreground'
                 : 'bg-muted text-muted-foreground hover:bg-muted/80'
-            }`}
+              }`}
           >
             Mis Viajes
           </button>
           <button
-            className="bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2"
+            className="w-full sm:w-auto bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 text-sm"
             onClick={() => setIsModalOpen(true)}
           >
             <span>+</span> Nuevo viaje

@@ -20,62 +20,75 @@ const Toolbar = ({ onOpenAgregar, onOpenDesglose }) => {
   const selectedViajeId = state?.selectedViajeId ?? '';
 
   return (
-    <div className="flex flex-wrap gap-3 items-center mb-6">
-      <select
-        value={selectedViajeId || ''}
-        onChange={(e) => {
-          const id = e.target.value === '' ? null : e.target.value;
-          seleccionarViaje(id);
-        }}
-        className="border border-gray-200 rounded-lg px-3 py-2 bg-white text-sm"
-      >
-        <option value="">Seleccionar viaje</option>
-        {viajes.map(v => (
-          <option key={v.id} value={v.id}>{v.nombre}</option>
-        ))}
-      </select>
+    <div className="flex flex-col gap-2 mb-6">
 
-      <button
-        onClick={() => setIsAgregarViajeOpen(true)}
-        className="border border-gray-200 rounded-lg px-4 py-2 text-sm flex items-center gap-1 hover:bg-gray-50"
-      >
-        + Nuevo viaje
-      </button>
+      {/* Fila 1: Selector de viaje + botón nuevo viaje */}
+      <div className="flex gap-2">
+        <select
+          value={selectedViajeId || ''}
+          onChange={(e) => {
+            const id = e.target.value === '' ? null : e.target.value;
+            seleccionarViaje(id);
+          }}
+          className="flex-1 min-w-0 border border-gray-200 rounded-lg px-3 py-2 bg-white text-sm"
+        >
+          <option value="">Seleccionar viaje</option>
+          {viajes.map((v) => (
+            <option key={v.id} value={v.id}>
+              {v.nombre}
+            </option>
+          ))}
+        </select>
 
-      <div className="relative flex-1 min-w-[200px]">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-        <input
-          type="text"
-          value={busqueda}
-          onChange={handleSearchChange}
-          placeholder="Buscar habitación o persona..."
-          className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg bg-white text-sm"
-        />
+        <button
+          onClick={() => setIsAgregarViajeOpen(true)}
+          className="shrink-0 border border-gray-200 rounded-lg px-3 py-2 text-sm flex items-center gap-1 hover:bg-gray-50 whitespace-nowrap"
+        >
+          + Viaje
+        </button>
       </div>
 
-      <select
-        value={estado}
-        onChange={handleEstadoChange}
-        className="border border-gray-200 rounded-lg px-3 py-2 bg-white text-sm"
-      >
-        <option value="todos">Todos</option>
-        <option value="pendiente">Con saldo pendiente</option>
-        <option value="completo">Pagados al 100%</option>
-      </select>
+      {/* Fila 2: Búsqueda + filtro de estado */}
+      <div className="flex gap-2">
+        <div className="relative flex-1 min-w-0">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <input
+            type="text"
+            value={busqueda}
+            onChange={handleSearchChange}
+            placeholder="Buscar habitación o persona..."
+            className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg bg-white text-sm"
+          />
+        </div>
 
-      <button
-        onClick={onOpenAgregar}
-        className="bg-primary text-primary-foreground rounded-lg px-4 py-2 text-sm flex items-center gap-1"
-      >
-        <Plus className="h-4 w-4" /> Agregar habitación
-      </button>
+        <select
+          value={estado}
+          onChange={handleEstadoChange}
+          className="shrink-0 border border-gray-200 rounded-lg px-3 py-2 bg-white text-sm"
+        >
+          <option value="todos">Todos</option>
+          <option value="pendiente">Pendiente</option>
+          <option value="completo">Pagados</option>
+        </select>
+      </div>
 
-      <button
-        onClick={onOpenDesglose}
-        className="border border-gray-200 rounded-lg px-4 py-2 text-sm hover:bg-gray-50"
-      >
-        Desglose general
-      </button>
+      {/* Fila 3: Botones de acción */}
+      <div className="flex gap-2">
+        <button
+          onClick={onOpenAgregar}
+          className="flex-1 bg-primary text-primary-foreground rounded-lg px-4 py-2 text-sm flex items-center justify-center gap-1.5"
+        >
+          <Plus className="h-4 w-4" />
+          Agregar habitación
+        </button>
+
+        <button
+          onClick={onOpenDesglose}
+          className="flex-1 border border-gray-200 rounded-lg px-4 py-2 text-sm hover:bg-gray-50 text-center"
+        >
+          Desglose general
+        </button>
+      </div>
 
       {isAgregarViajeOpen && (
         <ModalAgregarViaje
