@@ -5,6 +5,7 @@ import habitacionesRoutes from './routes/habitaciones.js';
 import personasRoutes from './routes/personas.js';
 import movimientosRoutes from './routes/movimientos.js';
 import viajesRoutes from './routes/viajes.js';
+import statsRoutes from './routes/stats.js'; // 👈 NUEVA
 
 dotenv.config();
 
@@ -16,6 +17,7 @@ app.use('/api/habitaciones', habitacionesRoutes);
 app.use('/api/personas', personasRoutes);
 app.use('/api/movimientos', movimientosRoutes);
 app.use('/api/viajes', viajesRoutes);
+app.use('/api/stats', statsRoutes); // 👈 NUEVA
 
 app.get('/api/health', (req, res) => {
   res.json({ ok: true, message: 'Backend en funcionamiento' });

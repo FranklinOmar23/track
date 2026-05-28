@@ -1,123 +1,104 @@
 import React, { useState } from 'react';
+import { crearViajeConSlug } from '../../utils/api';
 import styles from '../styles/components/modals.module.css';
 
 const ModalAgregarViaje = ({ open, onClose, onCreate }) => {
   const [nombre, setNombre] = useState('');
+  const [tipo, setTipo] = useState('resort');
   const [fechaInicio, setFechaInicio] = useState('');
   const [fechaFin, setFechaFin] = useState('');
   const [nota, setNota] = useState('');
-  const [tipo, setTipo] = useState('resort');
-  const [capacidad, setCapacidad] = useState('');
-
-  const handleSubmit = () => {
-    if (!nombre.trim()) return;
-    if (tipo === 'tour' && !capacidad) {
-      alert('Ingresa la capacidad de asientos para tours');
-      return;
-    }
-    onCreate({
-      nombre: nombre.trim(),
-      fechaInicio: fechaInicio || null,
-      fechaFin: fechaFin || null,
-      nota: nota || '',
-      tipo,
-      capacidad: tipo === 'tour' ? parseInt(capacidad, 10) : null,
-    });
-    setNombre('');
-    setFechaInicio('');
-    setFechaFin('');
-    setNota('');
-    setTipo('resort');
-    setCapacidad('');
-  };
+  const [loading, setLoading] = useState(false);
 
   if (!open) return null;
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!nombre.trim()) return;
+
+    setLoading(true);
+    try {
+      const nuevoViaje = await crearViajeConSlug({
+        nombre: nombre.trim(),
+        tipo,
+        fechaInicio: fechaInicio || null,
+        fechaFin: fechaFin || null,
+        nota: nota || null
+      });
+      onCreate(nuevoViaje);
+      setNombre('');
+      setTipo('resort');
+      setFechaInicio('');
+      setFechaFin('');
+      setNota('');
+      onClose();
+    } catch (error) {
+      console.error(error);
+      alert('Error al crear el viaje');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className={styles.modalOverlay} onClick={onClose}>
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-        <h3>Nuevo viaje</h3>
-
-        <div className={styles.formRow}>
-          <label>Tipo de viaje</label>
-          <div style={{ display: 'flex', gap: '1rem' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-              <input
-                type="radio"
-                name="tipo"
-                value="resort"
-                checked={tipo === 'resort'}
-                onChange={(e) => setTipo(e.target.value)}
-              />
-              🏨 Resort (habitaciones)
-            </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-              <input
-                type="radio"
-                name="tipo"
-                value="tour"
-                checked={tipo === 'tour'}
-                onChange={(e) => setTipo(e.target.value)}
-              />
-              🚐 Tour (asientos)
-            </label>
-          </div>
+        <div className={styles.modalHeader}>
+          <h2>Crear nuevo viaje</h2>
+          <button className={styles.closeBtn} onClick={onClose}>×</button>
         </div>
-
-        <div className={styles.formRow}>
-          <label>Nombre del viaje</label>
-          <input
-            type="text"
-            value={nombre}
-            onChange={(e) => setNombre(e.target.value)}
-            placeholder="Ej. Viaje enero"
-          />
-        </div>
-
-        {tipo === 'tour' && (
+        
+        <form onSubmit={handleSubmit}>
           <div className={styles.formRow}>
-            <label>Total de asientos</label>
+            <label>Nombre del viaje *</label>
             <input
-              type="number"
-              value={capacidad}
-              onChange={(e) => setCapacidad(e.target.value)}
-              placeholder="Ej. 30"
-              min="1"
+              type="text"
+              value={nombre}
+              onChange={(e) => setNombre(e.target.value)}
+              placeholder="Ej: Tour Buggie Punta Cana"
+              required
+              autoFocus
             />
           </div>
-        )}
 
-        <div className={styles.formRow}>
-          <label>Fecha inicio</label>
-          <input
-            type="date"
-            value={fechaInicio}
-            onChange={(e) => setFechaInicio(e.target.value)}
-          />
-        </div>
+          <div className={styles.formRow}>
+            <label>Tipo de viaje</label>
+            <select value={tipo} onChange={(e) => setTipo(e.target.value)}>
+              <option value="resort">🏨 Resort</option>
+              <option value="tour">🚐 Tour</option>
+            </select>
+          </div>
 
-        <div className={styles.formRow}>
-          <label>Fecha fin</label>
-          <input
-            type="date"
-            value={fechaFin}
-            onChange={(e) => setFechaFin(e.target.value)}
-          />
-        </div>
+          <div className={styles.formRowDouble}>
+            <div>
+              <label>Fecha inicio</label>
+              <input type="date" value={fechaInicio} onChange={(e) => setFechaInicio(e.target.value)} />
+            </div>
+            <div>
+              <label>Fecha fin</label>
+              <input type="date" value={fechaFin} onChange={(e) => setFechaFin(e.target.value)} />
+            </div>
+          </div>
 
-        <div className={styles.formRow}>
-          <label>Notas</label>
-          <textarea
-            value={nota}
-            onChange={(e) => setNota(e.target.value)}
-            placeholder="Opcional"
-          />
-        </div>
+          <div className={styles.formRow}>
+            <label>Nota (opcional)</label>
+            <textarea
+              value={nota}
+              onChange={(e) => setNota(e.target.value)}
+              rows={3}
+              placeholder="Información adicional..."
+            />
+          </div>
 
-        <div className={styles.modalActions}>
-          <button className="button" onClick={onClose}>Cancelar</button>
-          <button className="button button-primary" type="button" onClick={handleSubmit}>Crear viaje</button>
-        </div>
+          <div className={styles.modalActions}>
+            <button type="button" className={styles.buttonSecondary} onClick={onClose}>
+              Cancelar
+            </button>
+            <button type="submit" className={styles.buttonPrimary} disabled={loading}>
+              {loading ? 'Creando...' : 'Crear viaje'}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

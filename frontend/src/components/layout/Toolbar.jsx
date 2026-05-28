@@ -1,67 +1,82 @@
 import React, { useState } from 'react';
 import { useHabitacionesContext } from '../../Context/HabitacionesContext';
 import ModalAgregarViaje from '../Modals/ModalAgregarViaje';
+import { Search, Plus } from 'lucide-react';
 
 const Toolbar = ({ onOpenAgregar, onOpenDesglose }) => {
   const { state, setFiltros, crearViaje, seleccionarViaje } = useHabitacionesContext();
   const { busqueda, estado } = state.filtros;
   const [isAgregarViajeOpen, setIsAgregarViajeOpen] = useState(false);
 
-  const handleSearchChange = (event) => {
-    setFiltros({ ...state.filtros, busqueda: event.target.value });
+  const handleSearchChange = (e) => {
+    setFiltros({ ...state.filtros, busqueda: e.target.value });
   };
 
-  const handleEstadoChange = (event) => {
-    setFiltros({ ...state.filtros, estado: event.target.value });
+  const handleEstadoChange = (e) => {
+    setFiltros({ ...state.filtros, estado: e.target.value });
   };
 
   const viajes = state?.viajes || [];
   const selectedViajeId = state?.selectedViajeId ?? '';
 
   return (
-    <section className="toolbar" aria-label="Controles de viaje, búsqueda y filtro" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center', marginBottom: '1rem' }}>
+    <div className="flex flex-wrap gap-3 items-center mb-6">
       <select
         value={selectedViajeId || ''}
-        onChange={(event) => {
-          const value = event.target.value;
-          const viajeId = value === '' ? null : value;
-          seleccionarViaje(viajeId);
+        onChange={(e) => {
+          const id = e.target.value === '' ? null : e.target.value;
+          seleccionarViaje(id);
         }}
-        aria-label="Seleccionar viaje"
-        style={{ minWidth: '200px', border: '1px solid var(--color-border-tertiary)', borderRadius: '10px', padding: '0.65rem 0.75rem', fontSize: '0.95rem', background: 'var(--color-background-secondary)', color: 'var(--color-text-primary)' }}
+        className="border border-gray-200 rounded-lg px-3 py-2 bg-white text-sm"
       >
         <option value="">Seleccionar viaje</option>
-        {viajes.map((viaje) => (
-          <option key={viaje.id} value={viaje.id}>{viaje.nombre}</option>
+        {viajes.map(v => (
+          <option key={v.id} value={v.id}>{v.nombre}</option>
         ))}
       </select>
-      <button className="button" type="button" onClick={() => setIsAgregarViajeOpen(true)} style={{ whiteSpace: 'nowrap' }}>
+
+      <button
+        onClick={() => setIsAgregarViajeOpen(true)}
+        className="border border-gray-200 rounded-lg px-4 py-2 text-sm flex items-center gap-1 hover:bg-gray-50"
+      >
         + Nuevo viaje
       </button>
-      <input
-        type="text"
-        value={busqueda}
-        onChange={handleSearchChange}
-        placeholder="Buscar habitación o persona..."
-        aria-label="Buscar habitaciones y personas"
-        style={{ flex: 1, minWidth: '180px', border: '1px solid var(--color-border-tertiary)', borderRadius: '10px', padding: '0.65rem 0.75rem', fontSize: '0.95rem', background: 'var(--color-background-secondary)', color: 'var(--color-text-primary)' }}
-      />
+
+      <div className="relative flex-1 min-w-[200px]">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+        <input
+          type="text"
+          value={busqueda}
+          onChange={handleSearchChange}
+          placeholder="Buscar habitación o persona..."
+          className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg bg-white text-sm"
+        />
+      </div>
+
       <select
         value={estado}
         onChange={handleEstadoChange}
-        aria-label="Filtrar estado de pago"
-        style={{ border: '1px solid var(--color-border-tertiary)', borderRadius: '10px', padding: '0.65rem 0.75rem', fontSize: '0.95rem', background: 'var(--color-background-secondary)', color: 'var(--color-text-primary)' }}
+        className="border border-gray-200 rounded-lg px-3 py-2 bg-white text-sm"
       >
         <option value="todos">Todos</option>
         <option value="pendiente">Con saldo pendiente</option>
         <option value="completo">Pagados al 100%</option>
       </select>
-      <button className="button button-primary" type="button" onClick={onOpenAgregar} style={{ whiteSpace: 'nowrap' }}>
-        + Agregar habitación
+
+      <button
+        onClick={onOpenAgregar}
+        className="bg-primary text-primary-foreground rounded-lg px-4 py-2 text-sm flex items-center gap-1"
+      >
+        <Plus className="h-4 w-4" /> Agregar habitación
       </button>
-      <button className="button" type="button" onClick={onOpenDesglose} style={{ whiteSpace: 'nowrap' }}>
+
+      <button
+        onClick={onOpenDesglose}
+        className="border border-gray-200 rounded-lg px-4 py-2 text-sm hover:bg-gray-50"
+      >
         Desglose general
       </button>
+
       {isAgregarViajeOpen && (
         <ModalAgregarViaje
           open={isAgregarViajeOpen}
@@ -72,7 +87,7 @@ const Toolbar = ({ onOpenAgregar, onOpenDesglose }) => {
           }}
         />
       )}
-    </section>
+    </div>
   );
 };
 

@@ -1,0 +1,164 @@
+.dashboard {
+  padding: 1rem 0;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.statCard {
+  background: var(--color-bg-card, white);
+  border-radius: 1rem;
+  padding: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  border: 1px solid var(--color-border-tertiary);
+}
+
+.statIcon {
+  font-size: 2rem;
+}
+
+.statInfo {
+  display: flex;
+  flex-direction: column;
+}
+
+.statLabel {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+.statValue {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.chartsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.chartCard {
+  background: var(--color-bg-card, white);
+  border-radius: 1rem;
+  padding: 1.25rem;
+  border: 1px solid var(--color-border-tertiary);
+}
+
+.chartCard h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.125rem;
+}
+
+.tableWrapper {
+  background: var(--color-bg-card, white);
+  border-radius: 1rem;
+  padding: 1.25rem;
+  border: 1px solid var(--color-border-tertiary);
+  overflow-x: auto;
+}
+
+.tableWrapper h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.125rem;
+}
+
+.statsTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.statsTable th,
+.statsTable td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid var(--color-border-tertiary);
+}
+
+.statsTable th {
+  background: var(--color-bg-secondary);
+  font-weight: 600;
+}
+
+.pagado {
+  color: #10b981;
+  font-weight: 600;
+}
+
+.pendiente {
+  color: #ef4444;
+  font-weight: 600;
+}
+
+.progressBar {
+  position: relative;
+  width: 80px;
+  background: #e5e7eb;
+  border-radius: 999px;
+  height: 1.5rem;
+  overflow: hidden;
+}
+
+.progressFill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  background: #10b981;
+  transition: width 0.3s ease;
+}
+
+.progressBar span {
+  position: relative;
+  z-index: 1;
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.selectBtn {
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  padding: 0.25rem 0.75rem;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+.selectBtn:hover {
+  opacity: 0.9;
+}
+
+.loading {
+  text-align: center;
+  padding: 2rem;
+  color: var(--color-text-secondary);
+}
+
+@media (max-width: 768px) {
+  .chartsGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .statsTable {
+    font-size: 0.875rem;
+  }
+  
+  .statsTable th,
+  .statsTable td {
+    padding: 0.5rem;
+  }
+}

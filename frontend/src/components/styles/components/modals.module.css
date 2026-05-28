@@ -1,187 +1,351 @@
-/* Overlay del modal */
+/* Fondo oscuro semi-transparente */
 .modalOverlay {
   position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 1000;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(2px);
   display: flex;
   align-items: center;
   justify-content: center;
+  z-index: 1000;
   padding: 1rem;
-  animation: modalOverlayIn 0.2s ease;
-  backdrop-filter: blur(2px);
 }
 
-/* Contenedor del modal */
+/* Contenedor principal del modal - fondo blanco sólido */
 .modal {
-  background: var(--color-background-secondary);
-  border-radius: var(--border-radius-lg);
-  border: 1px solid var(--color-border-tertiary);
-  padding: 1.75rem;
+  background-color: #ffffff;
+  border-radius: 1.5rem;
+  box-shadow: 0 20px 35px -8px rgba(0, 0, 0, 0.2);
   width: 100%;
-  max-width: 450px;
-  box-shadow: var(--shadow-modal);
-  animation: modalContentIn 0.3s ease;
+  max-width: 500px;
   max-height: 90vh;
   overflow-y: auto;
+  padding: 1.75rem;
+  position: relative;
+  animation: fadeInUp 0.2s ease-out;
+  border: 1px solid #eef2f6;
 }
 
-.modalTitulo {
-  font-size: 1.25rem;
+/* Modal más ancho para detalles de habitación */
+.modalLarge {
+  max-width: 700px;
+}
+
+/* Animación */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Títulos */
+.modalTitulo,
+.modal h2,
+.modal h3 {
+  font-size: 1.5rem;
   font-weight: 600;
-  margin: 0 0 1.5rem;
-  color: var(--color-text-primary);
+  margin: 0 0 1.25rem 0;
+  color: #0f172a;
+  letter-spacing: -0.01em;
 }
 
-.modalSubtitulo {
-  font-size: 0.9rem;
-  color: var(--color-text-secondary);
+/* Secciones internas */
+.detailsSection {
   margin-bottom: 1.5rem;
-  line-height: 1.5;
 }
 
-/* Filas de formulario */
+.sectionTitle {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #64748b;
+  margin: 0 0 0.75rem 0;
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid #eef2f6;
+}
+
+/* Grupos de formulario */
+.formGroup,
 .formRow {
   margin-bottom: 1rem;
-}
-
-.formRow:last-child {
-  margin-bottom: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .formRow label {
-  display: block;
   font-size: 0.85rem;
-  color: var(--color-text-secondary);
-  margin-bottom: 0.4rem;
   font-weight: 500;
+  margin-bottom: 0.25rem;
+  color: #334155;
 }
 
 .formRow input,
-.formRow select {
-  width: 100%;
-  border: 1px solid var(--color-border-tertiary);
-  border-radius: 12px;
-  padding: 0.75rem;
-  font-size: 0.95rem;
-  background: white;
-  color: var(--color-text-primary);
-  transition: all 0.2s ease;
-}
-
-.formRow input:hover,
-.formRow select:hover {
-  border-color: #cbd5e1;
+.formRow select,
+.formRow textarea {
+  padding: 0.65rem 0.85rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.75rem;
+  font-size: 0.9rem;
+  background-color: #fff;
+  transition: all 0.2s;
+  font-family: inherit;
 }
 
 .formRow input:focus,
-.formRow select:focus {
-  border-color: var(--color-text-info);
+.formRow select:focus,
+.formRow textarea:focus {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  border-color: #0f172a;
+  box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.1);
 }
 
 .formRow input:disabled,
 .formRow select:disabled {
-  background: #f1f5f9;
+  background-color: #f8fafc;
   cursor: not-allowed;
-  opacity: 0.6;
+  color: #64748b;
 }
 
-/* Toggle Stack */
-.stackToggle {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem;
-  background: #f8fafc;
-  border-radius: 12px;
+/* Filas de dos columnas (fechas) */
+.formRowDouble {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
 }
 
-.stackLabel {
-  font-size: 0.9rem;
-  color: var(--color-text-secondary);
-  flex: 1;
-}
-
-.stackLabelActive {
-  color: #6b21a8;
-  font-weight: 500;
-}
-
-/* Acciones del modal */
+/* Botones dentro del modal */
 .modalActions {
   display: flex;
   justify-content: flex-end;
   gap: 0.75rem;
-  margin-top: 1.5rem;
-  padding-top: 1rem;
-  border-top: 1px solid #f1f5f9;
+  margin-top: 1.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #eef2f6;
 }
 
-/* Modal de confirmación */
-.modalConfirm {
-  text-align: center;
-}
-
-.modalConfirmIcon {
-  font-size: 3rem;
-  margin-bottom: 1rem;
-}
-
-/* Modal de mover persona */
-.modalMoverInfo {
-  background: #f8fafc;
-  border-radius: 12px;
-  padding: 1rem;
-  margin-bottom: 1rem;
-  font-size: 0.9rem;
-}
-
-.modalMoverInfo strong {
-  color: var(--color-text-info);
-}
-
-/* Lista de habitaciones en modal */
-.habitacionesList {
-  max-height: 200px;
-  overflow-y: auto;
-  border: 1px solid var(--color-border-tertiary);
-  border-radius: 12px;
-}
-
-.habitacionOption {
-  padding: 0.75rem;
+/* Estilos base para botones */
+.modalActions button,
+.button {
+  padding: 0.6rem 1.2rem;
+  border-radius: 0.75rem;
+  font-weight: 500;
+  font-size: 0.85rem;
   cursor: pointer;
-  transition: background 0.2s ease;
-  border-bottom: 1px solid #f1f5f9;
+  transition: all 0.2s;
+  border: none;
+  background-color: #f1f5f9;
+  color: #1e293b;
 }
 
-.habitacionOption:last-child {
-  border-bottom: none;
+.modalActions button:hover,
+.button:hover {
+  background-color: #e2e8f0;
+  transform: translateY(-1px);
 }
 
-.habitacionOption:hover {
-  background: #f1f5f9;
+.button-primary {
+  background-color: #0f172a;
+  color: white;
 }
 
-.habitacionOptionSelected {
-  background: var(--color-background-info);
-  color: var(--color-text-info);
+.button-primary:hover {
+  background-color: #1e293b;
 }
 
-/* Responsive */
-@media (max-width: 480px) {
-  .modal {
-    padding: 1.25rem;
-    margin: 0.5rem;
-  }
-  
-  .modalActions {
-    flex-direction: column;
-  }
-  
-  .modalActions button {
-    width: 100%;
-  }
+.button-danger {
+  background-color: #f43f5e;
+  color: white;
+}
+
+.button-danger:hover {
+  background-color: #e11d48;
+}
+
+.button-secondary {
+  background-color: #f1f5f9;
+  color: #1e293b;
+  border: 1px solid #cbd5e1;
+}
+
+/* Toggle STACK */
+.stackToggle {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 0.5rem 0 1rem;
+}
+
+.stackToggle button {
+  background-color: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  padding: 0.5rem 1rem;
+  border-radius: 2rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.stackToggle button.button-primary {
+  background-color: #0f172a;
+  color: white;
+  border-color: #0f172a;
+}
+
+.stackLabel {
+  font-size: 0.85rem;
+  color: #475569;
+}
+
+.stackLabelActive {
+  color: #0f172a;
+  font-weight: 500;
+}
+
+/* Header con título y botón cerrar */
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.25rem;
+}
+
+.modalHeader h2 {
+  margin: 0;
+}
+
+.closeBtn {
+  background: none;
+  border: none;
+  font-size: 1.75rem;
+  line-height: 1;
+  cursor: pointer;
+  color: #94a3b8;
+  transition: color 0.2s;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.closeBtn:hover {
+  background-color: #f1f5f9;
+  color: #0f172a;
+}
+
+/* Tarjeta de persona dentro del modal */
+.personaCard {
+  background-color: #f8fafc;
+  border-radius: 1rem;
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+  border: 1px solid #eef2f6;
+}
+
+.personaName {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: #0f172a;
+}
+
+.pagosList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.pagoItem {
+  background: white;
+  padding: 0.2rem 0.6rem;
+  border-radius: 1rem;
+  font-size: 0.75rem;
+  border: 1px solid #e2e8f0;
+  color: #0f172a;
+}
+
+.personaTotals {
+  display: flex;
+  gap: 1rem;
+  margin: 0.5rem 0;
+  font-size: 0.85rem;
+}
+
+.personaActions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.personaActions button {
+  background: none;
+  border: none;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+  border-radius: 0.5rem;
+  transition: all 0.2s;
+}
+
+.personaActions button:hover {
+  background-color: #e2e8f0;
+}
+
+/* Totales de habitación */
+.totalsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  background-color: #f8fafc;
+  padding: 1rem;
+  border-radius: 1rem;
+  margin-top: 0.5rem;
+}
+
+.totalItem {
+  display: flex;
+  flex-direction: column;
+}
+
+.totalLabel {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.totalValue {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.totalValueDanger {
+  color: #f43f5e;
+}
+
+.totalValueSuccess {
+  color: #0d9488;
+}
+
+/* Mensajes informativos */
+.infoMessage {
+  background-color: #fef9c3;
+  border-left: 4px solid #eab308;
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+  margin: 1rem 0;
+  font-size: 0.85rem;
+  color: #854d0e;
 }

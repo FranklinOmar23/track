@@ -1,28 +1,37 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
 import { HabitacionesProvider } from './Context/HabitacionesContext';
-import Header from './components/layout/Header';
-import StatsGrid from './components/layout/StatsGrid';
-import Toolbar from './components/layout/Toolbar';
-import HabitacionesList from './components/Habitaciones/HabitacionesList';
-import ModalAgregarHabitacion from './components/Modals/ModalAgregarHabitacion';
-import ModalDesgloseGeneral from './components/Modals/ModalDesgloseGeneral';
+import HomeViajes from './components/layout/HomeViajes';
+import ViajeView from './components/layout/ViajeView';
 import './components/styles/global.css';
 
-function App() {
-  const [isAgregarOpen, setIsAgregarOpen] = useState(false);
-  const [isDesgloseOpen, setIsDesgloseOpen] = useState(false);
+function AppContent() {
+  const navigate = useNavigate();
+
+  const handleSelectViaje = (viaje) => {
+    const tipoUrl = viaje.tipo === 'tour' ? 'tour' : 'resort';
+    navigate(`/${tipoUrl}/${viaje.slug || viaje.nombre.toLowerCase().replace(/ /g, '-')}`);
+  };
+
+  const handleBack = () => {
+    navigate('/');
+  };
 
   return (
     <HabitacionesProvider>
-      <div className="app-shell">
-        <Header />
-        <StatsGrid />
-        <Toolbar onOpenAgregar={() => setIsAgregarOpen(true)} onOpenDesglose={() => setIsDesgloseOpen(true)} />
-        <HabitacionesList />
-        <ModalAgregarHabitacion open={isAgregarOpen} onClose={() => setIsAgregarOpen(false)} />
-        {isDesgloseOpen && <ModalDesgloseGeneral onClose={() => setIsDesgloseOpen(false)} />}
-      </div>
+      <Routes>
+        <Route path="/" element={<HomeViajes onSelectViaje={handleSelectViaje} />} />
+        <Route path="/:tipo/:slug" element={<ViajeView onBack={handleBack} />} />
+      </Routes>
     </HabitacionesProvider>
+  );
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <AppContent />
+    </BrowserRouter>
   );
 }
 
