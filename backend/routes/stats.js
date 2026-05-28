@@ -7,19 +7,13 @@ const router = Router();
 router.get('/dashboard', async (req, res) => {
   try {
     console.log('📊 Solicitando estadísticas del dashboard...');
-    
+
     // 1. Total de viajes por tipo
     const [viajesPorTipo] = await pool.query(`
-      SELECT 
-        tipo,
-        COUNT(*) as total
-      FROM viajes
-      GROUP BY tipo
+      SELECT tipo, COUNT(*) as total FROM viajes GROUP BY tipo
     `);
-    
-    console.log('Viajes por tipo:', viajesPorTipo);
 
-    // 2. Estadísticas completas por viaje
+    // 2. Estadísticas correctas por viaje usando subconsultas
     const [statsViajes] = await pool.query(`
       SELECT 
         v.id,
@@ -28,46 +22,62 @@ router.get('/dashboard', async (req, res) => {
         v.slug,
         v.fecha_inicio,
         v.fecha_fin,
-        COALESCE(SUM(h.total), 0) as total_por_cobrar,
-        COALESCE(SUM(p.monto), 0) as total_pagado,
-        COALESCE(SUM(h.total) - SUM(p.monto), 0) as pendiente,
-        COUNT(DISTINCT h.id) as total_habitaciones,
-        COUNT(DISTINCT pers.id) as total_personas
+        COALESCE(
+          (SELECT SUM(h.total) FROM habitaciones h WHERE h.viaje_id = v.id),
+          0
+        ) as total_por_cobrar,
+        COALESCE(
+          (SELECT SUM(p.monto) 
+           FROM pagos p 
+           JOIN personas pers ON p.persona_id = pers.id
+           JOIN habitaciones h ON pers.habitacion_id = h.id
+           WHERE h.viaje_id = v.id),
+          0
+        ) as total_pagado,
+        COALESCE(
+          (SELECT COUNT(DISTINCT h.id) FROM habitaciones h WHERE h.viaje_id = v.id),
+          0
+        ) as total_habitaciones,
+        COALESCE(
+          (SELECT COUNT(DISTINCT pers.id) 
+           FROM personas pers 
+           JOIN habitaciones h ON pers.habitacion_id = h.id 
+           WHERE h.viaje_id = v.id),
+          0
+        ) as total_personas
       FROM viajes v
-      LEFT JOIN habitaciones h ON h.viaje_id = v.id
-      LEFT JOIN personas pers ON pers.habitacion_id = h.id
-      LEFT JOIN pagos p ON p.persona_id = pers.id
-      GROUP BY v.id
       ORDER BY v.id DESC
     `);
-    
-    console.log('Estadísticas por viaje:', statsViajes.length, 'viajes encontrados');
 
-    // 3. Resumen global
-    const totalGlobalPorCobrar = statsViajes.reduce((sum, v) => sum + Number(v.total_por_cobrar), 0);
-    const totalGlobalPagado = statsViajes.reduce((sum, v) => sum + Number(v.total_pagado), 0);
-    
+    // Calcular pendiente y porcentaje
+    const viajesConPendiente = statsViajes.map(v => ({
+      ...v,
+      total_por_cobrar: Number(v.total_por_cobrar),
+      total_pagado: Number(v.total_pagado),
+      pendiente: Number(v.total_por_cobrar) - Number(v.total_pagado),
+      total_habitaciones: Number(v.total_habitaciones),
+      total_personas: Number(v.total_personas)
+    }));
+
+    const totalGlobalPorCobrar = viajesConPendiente.reduce((sum, v) => sum + v.total_por_cobrar, 0);
+    const totalGlobalPagado = viajesConPendiente.reduce((sum, v) => sum + v.total_pagado, 0);
+
     const response = {
       resumen: {
-        total_viajes: statsViajes.length,
-        total_resorts: viajesPorTipo.find(t => t.tipo === 'resort')?.total || 0,
-        total_tours: viajesPorTipo.find(t => t.tipo === 'tour')?.total || 0,
+        total_viajes: viajesConPendiente.length,
+        total_resorts: viajesConPendiente.filter(v => v.tipo === 'resort').length,
+        total_tours: viajesConPendiente.filter(v => v.tipo === 'tour').length,
         total_por_cobrar: totalGlobalPorCobrar,
         total_pagado: totalGlobalPagado,
         total_pendiente: totalGlobalPorCobrar - totalGlobalPagado,
-        porcentaje_pagado: totalGlobalPorCobrar > 0 ? (totalGlobalPagado / totalGlobalPorCobrar * 100).toFixed(1) : 0
+        porcentaje_pagado: totalGlobalPorCobrar > 0 
+          ? ((totalGlobalPagado / totalGlobalPorCobrar) * 100).toFixed(1) 
+          : 0
       },
-      viajes: statsViajes.map(v => ({
-        ...v,
-        total_por_cobrar: Number(v.total_por_cobrar),
-        total_pagado: Number(v.total_pagado),
-        pendiente: Number(v.pendiente),
-        total_habitaciones: Number(v.total_habitaciones),
-        total_personas: Number(v.total_personas)
-      }))
+      viajes: viajesConPendiente
     };
-    
-    console.log('Respuesta enviada correctamente');
+
+    console.log('✅ Respuesta corregida:', response.resumen);
     res.json(response);
   } catch (error) {
     console.error('Error en dashboard stats:', error);

@@ -2,14 +2,13 @@ import React, { useState } from 'react';
 import { useHabitacionesContext } from '../../Context/HabitacionesContext';
 import { formatCurrency } from '../../utils/formatters';
 import { calcularTotalPagado } from '../../utils/calculos';
-import PersonaRow from '../Habitaciones/PersonaRow';
 import ModalRegistrarPago from './ModalRegistrarPago';
 import ModalMoverPersona from './ModalMoverPersona';
 import styles from '../styles/components/modals.module.css';
 
 const ModalDetallesHabitacion = ({ habitacion, onClose }) => {
-  const { actualizarNota, eliminarHabitacion } = useHabitacionesContext();
-  const [nota, setNota] = React.useState(habitacion.nota || '');
+  const { actualizarNota, eliminarHabitacion, state, cargarHabitaciones } = useHabitacionesContext();
+  const [nota, setNota] = useState(habitacion.nota || '');
   const [modalPago, setModalPago] = useState(null);
   const [modalMover, setModalMover] = useState(null);
 
@@ -28,26 +27,48 @@ const ModalDetallesHabitacion = ({ habitacion, onClose }) => {
   const pendiente = Math.max(0, habitacion.total - totalPagado);
   const cantidadPersonas = habitacion.personas.filter((p) => p.n).length;
 
+  const handleEditarPago = (persona, personaIndex, pago) => {
+    setModalPago({ habId: habitacion.id, perIdx: personaIndex, persona, pago });
+  };
+
+  const handleNuevoPago = (persona, personaIndex) => {
+    setModalPago({ habId: habitacion.id, perIdx: personaIndex, persona, pago: null });
+  };
+
+  // Función para cerrar el modal de pago y recargar los datos
+  const handleClosePagoModal = async () => {
+    setModalPago(null);
+    // Forzar recarga de habitaciones para actualizar la UI
+    const viajeId = state.selectedViajeId;
+    if (viajeId) {
+      await cargarHabitaciones(viajeId);
+    }
+  };
+
   return (
     <>
       <div className={styles.modalOverlay} onClick={onClose}>
         <div className={`${styles.modal} ${styles.modalLarge}`} onClick={(e) => e.stopPropagation()}>
           <div className={styles.modalHeader}>
             <h2>Hab {habitacion.num} — {habitacion.tipo}</h2>
-            <button className={styles.closeBtn} onClick={onClose}>×</button>
+            <button type="button" className={styles.closeBtn} onClick={onClose}>×</button>
           </div>
 
-          {/* Sección de personas */}
           <div className={styles.detailsSection}>
             <h3 className={styles.sectionTitle}>PERSONAS</h3>
-            {habitacion.personas.filter(p => p.n).map((persona, index) => (
+            {habitacion.personas.filter(p => p.n).map((persona, personaIndex) => (
               <div key={persona.id} className={styles.personaCard}>
                 <div className={styles.personaName}>{persona.n}</div>
                 <div className={styles.pagosList}>
                   {(persona.pagos || []).map((pago, idx) => (
-                    <span key={idx} className={styles.pagoItem}>
+                    <button
+                      key={idx}
+                      type="button"
+                      className={styles.pagoItemButton}
+                      onClick={() => handleEditarPago(persona, personaIndex, pago)}
+                    >
                       {pago.mes} ${pago.monto.toLocaleString()}
-                    </span>
+                    </button>
                   ))}
                   {(!persona.pagos || persona.pagos.length === 0) && (
                     <span className={styles.pagoItem}>Sin pagos</span>
@@ -60,15 +81,13 @@ const ModalDetallesHabitacion = ({ habitacion, onClose }) => {
                   </strong></span>
                 </div>
                 <div className={styles.personaActions}>
-                  <button onClick={() => setModalPago({ habId: habitacion.id, perIdx: index, persona })}>+ pago</button>
-                  <button onClick={() => setModalMover({ habOrigen: habitacion.id, perIdx: index, persona })}>Mover</button>
-                  {/* Aquí puedes agregar botón eliminar persona si existe */}
+                  <button type="button" onClick={() => handleNuevoPago(persona, personaIndex)}>+ pago</button>
+                  <button type="button" onClick={() => setModalMover({ habOrigen: habitacion.id, perIdx: personaIndex, persona })}>Mover</button>
                 </div>
               </div>
             ))}
           </div>
 
-          {/* Notas */}
           <div className={styles.detailsSection}>
             <h3 className={styles.sectionTitle}>NOTAS</h3>
             <textarea
@@ -82,7 +101,6 @@ const ModalDetallesHabitacion = ({ habitacion, onClose }) => {
             />
           </div>
 
-          {/* Totales */}
           <div className={styles.totalsGrid}>
             <div className={styles.totalItem}>
               <span className={styles.totalLabel}>Total habitación</span>
@@ -104,10 +122,9 @@ const ModalDetallesHabitacion = ({ habitacion, onClose }) => {
             </div>
           </div>
 
-          {/* Acciones */}
           <div className={styles.modalActions}>
-            <button className="button" onClick={onClose}>Cerrar</button>
-            <button className="button button-danger" onClick={handleDelete}>Eliminar hab</button>
+            <button type="button" className="button" onClick={onClose}>Cerrar</button>
+            <button type="button" className="button button-danger" onClick={handleDelete}>Eliminar hab</button>
           </div>
         </div>
       </div>
@@ -118,7 +135,7 @@ const ModalDetallesHabitacion = ({ habitacion, onClose }) => {
           perIdx={modalPago.perIdx}
           persona={modalPago.persona}
           pago={modalPago.pago}
-          onClose={() => setModalPago(null)}
+          onClose={handleClosePagoModal}  // 👈 Usamos la función que recarga
         />
       )}
 

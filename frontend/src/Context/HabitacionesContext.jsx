@@ -158,13 +158,15 @@ export const HabitacionesProvider = ({ children }) => {
   };
 
   const cargarHabitaciones = async (viajeId) => {
-    try {
-      const habitaciones = await api.fetchHabitaciones(viajeId);
-      dispatch({ type: 'SET_HABITACIONES', payload: habitaciones });
-    } catch (error) {
-      console.error('Error cargando habitaciones:', error);
-    }
-  };
+  console.log('🔄 Recargando habitaciones para viajeId:', viajeId);
+  try {
+    const habitaciones = await api.fetchHabitaciones(viajeId);
+    console.log('✅ Habitaciones recargadas:', habitaciones.length);
+    dispatch({ type: 'SET_HABITACIONES', payload: habitaciones });
+  } catch (error) {
+    console.error('Error cargando habitaciones:', error);
+  }
+};
 
   useEffect(() => {
     cargarViajes();
@@ -214,40 +216,69 @@ export const HabitacionesProvider = ({ children }) => {
   };
 
   const registrarPago = async (habId, perIdx, pago) => {
-    try {
-      const habitacion = state.habitaciones.find((hab) => hab.id === habId);
-      const persona = habitacion?.personas[perIdx];
-      if (!persona?.id) return;
-      const nuevoPago = await api.registrarPago(persona.id, pago);
-      dispatch({ type: 'REGISTRAR_PAGO', payload: { habId, perIdx, pago: nuevoPago } });
-    } catch (error) {
-      console.error('Error registrando pago:', error);
+  try {
+    const habitacion = state.habitaciones.find((hab) => hab.id === habId);
+    const persona = habitacion?.personas[perIdx];
+    if (!persona?.id) return;
+    
+    await api.registrarPago(persona.id, pago);
+    
+    // Recargar habitaciones usando el viajeId actual (si existe)
+    const viajeId = state.selectedViajeId;
+    if (viajeId) {
+      await cargarHabitaciones(viajeId);
+    } else {
+      // Fallback: recargar todas las habitaciones (sin filtro)
+      const todas = await api.fetchHabitaciones();
+      dispatch({ type: 'SET_HABITACIONES', payload: todas });
     }
-  };
+  } catch (error) {
+    console.error('Error registrando pago:', error);
+    throw error;
+  }
+};
 
-  const actualizarPago = async (habId, perIdx, pagoId, pago) => {
-    try {
-      const habitacion = state.habitaciones.find((hab) => hab.id === habId);
-      const persona = habitacion?.personas[perIdx];
-      if (!persona?.id) return;
-      const pagoActualizado = await api.actualizarPago(persona.id, pagoId, pago);
-      dispatch({ type: 'ACTUALIZAR_PAGO', payload: { habId, perIdx, pago: pagoActualizado } });
-    } catch (error) {
-      console.error('Error actualizando pago:', error);
+const actualizarPago = async (habId, perIdx, pagoId, pago) => {
+  try {
+    const habitacion = state.habitaciones.find((hab) => hab.id === habId);
+    const persona = habitacion?.personas[perIdx];
+    if (!persona?.id) return;
+    
+    await api.actualizarPago(persona.id, pagoId, pago);
+    
+    const viajeId = state.selectedViajeId;
+    if (viajeId) {
+      await cargarHabitaciones(viajeId);
+    } else {
+      const todas = await api.fetchHabitaciones();
+      dispatch({ type: 'SET_HABITACIONES', payload: todas });
     }
-  };
+  } catch (error) {
+    console.error('Error actualizando pago:', error);
+    throw error;
+  }
+};
 
-  const eliminarPago = async (habId, perIdx, pagoId) => {
-    try {
-      const habitacion = state.habitaciones.find((hab) => hab.id === habId);
-      const persona = habitacion?.personas[perIdx];
-      if (!persona?.id) return;
-      await api.eliminarPago(persona.id, pagoId);
-      dispatch({ type: 'ELIMINAR_PAGO', payload: { habId, perIdx, pagoId } });
-    } catch (error) {
-      console.error('Error eliminando pago:', error);
+const eliminarPago = async (habId, perIdx, pagoId) => {
+  try {
+    const habitacion = state.habitaciones.find((hab) => hab.id === habId);
+    const persona = habitacion?.personas[perIdx];
+    if (!persona?.id) return;
+    
+    await api.eliminarPago(persona.id, pagoId);
+    
+    const viajeId = state.selectedViajeId;
+    if (viajeId) {
+      await cargarHabitaciones(viajeId);
+    } else {
+      const todas = await api.fetchHabitaciones();
+      dispatch({ type: 'SET_HABITACIONES', payload: todas });
     }
-  };
+  } catch (error) {
+    console.error('Error eliminando pago:', error);
+    throw error;
+  }
+};
 
   const eliminarPersona = async (habId, perIdx) => {
     try {
