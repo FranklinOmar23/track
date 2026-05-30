@@ -128,6 +128,15 @@ function habitacionesReducer(state, action) {
         ),
       };
 
+    // ← nuevo: actualizar etiqueta optimistamente
+    case 'ACTUALIZAR_ETIQUETA':
+      return {
+        ...state,
+        habitaciones: state.habitaciones.map((hab) =>
+          hab.id === action.payload.habId ? { ...hab, etiqueta: action.payload.etiqueta } : hab
+        ),
+      };
+
     case 'SET_FILTROS':
       return { ...state, filtros: action.payload };
 
@@ -147,7 +156,6 @@ export const useHabitacionesContext = () => {
 export const HabitacionesProvider = ({ children }) => {
   const [state, dispatch] = useReducer(habitacionesReducer, initialState);
 
-  // Solo carga la lista de viajes al montar — sin seleccionar ninguno automáticamente
   const cargarViajes = async () => {
     try {
       const viajes = await api.fetchViajes();
@@ -158,15 +166,13 @@ export const HabitacionesProvider = ({ children }) => {
   };
 
   const cargarHabitaciones = async (viajeId) => {
-  console.log('🔄 Recargando habitaciones para viajeId:', viajeId);
-  try {
-    const habitaciones = await api.fetchHabitaciones(viajeId);
-    console.log('✅ Habitaciones recargadas:', habitaciones.length);
-    dispatch({ type: 'SET_HABITACIONES', payload: habitaciones });
-  } catch (error) {
-    console.error('Error cargando habitaciones:', error);
-  }
-};
+    try {
+      const habitaciones = await api.fetchHabitaciones(viajeId);
+      dispatch({ type: 'SET_HABITACIONES', payload: habitaciones });
+    } catch (error) {
+      console.error('Error cargando habitaciones:', error);
+    }
+  };
 
   useEffect(() => {
     cargarViajes();
@@ -186,7 +192,7 @@ export const HabitacionesProvider = ({ children }) => {
   const seleccionarViaje = async (viajeId) => {
     try {
       dispatch({ type: 'SET_SELECTED_VIAJE', payload: viajeId });
-      dispatch({ type: 'SET_HABITACIONES', payload: [] }); // limpiar antes de cargar
+      dispatch({ type: 'SET_HABITACIONES', payload: [] });
       await cargarHabitaciones(viajeId);
     } catch (error) {
       console.error('Error seleccionando viaje:', error);
@@ -216,69 +222,46 @@ export const HabitacionesProvider = ({ children }) => {
   };
 
   const registrarPago = async (habId, perIdx, pago) => {
-  try {
-    const habitacion = state.habitaciones.find((hab) => hab.id === habId);
-    const persona = habitacion?.personas[perIdx];
-    if (!persona?.id) return;
-    
-    await api.registrarPago(persona.id, pago);
-    
-    // Recargar habitaciones usando el viajeId actual (si existe)
-    const viajeId = state.selectedViajeId;
-    if (viajeId) {
-      await cargarHabitaciones(viajeId);
-    } else {
-      // Fallback: recargar todas las habitaciones (sin filtro)
-      const todas = await api.fetchHabitaciones();
-      dispatch({ type: 'SET_HABITACIONES', payload: todas });
+    try {
+      const habitacion = state.habitaciones.find((hab) => hab.id === habId);
+      const persona = habitacion?.personas[perIdx];
+      if (!persona?.id) return;
+      await api.registrarPago(persona.id, pago);
+      const viajeId = state.selectedViajeId;
+      if (viajeId) await cargarHabitaciones(viajeId);
+    } catch (error) {
+      console.error('Error registrando pago:', error);
+      throw error;
     }
-  } catch (error) {
-    console.error('Error registrando pago:', error);
-    throw error;
-  }
-};
+  };
 
-const actualizarPago = async (habId, perIdx, pagoId, pago) => {
-  try {
-    const habitacion = state.habitaciones.find((hab) => hab.id === habId);
-    const persona = habitacion?.personas[perIdx];
-    if (!persona?.id) return;
-    
-    await api.actualizarPago(persona.id, pagoId, pago);
-    
-    const viajeId = state.selectedViajeId;
-    if (viajeId) {
-      await cargarHabitaciones(viajeId);
-    } else {
-      const todas = await api.fetchHabitaciones();
-      dispatch({ type: 'SET_HABITACIONES', payload: todas });
+  const actualizarPago = async (habId, perIdx, pagoId, pago) => {
+    try {
+      const habitacion = state.habitaciones.find((hab) => hab.id === habId);
+      const persona = habitacion?.personas[perIdx];
+      if (!persona?.id) return;
+      await api.actualizarPago(persona.id, pagoId, pago);
+      const viajeId = state.selectedViajeId;
+      if (viajeId) await cargarHabitaciones(viajeId);
+    } catch (error) {
+      console.error('Error actualizando pago:', error);
+      throw error;
     }
-  } catch (error) {
-    console.error('Error actualizando pago:', error);
-    throw error;
-  }
-};
+  };
 
-const eliminarPago = async (habId, perIdx, pagoId) => {
-  try {
-    const habitacion = state.habitaciones.find((hab) => hab.id === habId);
-    const persona = habitacion?.personas[perIdx];
-    if (!persona?.id) return;
-    
-    await api.eliminarPago(persona.id, pagoId);
-    
-    const viajeId = state.selectedViajeId;
-    if (viajeId) {
-      await cargarHabitaciones(viajeId);
-    } else {
-      const todas = await api.fetchHabitaciones();
-      dispatch({ type: 'SET_HABITACIONES', payload: todas });
+  const eliminarPago = async (habId, perIdx, pagoId) => {
+    try {
+      const habitacion = state.habitaciones.find((hab) => hab.id === habId);
+      const persona = habitacion?.personas[perIdx];
+      if (!persona?.id) return;
+      await api.eliminarPago(persona.id, pagoId);
+      const viajeId = state.selectedViajeId;
+      if (viajeId) await cargarHabitaciones(viajeId);
+    } catch (error) {
+      console.error('Error eliminando pago:', error);
+      throw error;
     }
-  } catch (error) {
-    console.error('Error eliminando pago:', error);
-    throw error;
-  }
-};
+  };
 
   const eliminarPersona = async (habId, perIdx) => {
     try {
@@ -313,6 +296,19 @@ const eliminarPago = async (habId, perIdx, pagoId) => {
     }
   };
 
+  // ← nueva función
+  const actualizarEtiqueta = async (habId, etiqueta) => {
+    try {
+      // Actualización optimista — la UI cambia inmediatamente
+      dispatch({ type: 'ACTUALIZAR_ETIQUETA', payload: { habId, etiqueta } });
+      await api.actualizarEtiqueta(habId, etiqueta);
+    } catch (error) {
+      console.error('Error actualizando etiqueta:', error);
+      // Revertir si falla
+      await cargarHabitaciones(state.selectedViajeId);
+    }
+  };
+
   const setFiltros = (filtros) => {
     dispatch({ type: 'SET_FILTROS', payload: filtros });
   };
@@ -331,6 +327,7 @@ const eliminarPago = async (habId, perIdx, pagoId) => {
     eliminarPersona,
     moverPersona,
     actualizarNota,
+    actualizarEtiqueta,   // ← exponer
     setFiltros,
   };
 

@@ -7,18 +7,29 @@ import ModalMoverPersona from './ModalMoverPersona';
 import styles from '../styles/components/modals.module.css';
 
 const ModalDetallesHabitacion = ({ habitacion: habitacionProp, onClose }) => {
-  const { actualizarNota, eliminarHabitacion, state, cargarHabitaciones } = useHabitacionesContext();
+  const { actualizarNota, actualizarEtiqueta, eliminarHabitacion, state } = useHabitacionesContext();
 
-  // 🔑 Leer siempre del contexto para que se reactive al guardar/editar/eliminar pagos
+  // Leer siempre del contexto para reactividad
   const habitacion =
     state.habitaciones.find((h) => h.id === habitacionProp.id) || habitacionProp;
 
   const [nota, setNota] = useState(habitacion.nota || '');
+  const [etiqueta, setEtiqueta] = useState(habitacion.etiqueta || '');
+  const [etiquetaPersonalizada, setEtiquetaPersonalizada] = useState('');
   const [modalPago, setModalPago] = useState(null);
   const [modalMover, setModalMover] = useState(null);
 
-  const handleSaveNota = () => {
-    actualizarNota(habitacion.id, nota);
+  const etiquetasExistentes = [...new Set(
+    state.habitaciones.map((h) => h.etiqueta).filter(Boolean)
+  )].sort();
+
+  const handleSaveNota = () => actualizarNota(habitacion.id, nota);
+
+  const handleSaveEtiqueta = (valor) => {
+    const nueva = valor === '__nueva__' ? etiquetaPersonalizada.trim() : valor;
+    actualizarEtiqueta(habitacion.id, nueva);
+    setEtiqueta(nueva);
+    if (valor !== '__nueva__') setEtiquetaPersonalizada('');
   };
 
   const handleDelete = () => {
@@ -32,20 +43,6 @@ const ModalDetallesHabitacion = ({ habitacion: habitacionProp, onClose }) => {
   const pendiente = Math.max(0, habitacion.total - totalPagado);
   const cantidadPersonas = habitacion.personas.filter((p) => p.n).length;
 
-  const handleEditarPago = (persona, personaIndex, pago) => {
-    setModalPago({ habId: habitacion.id, perIdx: personaIndex, persona, pago });
-  };
-
-  const handleNuevoPago = (persona, personaIndex) => {
-    setModalPago({ habId: habitacion.id, perIdx: personaIndex, persona, pago: null });
-  };
-
-  const handleClosePagoModal = () => {
-    setModalPago(null);
-    // No hace falta recargar manualmente: el contexto ya actualizó el estado
-    // y como leemos de state.habitaciones, el modal se re-renderiza solo
-  };
-
   return (
     <>
       <div className={styles.modalOverlay} onClick={onClose}>
@@ -53,6 +50,50 @@ const ModalDetallesHabitacion = ({ habitacion: habitacionProp, onClose }) => {
           <div className={styles.modalHeader}>
             <h2>Hab {habitacion.num} — {habitacion.tipo}</h2>
             <button type="button" className={styles.closeBtn} onClick={onClose}>×</button>
+          </div>
+
+          {/* Etiqueta editable */}
+          <div className={styles.detailsSection}>
+            <h3 className={styles.sectionTitle}>ETIQUETA / CENTRO</h3>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+              <select
+                value={etiqueta}
+                onChange={(e) => {
+                  setEtiqueta(e.target.value);
+                  if (e.target.value !== '__nueva__') handleSaveEtiqueta(e.target.value);
+                }}
+                className={styles.formRow}
+                style={{ flex: 1, minWidth: '150px' }}
+              >
+                <option value="">Sin etiqueta</option>
+                {etiquetasExistentes.map((e) => (
+                  <option key={e} value={e}>{e}</option>
+                ))}
+                <option value="__nueva__">+ Nueva etiqueta...</option>
+              </select>
+
+              {etiqueta === '__nueva__' && (
+                <>
+                  <input
+                    type="text"
+                    value={etiquetaPersonalizada}
+                    onChange={(e) => setEtiquetaPersonalizada(e.target.value)}
+                    placeholder="Nombre de la etiqueta"
+                    className={styles.formRow}
+                    style={{ flex: 1 }}
+                    autoFocus
+                  />
+                  <button
+                    type="button"
+                    className="button button-primary"
+                    onClick={() => handleSaveEtiqueta('__nueva__')}
+                    disabled={!etiquetaPersonalizada.trim()}
+                  >
+                    Guardar
+                  </button>
+                </>
+              )}
+            </div>
           </div>
 
           <div className={styles.detailsSection}>
@@ -66,7 +107,7 @@ const ModalDetallesHabitacion = ({ habitacion: habitacionProp, onClose }) => {
                       key={idx}
                       type="button"
                       className={styles.pagoItemButton}
-                      onClick={() => handleEditarPago(persona, personaIndex, pago)}
+                      onClick={() => setModalPago({ habId: habitacion.id, perIdx: personaIndex, persona, pago })}
                     >
                       {pago.mes} ${pago.monto.toLocaleString()}
                     </button>
@@ -76,34 +117,14 @@ const ModalDetallesHabitacion = ({ habitacion: habitacionProp, onClose }) => {
                   )}
                 </div>
                 <div className={styles.personaTotals}>
-                  <span>
-                    Pagado:{' '}
-                    <strong>
-                      {formatCurrency(persona.pagos?.reduce((s, p) => s + p.monto, 0) || 0)}
-                    </strong>
-                  </span>
-                  <span>
-                    Pendiente:{' '}
-                    <strong className={styles.totalValueDanger}>
-                      -{formatCurrency(
-                        (habitacion.total / cantidadPersonas) -
-                          (persona.pagos?.reduce((s, p) => s + p.monto, 0) || 0)
-                      )}
-                    </strong>
-                  </span>
+                  <span>Pagado: <strong>{formatCurrency(persona.pagos?.reduce((s, p) => s + p.monto, 0) || 0)}</strong></span>
+                  <span>Pendiente: <strong className={styles.totalValueDanger}>
+                    -{formatCurrency((habitacion.total / cantidadPersonas) - (persona.pagos?.reduce((s, p) => s + p.monto, 0) || 0))}
+                  </strong></span>
                 </div>
                 <div className={styles.personaActions}>
-                  <button type="button" onClick={() => handleNuevoPago(persona, personaIndex)}>
-                    + pago
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setModalMover({ habOrigen: habitacion.id, perIdx: personaIndex, persona })
-                    }
-                  >
-                    Mover
-                  </button>
+                  <button type="button" onClick={() => setModalPago({ habId: habitacion.id, perIdx: personaIndex, persona, pago: null })}>+ pago</button>
+                  <button type="button" onClick={() => setModalMover({ habOrigen: habitacion.id, perIdx: personaIndex, persona })}>Mover</button>
                 </div>
               </div>
             ))}
@@ -129,17 +150,11 @@ const ModalDetallesHabitacion = ({ habitacion: habitacionProp, onClose }) => {
             </div>
             <div className={styles.totalItem}>
               <span className={styles.totalLabel}>Recaudado</span>
-              <span className={`${styles.totalValue} ${styles.totalValueSuccess}`}>
-                {formatCurrency(totalPagado)}
-              </span>
+              <span className={`${styles.totalValue} ${styles.totalValueSuccess}`}>{formatCurrency(totalPagado)}</span>
             </div>
             <div className={styles.totalItem}>
               <span className={styles.totalLabel}>Pendiente</span>
-              <span
-                className={`${styles.totalValue} ${
-                  pendiente > 0 ? styles.totalValueDanger : styles.totalValueSuccess
-                }`}
-              >
+              <span className={`${styles.totalValue} ${pendiente > 0 ? styles.totalValueDanger : styles.totalValueSuccess}`}>
                 {pendiente > 0 ? `-${formatCurrency(pendiente)}` : '✓'}
               </span>
             </div>
@@ -150,12 +165,8 @@ const ModalDetallesHabitacion = ({ habitacion: habitacionProp, onClose }) => {
           </div>
 
           <div className={styles.modalActions}>
-            <button type="button" className="button" onClick={onClose}>
-              Cerrar
-            </button>
-            <button type="button" className="button button-danger" onClick={handleDelete}>
-              Eliminar hab
-            </button>
+            <button type="button" className="button" onClick={onClose}>Cerrar</button>
+            <button type="button" className="button button-danger" onClick={handleDelete}>Eliminar hab</button>
           </div>
         </div>
       </div>
@@ -166,7 +177,7 @@ const ModalDetallesHabitacion = ({ habitacion: habitacionProp, onClose }) => {
           perIdx={modalPago.perIdx}
           persona={modalPago.persona}
           pago={modalPago.pago}
-          onClose={handleClosePagoModal}
+          onClose={() => setModalPago(null)}
         />
       )}
 

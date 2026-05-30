@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
-import { ChevronRight, Users } from 'lucide-react';
+import { ChevronRight, Users, Tag } from 'lucide-react';
 
 const formatCurrency = (value) => {
   return new Intl.NumberFormat('es-DO', {
@@ -10,6 +10,26 @@ const formatCurrency = (value) => {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(value || 0);
+};
+
+// Colores consistentes con HabitacionesList
+const COLORES_ETIQUETA = [
+  { bg: 'bg-teal-100', text: 'text-teal-800', border: 'border-teal-300' },
+  { bg: 'bg-violet-100', text: 'text-violet-800', border: 'border-violet-300' },
+  { bg: 'bg-amber-100', text: 'text-amber-800', border: 'border-amber-300' },
+  { bg: 'bg-rose-100', text: 'text-rose-800', border: 'border-rose-300' },
+  { bg: 'bg-cyan-100', text: 'text-cyan-800', border: 'border-cyan-300' },
+  { bg: 'bg-orange-100', text: 'text-orange-800', border: 'border-orange-300' },
+];
+
+// Genera un color estable basado en el texto de la etiqueta
+const getColorForEtiqueta = (etiqueta) => {
+  if (!etiqueta) return null;
+  let hash = 0;
+  for (let i = 0; i < etiqueta.length; i++) {
+    hash = etiqueta.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return COLORES_ETIQUETA[Math.abs(hash) % COLORES_ETIQUETA.length];
 };
 
 export const HabitacionCard = ({ habitacion, onSelect }) => {
@@ -23,6 +43,8 @@ export const HabitacionCard = ({ habitacion, onSelect }) => {
   const isComplete = pendiente === 0 && totalPagado > 0;
   const isStack = habitacion.stack;
   const hasPersonas = habitacion.personas && habitacion.personas.length > 0;
+  const etiqueta = habitacion.etiqueta || '';
+  const colorEtiqueta = getColorForEtiqueta(etiqueta);
 
   return (
     <Card
@@ -34,8 +56,9 @@ export const HabitacionCard = ({ habitacion, onSelect }) => {
       `}
       onClick={() => onSelect && onSelect(habitacion)}
     >
+      {/* Header: número, tipo, stack y etiqueta */}
       <div className="flex items-start justify-between mb-3">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30 font-semibold px-3">
             Hab. {habitacion.num}
           </Badge>
@@ -46,6 +69,15 @@ export const HabitacionCard = ({ habitacion, onSelect }) => {
             </Badge>
           )}
         </div>
+        {/* Etiqueta en esquina superior derecha */}
+        {etiqueta && colorEtiqueta && (
+          <span
+            className={`flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full border ${colorEtiqueta.bg} ${colorEtiqueta.text} ${colorEtiqueta.border} shrink-0 ml-1`}
+          >
+            <Tag className="h-2.5 w-2.5" />
+            {etiqueta}
+          </span>
+        )}
       </div>
 
       {/* Personas */}
@@ -84,7 +116,7 @@ export const HabitacionCard = ({ habitacion, onSelect }) => {
         </div>
       )}
 
-      {/* Pagos */}
+      {/* Totales */}
       <div className="flex items-center justify-between pt-2 border-t border-gray-100">
         <div className="flex items-center gap-3">
           {totalPagado > 0 || pendiente > 0 ? (

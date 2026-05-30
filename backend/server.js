@@ -23,6 +23,7 @@ app.use('/api/movimientos', movimientosRoutes);
 app.use('/api/viajes', viajesRoutes);
 app.use('/api/stats', statsRoutes); // 👈 NUEVA
 
+
 app.get('/api/health', (req, res) => {
   res.json({ ok: true, message: 'Backend en funcionamiento' });
 });

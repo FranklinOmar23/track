@@ -17,6 +17,7 @@ const mapHabitaciones = (rows) => {
         precioNino: Number(row.precio_nino || 0),
         stack: !!row.es_stack,
         nota: row.nota || '',
+        etiqueta: row.etiqueta || '',   // ← nuevo campo
         personas: [],
       };
       mapa.set(row.habitacion_id, habitacion);
@@ -69,6 +70,7 @@ router.get('/', async (req, res) => {
       h.precio_nino,
       h.es_stack,
       h.nota,
+      h.etiqueta,
       p.id AS persona_id,
       p.nombre,
       p.posicion,
@@ -79,14 +81,14 @@ router.get('/', async (req, res) => {
     LEFT JOIN personas p ON p.habitacion_id = h.id
     LEFT JOIN pagos pag ON pag.persona_id = p.id
     ${query.join(' ')}
-    ORDER BY h.id, p.posicion, pag.id
+    ORDER BY h.etiqueta, h.id, p.posicion, pag.id
   `, params);
 
   res.json(mapHabitaciones(rows));
 });
 
 router.post('/', async (req, res) => {
-  const { num, tipo, total, precioNino, stack, nota, personas = [] } = req.body;
+  const { num, tipo, total, precioNino, stack, nota, etiqueta, personas = [] } = req.body;
 
   if (!num || !tipo) {
     return res.status(400).json({ error: 'Número y tipo son requeridos.' });
@@ -98,8 +100,8 @@ router.post('/', async (req, res) => {
     await connection.beginTransaction();
 
     const [result] = await connection.query(
-      'INSERT INTO habitaciones (numero, tipo, total, precio_nino, es_stack, nota, viaje_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [num, tipo, total || 0, precioNino || 0, stack ? 1 : 0, nota || '', req.body.viajeId || null]
+      'INSERT INTO habitaciones (numero, tipo, total, precio_nino, es_stack, nota, etiqueta, viaje_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [num, tipo, total || 0, precioNino || 0, stack ? 1 : 0, nota || '', etiqueta || '', req.body.viajeId || null]
     );
 
     const habitacionId = result.insertId;
@@ -132,6 +134,7 @@ router.post('/', async (req, res) => {
       precioNino: Number(precioNino || 0),
       stack: !!stack,
       nota: nota || '',
+      etiqueta: etiqueta || '',
       personas: personaRows,
     });
   } catch (error) {
@@ -176,6 +179,14 @@ router.put('/:id/nota', async (req, res) => {
   const habitacionId = Number(req.params.id);
   const { nota } = req.body;
   await pool.query('UPDATE habitaciones SET nota = ? WHERE id = ?', [nota || '', habitacionId]);
+  res.json({ ok: true });
+});
+
+// ← nuevo endpoint para actualizar etiqueta
+router.put('/:id/etiqueta', async (req, res) => {
+  const habitacionId = Number(req.params.id);
+  const { etiqueta } = req.body;
+  await pool.query('UPDATE habitaciones SET etiqueta = ? WHERE id = ?', [etiqueta || '', habitacionId]);
   res.json({ ok: true });
 });
 
