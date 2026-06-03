@@ -3,6 +3,27 @@ import pool from '../db.js';
 
 const router = Router();
 
+// ← NUEVO: editar nombre de persona
+router.put('/:id', async (req, res) => {
+  const personaId = Number(req.params.id);
+  const { nombre } = req.body;
+
+  if (!nombre || !nombre.trim()) {
+    return res.status(400).json({ error: 'Nombre es requerido.' });
+  }
+
+  const [result] = await pool.query(
+    'UPDATE personas SET nombre = ? WHERE id = ?',
+    [nombre.trim(), personaId]
+  );
+
+  if (result.affectedRows === 0) {
+    return res.status(404).json({ error: 'Persona no encontrada.' });
+  }
+
+  res.json({ id: personaId, nombre: nombre.trim() });
+});
+
 router.post('/:id/pagos', async (req, res) => {
   const personaId = Number(req.params.id);
   const { mes, monto } = req.body;
@@ -16,12 +37,7 @@ router.post('/:id/pagos', async (req, res) => {
     [personaId, mes, monto]
   );
 
-  res.status(201).json({
-    id: result.insertId,
-    personaId,
-    mes,
-    monto,
-  });
+  res.status(201).json({ id: result.insertId, personaId, mes, monto });
 });
 
 router.put('/:id/pagos/:pagoId', async (req, res) => {
@@ -42,12 +58,7 @@ router.put('/:id/pagos/:pagoId', async (req, res) => {
     return res.status(404).json({ error: 'Pago no encontrado.' });
   }
 
-  res.json({
-    id: pagoId,
-    personaId,
-    mes,
-    monto,
-  });
+  res.json({ id: pagoId, personaId, mes, monto });
 });
 
 router.delete('/:id/pagos/:pagoId', async (req, res) => {
@@ -84,7 +95,6 @@ router.delete('/:id', async (req, res) => {
     }
 
     const habitacionId = personaRows[0].habitacion_id;
-
     await connection.query('DELETE FROM personas WHERE id = ?', [personaId]);
 
     const [remaining] = await connection.query(

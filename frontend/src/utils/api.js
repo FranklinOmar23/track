@@ -27,6 +27,12 @@ export const crearHabitacion = (habitacion) =>
     body: JSON.stringify(habitacion),
   });
 
+export const editarHabitacion = (id, datos) =>
+  request(`/api/habitaciones/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(datos),
+  });
+
 export const eliminarHabitacion = (id) =>
   request(`/api/habitaciones/${id}`, {
     method: 'DELETE',
@@ -67,6 +73,12 @@ export const eliminarPago = (personaId, pagoId) =>
     method: 'DELETE',
   });
 
+export const actualizarNombrePersona = (personaId, nombre) =>
+  request(`/api/personas/${personaId}`, {
+    method: 'PUT',
+    body: JSON.stringify({ nombre }),
+  });
+
 export const eliminarPersona = (personaId) =>
   request(`/api/personas/${personaId}`, {
     method: 'DELETE',
@@ -80,6 +92,17 @@ export const crearViaje = (viaje) =>
     body: JSON.stringify(viaje),
   });
 
+export const editarViaje = (id, datos) =>
+  request(`/api/viajes/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(datos),
+  });
+
+export const eliminarViaje = (id) =>
+  request(`/api/viajes/${id}`, {
+    method: 'DELETE',
+  });
+
 export const ensureDefaultViaje = () =>
   request('/api/viajes/default', {
     method: 'POST',
@@ -89,26 +112,41 @@ export const fetchDashboardStats = () => request('/api/stats/dashboard');
 
 export const fetchViajeBySlug = (slug) => request(`/api/stats/viaje/slug/${slug}`);
 
-// ─── REPORTES ────────────────────────────────────────────────────────────────
-export const fetchPagosPorMes = (viajeId) => {
-  const query = viajeId ? `?viajeId=${viajeId}` : '';
-  return request(`/api/stats/reportes/pagos-por-mes${query}`);
-};
- 
-export const fetchReportePorEtiqueta = (viajeId) => {
-  const query = viajeId ? `?viajeId=${viajeId}` : '';
-  return request(`/api/stats/reportes/por-etiqueta${query}`);
-};
- 
-export const fetchComparativaViajes = () =>
-  request('/api/stats/reportes/comparativa-viajes');
- 
-export const fetchPagosMesViaje = () =>
-  request('/api/stats/reportes/pagos-mes-viaje');
- 
-
 export const crearViajeConSlug = (viaje) =>
   request('/api/stats/viajes/with-slug', {
     method: 'POST',
     body: JSON.stringify(viaje),
   });
+
+  // Generar link de compartir con duración
+export const generarLinkCompartir = (viajeId, duracion = '7d') =>
+  request(`/api/viajes/${viajeId}/compartir`, {
+    method: 'POST',
+    body: JSON.stringify({ duracion }),
+  });
+
+// Desactivar link de compartir
+export const desactivarLinkCompartir = (viajeId) =>
+  request(`/api/viajes/${viajeId}/compartir`, {
+    method: 'DELETE',
+  });
+
+  export const fetchViajePublico = (token) =>
+  request(`/api/viajes/publico/${token}`);
+
+// ─── REPORTES ────────────────────────────────────────────────────────────────
+export const fetchPagosPorMes = (viajeId) => {
+  const query = viajeId ? `?viajeId=${viajeId}` : '';
+  return request(`/api/stats/reportes/pagos-por-mes${query}`);
+};
+
+export const fetchReportePorEtiqueta = (viajeId) => {
+  const query = viajeId ? `?viajeId=${viajeId}` : '';
+  return request(`/api/stats/reportes/por-etiqueta${query}`);
+};
+
+export const fetchComparativaViajes = () =>
+  request('/api/stats/reportes/comparativa-viajes');
+
+export const fetchPagosMesViaje = () =>
+  request('/api/stats/reportes/pagos-mes-viaje');

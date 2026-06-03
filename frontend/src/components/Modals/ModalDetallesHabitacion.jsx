@@ -4,6 +4,7 @@ import { formatCurrency } from '../../utils/formatters';
 import { calcularTotalPagado } from '../../utils/calculos';
 import ModalRegistrarPago from './ModalRegistrarPago';
 import ModalMoverPersona from './ModalMoverPersona';
+import ModalEditarHabitacion from './ModalEditarHabitacion';
 import styles from '../styles/components/modals.module.css';
 
 const ModalDetallesHabitacion = ({ habitacion: habitacionProp, onClose }) => {
@@ -18,6 +19,7 @@ const ModalDetallesHabitacion = ({ habitacion: habitacionProp, onClose }) => {
   const [etiquetaPersonalizada, setEtiquetaPersonalizada] = useState('');
   const [modalPago, setModalPago] = useState(null);
   const [modalMover, setModalMover] = useState(null);
+  const [editarOpen, setEditarOpen] = useState(false); // ← nuevo
 
   const etiquetasExistentes = [...new Set(
     state.habitaciones.map((h) => h.etiqueta).filter(Boolean)
@@ -165,8 +167,16 @@ const ModalDetallesHabitacion = ({ habitacion: habitacionProp, onClose }) => {
           </div>
 
           <div className={styles.modalActions}>
-            <button type="button" className="button" onClick={onClose}>Cerrar</button>
-            <button type="button" className="button button-danger" onClick={handleDelete}>Eliminar hab</button>
+            <button type="button" className="button button-danger" onClick={handleDelete}>
+              Eliminar hab
+            </button>
+            <button type="button" className="button" onClick={onClose}>
+              Cerrar
+            </button>
+            {/* ← nuevo botón editar */}
+            <button type="button" className="button button-primary" onClick={() => setEditarOpen(true)}>
+              ✏ Editar habitación
+            </button>
           </div>
         </div>
       </div>
@@ -189,6 +199,13 @@ const ModalDetallesHabitacion = ({ habitacion: habitacionProp, onClose }) => {
           onClose={() => setModalMover(null)}
         />
       )}
+
+      {/* ← nuevo modal editar */}
+      <ModalEditarHabitacion
+        habitacion={habitacion}
+        open={editarOpen}
+        onClose={() => setEditarOpen(false)}
+      />
     </>
   );
 };

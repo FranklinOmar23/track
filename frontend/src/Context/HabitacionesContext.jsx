@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useEffect, useReducer } from 'react';
-import { calcularTotalPagado } from '../utils/calculos';
 import * as api from '../utils/api';
 
 const HabitacionesContext = createContext();
@@ -29,8 +28,32 @@ function habitacionesReducer(state, action) {
     case 'AGREGAR_VIAJE':
       return { ...state, viajes: [action.payload, ...state.viajes] };
 
+    case 'ACTUALIZAR_VIAJE':
+      return {
+        ...state,
+        viajes: state.viajes.map((v) =>
+          v.id === action.payload.id ? { ...v, ...action.payload } : v
+        ),
+      };
+
+    case 'ELIMINAR_VIAJE':
+      return {
+        ...state,
+        viajes: state.viajes.filter((v) => v.id !== action.payload),
+        selectedViajeId: state.selectedViajeId === action.payload ? null : state.selectedViajeId,
+        habitaciones: state.selectedViajeId === action.payload ? [] : state.habitaciones,
+      };
+
     case 'AGREGAR_HABITACION':
       return { ...state, habitaciones: [...state.habitaciones, action.payload] };
+
+    case 'ACTUALIZAR_HABITACION':
+      return {
+        ...state,
+        habitaciones: state.habitaciones.map((h) =>
+          h.id === action.payload.id ? { ...h, ...action.payload } : h
+        ),
+      };
 
     case 'ELIMINAR_HABITACION':
       return {
@@ -47,79 +70,6 @@ function habitacionesReducer(state, action) {
         },
       };
 
-    case 'REGISTRAR_PAGO':
-      return {
-        ...state,
-        habitaciones: state.habitaciones.map((hab) => {
-          if (hab.id !== action.payload.habId) return hab;
-          return {
-            ...hab,
-            personas: hab.personas.map((persona, idx) => {
-              if (idx === action.payload.perIdx) {
-                return { ...persona, pagos: [...(persona.pagos || []), action.payload.pago] };
-              }
-              return persona;
-            }),
-          };
-        }),
-      };
-
-    case 'ACTUALIZAR_PAGO':
-      return {
-        ...state,
-        habitaciones: state.habitaciones.map((hab) => {
-          if (hab.id !== action.payload.habId) return hab;
-          return {
-            ...hab,
-            personas: hab.personas.map((persona, idx) => {
-              if (idx !== action.payload.perIdx) return persona;
-              return {
-                ...persona,
-                pagos: persona.pagos.map((pago) =>
-                  pago.id === action.payload.pago.id ? { ...pago, ...action.payload.pago } : pago
-                ),
-              };
-            }),
-          };
-        }),
-      };
-
-    case 'ELIMINAR_PAGO':
-      return {
-        ...state,
-        habitaciones: state.habitaciones.map((hab) => {
-          if (hab.id !== action.payload.habId) return hab;
-          return {
-            ...hab,
-            personas: hab.personas.map((persona, idx) => {
-              if (idx !== action.payload.perIdx) return persona;
-              return {
-                ...persona,
-                pagos: (persona.pagos || []).filter((p) => p.id !== action.payload.pagoId),
-              };
-            }),
-          };
-        }),
-      };
-
-    case 'MOVER_PERSONA': {
-      const { habOrigen, habDestino, personaId } = action.payload;
-      const nuevasHabitaciones = state.habitaciones.map((hab) => ({
-        ...hab,
-        personas: [...hab.personas],
-      }));
-      const origen = nuevasHabitaciones.find((hab) => hab.id === habOrigen);
-      const destino = nuevasHabitaciones.find((hab) => hab.id === habDestino);
-      const personaIndex = origen?.personas.findIndex((p) => p.id === personaId);
-
-      if (origen && destino && personaIndex >= 0) {
-        const [persona] = origen.personas.splice(personaIndex, 1);
-        destino.personas.push({ ...persona, posicion: destino.personas.length + 1 });
-      }
-
-      return { ...state, habitaciones: nuevasHabitaciones };
-    }
-
     case 'ACTUALIZAR_NOTA':
       return {
         ...state,
@@ -128,7 +78,6 @@ function habitacionesReducer(state, action) {
         ),
       };
 
-    // ← nuevo: actualizar etiqueta optimistamente
     case 'ACTUALIZAR_ETIQUETA':
       return {
         ...state,
@@ -180,7 +129,7 @@ export const HabitacionesProvider = ({ children }) => {
 
   const crearViaje = async (viaje) => {
     try {
-      const nuevoViaje = await api.crearViaje(viaje);
+      const nuevoViaje = await api.crearViajeConSlug(viaje);
       dispatch({ type: 'AGREGAR_VIAJE', payload: nuevoViaje });
       return nuevoViaje;
     } catch (error) {
@@ -189,11 +138,32 @@ export const HabitacionesProvider = ({ children }) => {
     }
   };
 
+  const editarViaje = async (id, datos) => {
+    try {
+      const actualizado = await api.editarViaje(id, datos);
+      dispatch({ type: 'ACTUALIZAR_VIAJE', payload: { id, ...datos, ...actualizado } });
+      return actualizado;
+    } catch (error) {
+      console.error('Error editando viaje:', error);
+      throw error;
+    }
+  };
+
+  const eliminarViaje = async (id) => {
+    try {
+      await api.eliminarViaje(id);
+      dispatch({ type: 'ELIMINAR_VIAJE', payload: id });
+    } catch (error) {
+      console.error('Error eliminando viaje:', error);
+      throw error;
+    }
+  };
+
   const seleccionarViaje = async (viajeId) => {
     try {
       dispatch({ type: 'SET_SELECTED_VIAJE', payload: viajeId });
       dispatch({ type: 'SET_HABITACIONES', payload: [] });
-      await cargarHabitaciones(viajeId);
+      if (viajeId) await cargarHabitaciones(viajeId);
     } catch (error) {
       console.error('Error seleccionando viaje:', error);
     }
@@ -208,6 +178,17 @@ export const HabitacionesProvider = ({ children }) => {
       dispatch({ type: 'AGREGAR_HABITACION', payload: nuevaHabitacion });
     } catch (error) {
       console.error('Error creando habitación:', error);
+      throw error;
+    }
+  };
+
+  const editarHabitacion = async (id, datos) => {
+    try {
+      const actualizada = await api.editarHabitacion(id, datos);
+      dispatch({ type: 'ACTUALIZAR_HABITACION', payload: { id, ...datos, ...actualizada } });
+      return actualizada;
+    } catch (error) {
+      console.error('Error editando habitación:', error);
       throw error;
     }
   };
@@ -227,8 +208,7 @@ export const HabitacionesProvider = ({ children }) => {
       const persona = habitacion?.personas[perIdx];
       if (!persona?.id) return;
       await api.registrarPago(persona.id, pago);
-      const viajeId = state.selectedViajeId;
-      if (viajeId) await cargarHabitaciones(viajeId);
+      if (state.selectedViajeId) await cargarHabitaciones(state.selectedViajeId);
     } catch (error) {
       console.error('Error registrando pago:', error);
       throw error;
@@ -241,8 +221,7 @@ export const HabitacionesProvider = ({ children }) => {
       const persona = habitacion?.personas[perIdx];
       if (!persona?.id) return;
       await api.actualizarPago(persona.id, pagoId, pago);
-      const viajeId = state.selectedViajeId;
-      if (viajeId) await cargarHabitaciones(viajeId);
+      if (state.selectedViajeId) await cargarHabitaciones(state.selectedViajeId);
     } catch (error) {
       console.error('Error actualizando pago:', error);
       throw error;
@@ -255,8 +234,7 @@ export const HabitacionesProvider = ({ children }) => {
       const persona = habitacion?.personas[perIdx];
       if (!persona?.id) return;
       await api.eliminarPago(persona.id, pagoId);
-      const viajeId = state.selectedViajeId;
-      if (viajeId) await cargarHabitaciones(viajeId);
+      if (state.selectedViajeId) await cargarHabitaciones(state.selectedViajeId);
     } catch (error) {
       console.error('Error eliminando pago:', error);
       throw error;
@@ -296,15 +274,12 @@ export const HabitacionesProvider = ({ children }) => {
     }
   };
 
-  // ← nueva función
   const actualizarEtiqueta = async (habId, etiqueta) => {
     try {
-      // Actualización optimista — la UI cambia inmediatamente
       dispatch({ type: 'ACTUALIZAR_ETIQUETA', payload: { habId, etiqueta } });
       await api.actualizarEtiqueta(habId, etiqueta);
     } catch (error) {
       console.error('Error actualizando etiqueta:', error);
-      // Revertir si falla
       await cargarHabitaciones(state.selectedViajeId);
     }
   };
@@ -317,8 +292,11 @@ export const HabitacionesProvider = ({ children }) => {
     state,
     cargarHabitaciones,
     crearViaje,
+    editarViaje,
+    eliminarViaje,
     seleccionarViaje,
     agregarHabitacion,
+    editarHabitacion,
     eliminarHabitacion,
     toggleExpanded: (id) => dispatch({ type: 'TOGGLE_EXPANDED', payload: id }),
     registrarPago,
@@ -327,7 +305,7 @@ export const HabitacionesProvider = ({ children }) => {
     eliminarPersona,
     moverPersona,
     actualizarNota,
-    actualizarEtiqueta,   // ← exponer
+    actualizarEtiqueta,
     setFiltros,
   };
 

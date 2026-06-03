@@ -17,7 +17,7 @@ const mapHabitaciones = (rows) => {
         precioNino: Number(row.precio_nino || 0),
         stack: !!row.es_stack,
         nota: row.nota || '',
-        etiqueta: row.etiqueta || '',   // ← nuevo campo
+        etiqueta: row.etiqueta || '',
         personas: [],
       };
       mapa.set(row.habitacion_id, habitacion);
@@ -145,6 +145,25 @@ router.post('/', async (req, res) => {
   }
 });
 
+// ← NUEVO: editar habitación (num, tipo, total, precioNino, etiqueta)
+router.put('/:id', async (req, res) => {
+  const habitacionId = Number(req.params.id);
+  const { num, tipo, total, precioNino, etiqueta, stack } = req.body;
+
+  if (!num || !tipo) {
+    return res.status(400).json({ error: 'Número y tipo son requeridos.' });
+  }
+
+  await pool.query(
+    `UPDATE habitaciones SET 
+      numero = ?, tipo = ?, total = ?, precio_nino = ?, etiqueta = ?, es_stack = ?
+     WHERE id = ?`,
+    [num, tipo, Number(total) || 0, Number(precioNino) || 0, etiqueta || '', stack ? 1 : 0, habitacionId]
+  );
+
+  res.json({ id: habitacionId, num, tipo, total: Number(total) || 0, precioNino: Number(precioNino) || 0, etiqueta, stack: !!stack });
+});
+
 router.delete('/:id', async (req, res) => {
   const habitacionId = Number(req.params.id);
   await pool.query('DELETE FROM habitaciones WHERE id = ?', [habitacionId]);
@@ -182,7 +201,6 @@ router.put('/:id/nota', async (req, res) => {
   res.json({ ok: true });
 });
 
-// ← nuevo endpoint para actualizar etiqueta
 router.put('/:id/etiqueta', async (req, res) => {
   const habitacionId = Number(req.params.id);
   const { etiqueta } = req.body;
