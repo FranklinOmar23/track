@@ -1,9 +1,10 @@
 import React from 'react';
 import { useHabitacionesContext } from '../../Context/HabitacionesContext';
 import { calcularEstadisticas, calcularTotalPagado } from '../../utils/calculos';
+import { useDivisa } from '../../hooks/useDivisa';
 
-const StatCard = ({ label, value, color = 'text-gray-900' }) => (
-  <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100">
+const StatCard = ({ label, value, color = 'text-white' }) => (
+  <div className="bg-[#1a1f2e] rounded-xl p-4 border border-white/[0.07]">
     <p className="text-[10px] sm:text-xs uppercase tracking-wide text-gray-500 font-medium leading-tight">
       {label}
     </p>
@@ -13,6 +14,7 @@ const StatCard = ({ label, value, color = 'text-gray-900' }) => (
 
 const StatsGrid = () => {
   const { state } = useHabitacionesContext();
+  const { fmt } = useDivisa();
   const { total, pagado, pendiente } = calcularEstadisticas(state.habitaciones);
   const habitaciones = state.habitaciones.length;
   const stackCount = state.habitaciones.filter((hab) => hab.stack).length;
@@ -20,23 +22,14 @@ const StatsGrid = () => {
     (hab) => hab.stack || calcularTotalPagado(hab) >= hab.total
   ).length;
 
-  const formatCurrency = (value) => {
-    return new Intl.NumberFormat('es-DO', {
-      style: 'currency',
-      currency: 'DOP',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value || 0);
-  };
-
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
-      <StatCard label="Total por Cobrar" value={formatCurrency(total)} />
-      <StatCard label="Recaudado" value={formatCurrency(pagado)} color="text-teal-600" />
-      <StatCard label="Pendiente" value={formatCurrency(pendiente)} color="text-rose-500" />
+      <StatCard label="Total por Cobrar" value={fmt(total)} />
+      <StatCard label="Recaudado" value={fmt(pagado)} color="text-emerald-400" />
+      <StatCard label="Pendiente" value={fmt(pendiente)} color="text-red-400" />
       <StatCard label="Habitaciones" value={habitaciones} />
-      <StatCard label="Stack" value={stackCount} color="text-amber-600" />
-      <StatCard label="Completadas" value={completas} color="text-teal-600" />
+      <StatCard label="Stack" value={stackCount} color="text-emerald-400" />
+      <StatCard label="Completadas" value={completas} color="text-emerald-400" />
     </div>
   );
 };

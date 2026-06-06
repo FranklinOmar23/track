@@ -10,33 +10,31 @@ export const ViajeCard = ({ viaje, onSelect }) => {
   const tipo = viaje.tipo || 'resort';
   const icono = tipo === 'tour' ? '🚐' : '🏨';
   const fechaInicio = formatFecha(viaje.fechaInicio);
-  const fechaFin = formatFecha(viaje.fechaFin);
+  const fechaFin    = formatFecha(viaje.fechaFin);
 
   return (
     <button
       type="button"
-      className="bg-white rounded-xl shadow-sm border border-border p-5 text-left hover:shadow-md transition-all group"
+      className="bg-[#1a1f2e] rounded-xl border border-white/[0.07] p-5 text-left hover:border-white/[0.15] hover:bg-[#1e2437] transition-all group w-full"
       onClick={() => onSelect(viaje)}
     >
       <div className="flex items-start justify-between">
         <div className="text-3xl">{icono}</div>
-        <div className="text-muted-foreground group-hover:translate-x-1 transition-transform">→</div>
+        <div className="text-gray-600 group-hover:text-gray-400 group-hover:translate-x-1 transition-all">→</div>
       </div>
-      <h3 className="font-semibold text-foreground mt-3">{viaje.nombre}</h3>
+      <h3 className="font-semibold text-white mt-3">{viaje.nombre}</h3>
       {(fechaInicio || fechaFin) && (
-        <p className="text-xs text-muted-foreground mt-1">
+        <p className="text-xs text-gray-500 mt-1">
           {fechaInicio && fechaFin
             ? `${fechaInicio} → ${fechaFin}`
-            : fechaInicio
-            ? `Desde ${fechaInicio}`
-            : `Hasta ${fechaFin}`}
+            : fechaInicio ? `Desde ${fechaInicio}` : `Hasta ${fechaFin}`}
         </p>
       )}
-      {viaje.nota && <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{viaje.nota}</p>}
-      <span className={`inline-block mt-3 text-xs px-2 py-1 rounded-full ${
-        tipo === 'tour' 
-          ? 'bg-cyan-50 text-cyan-700 border border-cyan-200' 
-          : 'bg-teal-50 text-teal-700 border border-teal-200'
+      {viaje.nota && <p className="text-sm text-gray-500 mt-2 line-clamp-2">{viaje.nota}</p>}
+      <span className={`inline-block mt-3 text-xs px-2 py-1 rounded-full border ${
+        tipo === 'tour'
+          ? 'bg-cyan-900/40 text-cyan-400 border-cyan-600/40'
+          : 'bg-teal-900/40 text-teal-400 border-teal-600/40'
       }`}>
         {tipo === 'tour' ? 'Tour' : 'Resort'}
       </span>

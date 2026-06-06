@@ -33,6 +33,7 @@ const mapHabitaciones = (rows) => {
           id: row.persona_id,
           n: row.nombre,
           posicion: row.posicion,
+          esNino: !!row.es_nino,
           pagos: [],
         };
         habitacion.personas.push(persona);
@@ -74,6 +75,7 @@ router.get('/', async (req, res) => {
       p.id AS persona_id,
       p.nombre,
       p.posicion,
+      p.es_nino,
       pag.id AS pago_id,
       pag.mes,
       pag.monto
@@ -111,15 +113,17 @@ router.post('/', async (req, res) => {
       const persona = personas[index];
       if (!persona || !persona.n) continue;
 
+      const esNino = persona.esNino ? 1 : 0;
       const [personaResult] = await connection.query(
-        'INSERT INTO personas (habitacion_id, nombre, posicion) VALUES (?, ?, ?)',
-        [habitacionId, persona.n, index + 1]
+        'INSERT INTO personas (habitacion_id, nombre, posicion, es_nino) VALUES (?, ?, ?, ?)',
+        [habitacionId, persona.n, index + 1, esNino]
       );
 
       personaRows.push({
         id: personaResult.insertId,
         n: persona.n,
         posicion: index + 1,
+        esNino: !!persona.esNino,
         pagos: [],
       });
     }
@@ -162,6 +166,28 @@ router.put('/:id', async (req, res) => {
   );
 
   res.json({ id: habitacionId, num, tipo, total: Number(total) || 0, precioNino: Number(precioNino) || 0, etiqueta, stack: !!stack });
+});
+
+router.post('/:id/personas', async (req, res) => {
+  const habitacionId = Number(req.params.id);
+  const { nombre, esNino } = req.body;
+
+  if (!nombre || !nombre.trim()) {
+    return res.status(400).json({ error: 'Nombre es requerido.' });
+  }
+
+  const [posRows] = await pool.query(
+    'SELECT COALESCE(MAX(posicion), 0) + 1 AS siguiente FROM personas WHERE habitacion_id = ?',
+    [habitacionId]
+  );
+  const posicion = posRows[0].siguiente;
+
+  const [result] = await pool.query(
+    'INSERT INTO personas (habitacion_id, nombre, posicion, es_nino) VALUES (?, ?, ?, ?)',
+    [habitacionId, nombre.trim(), posicion, esNino ? 1 : 0]
+  );
+
+  res.status(201).json({ id: result.insertId, n: nombre.trim(), posicion, esNino: !!esNino, pagos: [] });
 });
 
 router.delete('/:id', async (req, res) => {

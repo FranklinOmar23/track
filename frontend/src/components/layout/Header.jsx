@@ -3,43 +3,30 @@ import { useHabitacionesContext } from '../../Context/HabitacionesContext';
 
 const Header = ({ viaje, onBack }) => {
   const { state } = useHabitacionesContext();
-  
-  // Memoizar el valor para evitar re-renders
+
   const viajeSeleccionado = useMemo(() => {
     return viaje || state?.viajes?.find(v => v.id === state?.selectedViajeId);
   }, [viaje, state?.viajes, state?.selectedViajeId]);
 
   return (
-    <header className="header" style={{ 
-      display: 'flex', 
-      alignItems: 'center', 
-      justifyContent: 'space-between', 
-      gap: '1rem', 
-      paddingBottom: '1rem', 
-      borderBottom: '1px solid var(--color-border-tertiary)', 
-      marginBottom: '1.5rem' 
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+    <header className="flex items-center justify-between gap-4 pb-4 border-b border-white/[0.07] mb-6">
+      <div className="flex items-center gap-3">
         {onBack && (
           <button
             onClick={onBack}
-            style={{
-              background: 'none',
-              border: 'none',
-              fontSize: '1.5rem',
-              cursor: 'pointer',
-              padding: '0.5rem'
-            }}
+            className="text-gray-500 hover:text-white transition-colors text-xl p-1.5 rounded-lg hover:bg-white/5"
           >
             ←
           </button>
         )}
         <div>
-          <h1 style={{ fontSize: '1.25rem', fontWeight: 600, margin: 0 }}>
+          <h1 className="text-base font-semibold text-white">
             ResortMamaTingo — Control de pagos
           </h1>
-          <p style={{ margin: '0.4rem 0 0', fontSize: '0.9rem', color: 'var(--color-text-secondary)' }}>
-            {viajeSeleccionado ? `Viaje: ${viajeSeleccionado.nombre}` : 'Selecciona o crea un viaje para comenzar'}
+          <p className="mt-0.5 text-sm text-gray-500">
+            {viajeSeleccionado
+              ? `Viaje: ${viajeSeleccionado.nombre}`
+              : 'Selecciona o crea un viaje para comenzar'}
           </p>
         </div>
       </div>

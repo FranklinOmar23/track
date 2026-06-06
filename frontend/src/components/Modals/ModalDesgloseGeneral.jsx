@@ -1,10 +1,12 @@
 import React, { useMemo } from 'react';
 import { useHabitacionesContext } from '../../Context/HabitacionesContext';
 import styles from '../styles/components/modals.module.css';
-import { MESES, formatCurrency } from '../../utils/formatters';
+import { MESES } from '../../utils/formatters';
+import { useDivisa } from '../../hooks/useDivisa';
 
 const ModalDesgloseGeneral = ({ onClose }) => {
   const { state } = useHabitacionesContext();
+  const { fmt } = useDivisa();
 
   const resumen = useMemo(() => {
     const map = new Map();
@@ -35,13 +37,13 @@ const ModalDesgloseGeneral = ({ onClose }) => {
           {resumen.map((r) => (
             <div key={r.mes} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid #eee' }}>
               <div style={{ fontWeight: 600 }}>{r.mes}</div>
-              <div>{formatCurrency(r.total)}</div>
+              <div>{fmt(r.total)}</div>
             </div>
           ))}
 
           <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', marginTop: '0.5rem', borderTop: '2px solid #ddd', fontWeight: 700 }}>
             <div>Total</div>
-            <div>{formatCurrency(totalGeneral)}</div>
+            <div>{fmt(totalGeneral)}</div>
           </div>
         </div>
 

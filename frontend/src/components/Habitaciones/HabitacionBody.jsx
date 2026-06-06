@@ -5,18 +5,22 @@ import ModalRegistrarPago from '../Modals/ModalRegistrarPago';
 import ModalMoverPersona from '../Modals/ModalMoverPersona';
 import ModalDesglosePagos from '../Modals/ModalDesglosePagos';
 import styles from '../styles/components/habitaciones.module.css';
-import { calcularTotalPagado } from '../../utils/calculos';
-import { formatCurrency } from '../../utils/formatters';
+import { calcularTotalPagado, calcularCuotaPersona } from '../../utils/calculos';
+import { useDivisa } from '../../hooks/useDivisa';
 
 const HabitacionBody = ({ habitacion }) => {
   const { actualizarNota, eliminarHabitacion, eliminarPersona } = useHabitacionesContext();
+  const { fmt } = useDivisa();
   const [modalPago, setModalPago] = useState(null);
   const [modalMover, setModalMover] = useState(null);
   const [modalDesglose, setModalDesglose] = useState(false);
 
   const totalPagado = calcularTotalPagado(habitacion);
-  const cantidadPersonas = habitacion.personas.filter((persona) => persona.n).length;
-  const pendienteHabitacion = Math.max(0, habitacion.total - totalPagado);
+  const cantidadNinos = habitacion.personas.filter(
+    (p) => p.esNino || /\(\d+ años\)/.test(p.n)
+  ).length;
+  const totalReal = habitacion.total + (Number(habitacion.precioNino) || 0) * cantidadNinos;
+  const pendienteHabitacion = Math.max(0, totalReal - totalPagado);
 
   return (
     <div className={styles.habBody}>
@@ -24,8 +28,7 @@ const HabitacionBody = ({ habitacion }) => {
         <PersonaRow
           key={`${habitacion.id}-${index}`}
           persona={persona}
-          totalHabitacion={habitacion.total}
-          cantidadPersonas={cantidadPersonas}
+          cuota={calcularCuotaPersona(habitacion, persona)}
           onRegistrarPago={() => setModalPago({ perIdx: index, persona, pago: null })}
           onMover={() => setModalMover({ perIdx: index, persona })}
           onEditarPago={(pago) => setModalPago({ perIdx: index, persona, pago })}
@@ -43,21 +46,21 @@ const HabitacionBody = ({ habitacion }) => {
       <div className={styles.totalHab}>
         <div className={styles.totalHabItem}>
           <span className={styles.totalHabLabel}>Total hab</span>
-          <span className={styles.totalHabValue}>{habitacion.stack ? 'STACK' : formatCurrency(habitacion.total)}</span>
+          <span className={styles.totalHabValue}>{habitacion.stack ? 'STACK' : fmt(habitacion.total)}</span>
         </div>
         {!habitacion.stack && (
           <div className={styles.totalHabItem}>
             <span className={styles.totalHabLabel}>Precio niño</span>
-            <span className={styles.totalHabValue}>{formatCurrency(habitacion.precioNino || 0)}</span>
+            <span className={styles.totalHabValue}>{fmt(habitacion.precioNino || 0)}</span>
           </div>
         )}
         <div className={styles.totalHabItem}>
           <span className={styles.totalHabLabel}>Recaudado</span>
-          <span className={styles.totalHabValue}>{formatCurrency(totalPagado)}</span>
+          <span className={styles.totalHabValue}>{fmt(totalPagado)}</span>
         </div>
         <div className={styles.totalHabItem}>
           <span className={styles.totalHabLabel}>Pendiente</span>
-          <span className={styles.totalHabValue}>{formatCurrency(habitacion.stack ? 0 : pendienteHabitacion)}</span>
+          <span className={styles.totalHabValue}>{fmt(habitacion.stack ? 0 : pendienteHabitacion)}</span>
         </div>
       </div>
 

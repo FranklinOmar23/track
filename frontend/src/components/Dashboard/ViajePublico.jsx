@@ -1,190 +1,128 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { Card } from '../ui/card';
-import { Badge } from '../ui/badge';
-import { Users, EyeOff, Clock, AlertCircle, Home } from 'lucide-react';
+import { useParams } from 'react-router-dom';
+import { Users, EyeOff, Clock, AlertCircle, Search } from 'lucide-react';
 import { fetchViajePublico } from '../../utils/api';
+import { formatCurrency } from '../../utils/formatters';
 
-const formatCurrency = (value) => {
-  return new Intl.NumberFormat('es-DO', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(value || 0);
-};
-
-// Componente de enlace expirado
-const ViajeExpirado = () => {
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center px-4">
-      <div className="max-w-md w-full text-center">
-        <div className="bg-white rounded-2xl shadow-xl p-8">
-          <div className="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Clock className="h-10 w-10 text-amber-600" />
-          </div>
-          
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            Enlace expirado
-          </h1>
-          
-          <p className="text-gray-500 mb-6">
-            Este enlace de compartir ha expirado. 
-            Por favor, contacta al administrador del viaje para obtener un nuevo enlace.
-          </p>
-          
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
-            <div className="flex items-center gap-2 text-amber-700 mb-2">
-              <AlertCircle className="h-4 w-4" />
-              <span className="text-sm font-medium">¿Qué significa esto?</span>
-            </div>
-            <p className="text-xs text-amber-600">
-              Por seguridad, los enlaces de compartir tienen un tiempo de vigencia limitado. 
-              Una vez expirados, ya no se puede acceder a la información del viaje.
-            </p>
-          </div>
-          
-          <Link
-            to="/"
-            className="inline-flex items-center gap-2 px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
-          >
-            <Home className="h-4 w-4" />
-            Volver al inicio
-          </Link>
+const ViajeExpiradoScreen = () => (
+  <div className="min-h-screen bg-[#0f1117] flex items-center justify-center px-4">
+    <div className="max-w-md w-full text-center">
+      <div className="bg-[#1a1f2e] border border-white/[0.07] rounded-2xl p-8">
+        <div className="w-20 h-20 bg-amber-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+          <Clock className="h-10 w-10 text-amber-400" />
         </div>
+        <h1 className="text-2xl font-bold text-white mb-2">Enlace expirado</h1>
+        <p className="text-gray-400 mb-4">
+          Este enlace ha expirado. Contacta al administrador para obtener uno nuevo.
+        </p>
       </div>
     </div>
-  );
-};
+  </div>
+);
 
-// Componente de error genérico
-const ErrorGenerico = ({ mensaje }) => {
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center px-4">
-      <div className="max-w-md w-full text-center">
-        <div className="bg-white rounded-2xl shadow-xl p-8">
-          <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <AlertCircle className="h-10 w-10 text-red-600" />
-          </div>
-          
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            Link inválido
-          </h1>
-          
-          <p className="text-gray-500 mb-6">
-            {mensaje || 'Este enlace no es válido o ha sido desactivado.'}
-          </p>
-          
-          <Link
-            to="/"
-            className="inline-flex items-center gap-2 px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
-          >
-            <Home className="h-4 w-4" />
-            Volver al inicio
-          </Link>
+const ErrorScreen = ({ mensaje }) => (
+  <div className="min-h-screen bg-[#0f1117] flex items-center justify-center px-4">
+    <div className="max-w-md w-full text-center">
+      <div className="bg-[#1a1f2e] border border-white/[0.07] rounded-2xl p-8">
+        <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+          <AlertCircle className="h-10 w-10 text-red-400" />
         </div>
+        <h1 className="text-2xl font-bold text-white mb-2">Link inválido</h1>
+        <p className="text-gray-400">{mensaje || 'Este enlace no es válido o ha sido desactivado.'}</p>
       </div>
     </div>
-  );
-};
+  </div>
+);
 
-const HabitacionPublicCard = ({ habitacion }) => {
+const HabitacionCard = ({ habitacion, fmt }) => {
   const totalPagado = habitacion.personas.reduce(
     (sum, p) => sum + (p.pagos?.reduce((s, pg) => s + (pg.monto || 0), 0) || 0),
     0
   );
-  const totalHabitacion = habitacion.total || 0;
-  const pendiente = totalHabitacion - totalPagado;
-  const porcentaje = totalHabitacion > 0 ? (totalPagado / totalHabitacion) * 100 : 0;
+  const totalHab = habitacion.total || 0;
+  const pendiente = totalHab - totalPagado;
+  const porcentaje = totalHab > 0 ? (totalPagado / totalHab) * 100 : 0;
   const isStack = habitacion.stack;
-  const hasPersonas = habitacion.personas && habitacion.personas.length > 0;
-  const isComplete = pendiente === 0 && totalPagado > 0;
+  const isComplete = !isStack && pendiente <= 0 && totalPagado > 0;
+
+  let borderColor = 'border-white/[0.07]';
+  if (isStack) borderColor = 'border-emerald-500/50';
+  else if (isComplete) borderColor = 'border-teal-500/50';
+  else if (porcentaje >= 30) borderColor = 'border-blue-500/40';
+  else if (porcentaje > 0) borderColor = 'border-amber-500/40';
+  else borderColor = 'border-red-500/30';
 
   return (
-    <Card className={`p-4 border transition-all hover:shadow-lg bg-white ${
-      isComplete ? 'border-teal-200 bg-gradient-to-br from-teal-50/50 to-white' : ''
-    } ${isStack ? 'border-amber-200 bg-gradient-to-br from-amber-50/50 to-white' : ''}`}>
-      <div className="flex items-start justify-between mb-3">
+    <div className={`bg-[#1a1f2e] border ${borderColor} rounded-xl p-4 transition-colors`}>
+      <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2 flex-wrap">
-          <Badge variant="outline" className="bg-primary/10 text-primary font-semibold px-3">
+          <span className="px-2.5 py-1 rounded-md text-xs font-semibold bg-teal-500/15 text-teal-400 border border-teal-500/25">
             Hab. {habitacion.num}
-          </Badge>
-          <span className="text-xs text-gray-500 font-medium">{habitacion.tipo}</span>
+          </span>
+          {habitacion.tipo && (
+            <span className="text-xs text-gray-500">{habitacion.tipo}</span>
+          )}
           {isStack && (
-            <Badge variant="secondary" className="bg-amber-50 text-amber-700 border-amber-200">
-              STACK
-            </Badge>
+            <span className="px-2 py-0.5 rounded text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">STACK</span>
           )}
           {isComplete && !isStack && (
-            <Badge variant="secondary" className="bg-teal-50 text-teal-700 border-teal-200">
-              Completada
-            </Badge>
+            <span className="px-2 py-0.5 rounded text-xs bg-teal-500/10 text-teal-400 border border-teal-500/20">Completada</span>
           )}
         </div>
+        {habitacion.etiqueta && (
+          <span className="text-xs text-gray-500 truncate max-w-[100px]">{habitacion.etiqueta}</span>
+        )}
       </div>
 
-      {hasPersonas && (
+      {habitacion.personas.length > 0 && (
         <div className="mb-3 space-y-1.5">
           {habitacion.personas.map((persona, idx) => (
             <div key={idx} className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
-                <Users className="w-3 h-3 text-primary" />
+              <div className="w-6 h-6 rounded-full bg-white/[0.06] flex items-center justify-center shrink-0">
+                <Users className="w-3 h-3 text-gray-400" />
               </div>
-              <span className="text-sm font-medium text-gray-800">
+              <span className="text-sm text-gray-200">
                 {persona.n}
-                {persona.esNino && <span className="text-xs text-amber-600 ml-1">(niño)</span>}
+                {persona.esNino && <span className="text-xs text-amber-400 ml-1">(niño)</span>}
               </span>
             </div>
           ))}
         </div>
       )}
 
-      {isStack && !hasPersonas && (
-        <div className="mb-3 py-2">
-          <span className="text-sm text-gray-500 italic">Sin asignar</span>
-        </div>
-      )}
-
-      {totalHabitacion > 0 && !isStack && (
+      {!isStack && totalHab > 0 && (
         <div className="mb-3">
           <div className="flex justify-between text-xs text-gray-500 mb-1">
-            <span>Progreso de pago</span>
+            <span>Progreso</span>
             <span>{porcentaje.toFixed(0)}%</span>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-            <div 
-              className="bg-teal-500 h-2 rounded-full transition-all duration-300" 
-              style={{ width: `${Math.min(porcentaje, 100)}%` }} 
+          <div className="w-full bg-white/[0.06] rounded-full h-1.5 overflow-hidden">
+            <div
+              className="bg-teal-500 h-1.5 rounded-full transition-all"
+              style={{ width: `${Math.min(porcentaje, 100)}%` }}
             />
           </div>
         </div>
       )}
 
-      <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-        <div className="flex items-center gap-3 flex-wrap">
-          {totalPagado > 0 || pendiente > 0 ? (
-            <>
-              <div className="flex flex-col">
-                <span className="text-xs text-gray-500">Pagado</span>
-                <span className="text-sm font-bold text-teal-600">{formatCurrency(totalPagado)}</span>
-              </div>
-              {pendiente > 0 && !isStack && (
-                <div className="flex flex-col">
-                  <span className="text-xs text-gray-500">Pendiente</span>
-                  <span className="text-sm font-bold text-rose-500">{formatCurrency(pendiente)}</span>
-                </div>
-              )}
-              {isStack && (
-                <span className="text-sm text-gray-500">Habitación stack</span>
-              )}
-            </>
-          ) : (
-            <span className="text-sm text-gray-500">Sin pagos</span>
-          )}
-        </div>
-        <EyeOff className="h-4 w-4 text-gray-400" title="Vista de solo lectura" />
+      <div className="flex items-center gap-4 pt-2 border-t border-white/[0.05]">
+        {totalPagado > 0 && (
+          <div>
+            <p className="text-xs text-gray-500">Pagado</p>
+            <p className="text-sm font-semibold text-emerald-400">{fmt(totalPagado)}</p>
+          </div>
+        )}
+        {!isStack && pendiente > 0 && (
+          <div>
+            <p className="text-xs text-gray-500">Pendiente</p>
+            <p className="text-sm font-semibold text-rose-400">{fmt(pendiente)}</p>
+          </div>
+        )}
+        {!totalPagado && !isStack && (
+          <span className="text-xs text-gray-500">Sin pagos</span>
+        )}
       </div>
-    </Card>
+    </div>
   );
 };
 
@@ -194,171 +132,143 @@ const ViajePublico = () => {
   const [error, setError] = useState(null);
   const [errorType, setErrorType] = useState(null);
   const [data, setData] = useState(null);
+  const [busqueda, setBusqueda] = useState('');
 
   useEffect(() => {
+    if (!token) return;
     const cargarViaje = async () => {
       try {
         setLoading(true);
         const res = await fetchViajePublico(token);
-        
         if (res?.error === 'expired') {
           setErrorType('expired');
-          setError(res.mensaje || 'El enlace ha expirado');
+          setError(res.mensaje);
         } else {
           setData(res);
         }
       } catch (err) {
         console.error('Error cargando viaje público:', err);
-        setErrorType('invalid');
-        setError(err.message || 'Error al cargar el viaje');
+        if (err.message === 'expired') {
+          setErrorType('expired');
+        } else {
+          setErrorType('invalid');
+        }
+        setError(err.message);
       } finally {
         setLoading(false);
       }
     };
-    
-    if (token) {
-      cargarViaje();
-    }
+    cargarViaje();
   }, [token]);
 
   if (loading) {
     return (
-      <div className="min-h-screen flex justify-center items-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
+      <div className="min-h-screen bg-[#0f1117] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-teal-500" />
       </div>
     );
   }
 
-  if (errorType === 'expired') {
-    return <ViajeExpirado />;
-  }
+  if (errorType === 'expired') return <ViajeExpiradoScreen />;
+  if (error) return <ErrorScreen mensaje={error} />;
+  if (!data?.habitaciones) return <ErrorScreen mensaje="No se encontró información del viaje" />;
 
-  if (error) {
-    return <ErrorGenerico mensaje={error} />;
-  }
+  const query = busqueda.toLowerCase().trim();
+  const habitacionesFiltradas = query
+    ? data.habitaciones.filter(
+        (hab) =>
+          hab.num?.toString().toLowerCase().includes(query) ||
+          hab.etiqueta?.toLowerCase().includes(query) ||
+          hab.personas.some((p) => p.n?.toLowerCase().includes(query))
+      )
+    : data.habitaciones;
 
-  if (!data || !data.habitaciones) {
-    return <ErrorGenerico mensaje="No se encontró información del viaje" />;
-  }
-
-  // Agrupar habitaciones por etiqueta
-  const habitacionesPorEtiqueta = {};
-  data.habitaciones.forEach(hab => {
-    const etiqueta = hab.etiqueta || 'Sin etiqueta';
-    if (!habitacionesPorEtiqueta[etiqueta]) {
-      habitacionesPorEtiqueta[etiqueta] = [];
-    }
-    habitacionesPorEtiqueta[etiqueta].push(hab);
+  // Agrupar por etiqueta
+  const grupos = {};
+  habitacionesFiltradas.forEach((hab) => {
+    const key = hab.etiqueta || 'General';
+    if (!grupos[key]) grupos[key] = [];
+    grupos[key].push(hab);
   });
-
-  // Calcular totales
-  let totalGlobalPorCobrar = 0;
-  let totalGlobalPagado = 0;
-  let totalStack = 0;
-  
-  data.habitaciones.forEach(hab => {
-    const pagado = hab.personas.reduce((sum, p) => sum + (p.pagos?.reduce((s, pg) => s + pg.monto, 0) || 0), 0);
-    totalGlobalPorCobrar += hab.stack ? 0 : (hab.total || 0);
-    totalGlobalPagado += pagado;
-    if (hab.stack) totalStack++;
-  });
-  
-  const totalPendiente = totalGlobalPorCobrar - totalGlobalPagado;
-  const porcentajeGlobal = totalGlobalPorCobrar > 0 ? (totalGlobalPagado / totalGlobalPorCobrar * 100) : 0;
 
   const tieneExpiracion = data.viaje?.expiraCompartir;
   const fechaExpiracion = tieneExpiracion ? new Date(data.viaje.expiraCompartir) : null;
   const expiraPronto = fechaExpiracion && (fechaExpiracion - new Date()) < 24 * 60 * 60 * 1000;
+  const fmt = (amount) => formatCurrency(amount, data.viaje.divisa || 'USD');
 
   return (
-    <div className="container mx-auto px-4 py-6 max-w-7xl">
-      {/* Header con indicador de solo lectura */}
-      <div className={`rounded-lg p-3 mb-6 text-center ${
-        expiraPronto 
-          ? 'bg-red-50 border border-red-200' 
-          : 'bg-amber-50 border border-amber-200'
-      }`}>
-        <p className="text-amber-700 text-sm flex items-center justify-center gap-2 flex-wrap">
-          <EyeOff className="h-4 w-4" />
-          Estás viendo una vista de solo lectura del viaje <strong>{data.viaje.nombre}</strong>
-        </p>
-        {tieneExpiracion && (
-          <p className={`text-xs mt-1 flex items-center justify-center gap-1 ${
-            expiraPronto ? 'text-red-600' : 'text-amber-600'
-          }`}>
-            <Clock className="h-3 w-3" />
-            Este enlace expira el {fechaExpiracion.toLocaleDateString('es-DO')} a las {fechaExpiracion.toLocaleTimeString('es-DO')}
-          </p>
-        )}
-      </div>
+    <div className="min-h-screen bg-[#0f1117]">
+      <div className="container mx-auto px-4 py-6 max-w-6xl">
 
-      {/* Estadísticas */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
-        <div className="bg-white rounded-xl p-3 md:p-4 shadow-sm border border-gray-100">
-          <p className="text-xs text-gray-500">Total por Cobrar</p>
-          <p className="text-lg md:text-xl font-bold">{formatCurrency(totalGlobalPorCobrar)}</p>
-        </div>
-        <div className="bg-white rounded-xl p-3 md:p-4 shadow-sm border border-gray-100">
-          <p className="text-xs text-gray-500">Recaudado</p>
-          <p className="text-lg md:text-xl font-bold text-teal-600">{formatCurrency(totalGlobalPagado)}</p>
-        </div>
-        <div className="bg-white rounded-xl p-3 md:p-4 shadow-sm border border-gray-100">
-          <p className="text-xs text-gray-500">Pendiente</p>
-          <p className="text-lg md:text-xl font-bold text-rose-500">{formatCurrency(totalPendiente)}</p>
-        </div>
-        <div className="bg-white rounded-xl p-3 md:p-4 shadow-sm border border-gray-100">
-          <p className="text-xs text-gray-500">Habitaciones</p>
-          <p className="text-lg md:text-xl font-bold">{data.habitaciones.length}</p>
-          {totalStack > 0 && <p className="text-xs text-amber-600">({totalStack} stack)</p>}
-        </div>
-        <div className="bg-white rounded-xl p-3 md:p-4 shadow-sm border border-gray-100">
-          <p className="text-xs text-gray-500">Progreso</p>
-          <p className="text-lg md:text-xl font-bold">{porcentajeGlobal.toFixed(1)}%</p>
-          <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
-            <div 
-              className="bg-teal-500 h-1.5 rounded-full transition-all duration-300" 
-              style={{ width: `${Math.min(porcentajeGlobal, 100)}%` }} 
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Habitaciones agrupadas por etiqueta */}
-      {Object.entries(habitacionesPorEtiqueta).map(([etiqueta, habitaciones]) => {
-        let totalEtiqueta = 0;
-        let pagadoEtiqueta = 0;
-        habitaciones.forEach(hab => {
-          const pagado = hab.personas.reduce((sum, p) => sum + (p.pagos?.reduce((s, pg) => s + pg.monto, 0) || 0), 0);
-          totalEtiqueta += hab.stack ? 0 : (hab.total || 0);
-          pagadoEtiqueta += pagado;
-        });
-        const porcentajeEtiqueta = totalEtiqueta > 0 ? (pagadoEtiqueta / totalEtiqueta * 100) : 0;
-        
-        return (
-          <div key={etiqueta} className="mb-8">
-            <div className="flex justify-between items-center mb-3 pb-2 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900">{etiqueta}</h2>
-              <div className="text-sm text-gray-500">
-                <span className="text-teal-600">{formatCurrency(pagadoEtiqueta)}</span>
-                <span className="mx-1">/</span>
-                <span>{formatCurrency(totalEtiqueta)}</span>
-                <span className="ml-2 text-xs">({porcentajeEtiqueta.toFixed(0)}%)</span>
-              </div>
+        {/* Header */}
+        <div className="flex items-center justify-between gap-4 pb-4 border-b border-white/[0.07] mb-6">
+          <div>
+            <h1 className="text-lg font-semibold text-white">{data.viaje.nombre}</h1>
+            <div className={`flex items-center gap-1.5 mt-1 text-xs ${expiraPronto ? 'text-red-400' : 'text-gray-500'}`}>
+              <EyeOff className="h-3 w-3" />
+              <span>Vista de solo lectura</span>
+              {tieneExpiracion && (
+                <>
+                  <span>·</span>
+                  <Clock className="h-3 w-3" />
+                  <span>
+                    Expira {fechaExpiracion.toLocaleDateString('es-DO', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </>
+              )}
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {habitaciones.map((habitacion) => (
-                <HabitacionPublicCard key={habitacion.id} habitacion={habitacion} />
+          </div>
+          <span className="text-xs text-gray-600 hidden sm:block">
+            {data.habitaciones.length} habitaciones
+          </span>
+        </div>
+
+        {/* Buscador */}
+        <div className="relative mb-6">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 pointer-events-none" />
+          <input
+            type="text"
+            placeholder="Buscar habitación o persona..."
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            className="w-full pl-9 pr-4 py-2.5 rounded-lg bg-white/[0.05] border border-white/[0.08] text-gray-200 placeholder-gray-500 text-sm focus:outline-none focus:border-teal-500/50 focus:bg-white/[0.07] transition-colors"
+          />
+          {busqueda && (
+            <button
+              onClick={() => setBusqueda('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 text-lg leading-none"
+            >
+              ×
+            </button>
+          )}
+        </div>
+
+        {/* Resultados vacíos */}
+        {habitacionesFiltradas.length === 0 && (
+          <div className="text-center py-12 text-gray-500">
+            <Search className="h-8 w-8 mx-auto mb-2 opacity-40" />
+            <p>Sin resultados para "{busqueda}"</p>
+          </div>
+        )}
+
+        {/* Habitaciones agrupadas */}
+        {Object.entries(grupos).map(([etiqueta, habs]) => (
+          <div key={etiqueta} className="mb-8">
+            <div className="flex items-center gap-3 mb-3 pb-2 border-b border-white/[0.07]">
+              <h2 className="text-sm font-semibold text-gray-300">{etiqueta}</h2>
+              <span className="text-xs text-gray-600">{habs.length} hab.</span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {habs.map((hab) => (
+                <HabitacionCard key={hab.id} habitacion={hab} fmt={fmt} />
               ))}
             </div>
           </div>
-        );
-      })}
+        ))}
 
-      {/* Footer */}
-      <div className="mt-8 pt-4 border-t border-gray-200 text-center">
-        <p className="text-xs text-gray-400">
-          Información generada por Sistema de Control de Pagos - Datos en tiempo real
-        </p>
+        <div className="mt-8 pt-4 border-t border-white/[0.05] text-center">
+          <p className="text-xs text-gray-700">Sistema de Control de Pagos · Solo lectura</p>
+        </div>
       </div>
     </div>
   );

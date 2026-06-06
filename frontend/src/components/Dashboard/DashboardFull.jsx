@@ -41,7 +41,7 @@ export const DashboardFull = ({ onSelectViaje }) => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-500" />
       </div>
     );
   }
@@ -49,7 +49,7 @@ export const DashboardFull = ({ onSelectViaje }) => {
   if (error) {
     return (
       <div className="text-center py-12">
-        <p className="text-red-500">Error: {error}</p>
+        <p className="text-red-400">Error: {error}</p>
       </div>
     );
   }
@@ -60,7 +60,7 @@ export const DashboardFull = ({ onSelectViaje }) => {
   if (!viajes || viajes.length === 0) {
     return (
       <div className="text-center py-12">
-        <p className="text-muted-foreground">No hay viajes registrados aún.</p>
+        <p className="text-gray-600">No hay viajes registrados aún.</p>
       </div>
     );
   }

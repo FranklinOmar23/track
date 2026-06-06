@@ -217,34 +217,34 @@ router.post('/:id/compartir', async (req, res) => {
 // Obtener viaje por token (vista pública) - VERIFICAR EXPIRACIÓN
 router.get('/publico/:token', async (req, res) => {
   const { token } = req.params;
-  
+
   try {
-    const [viajes] = await pool.query(
-      `SELECT id, nombre, tipo, fecha_inicio, fecha_fin, nota, slug, 
-              expira_compartir, compartir_activo
-       FROM viajes 
-       WHERE token_compartir = ? AND compartir_activo = 1`,
+    // Verificar si existe (activo o no)
+    const [todosViajes] = await pool.query(
+      `SELECT id, nombre, tipo, COALESCE(divisa, 'USD') as divisa, fecha_inicio, fecha_fin, nota, slug,
+              expira_compartir, compartir_activo,
+              (expira_compartir IS NOT NULL AND expira_compartir <= UTC_TIMESTAMP()) AS ya_expiro
+       FROM viajes
+       WHERE token_compartir = ?`,
       [token]
     );
-    
-    if (viajes.length === 0) {
-      return res.status(404).json({ error: 'Link inválido o desactivado' });
+
+    if (todosViajes.length === 0) {
+      return res.status(404).json({ error: 'Link inválido' });
     }
-    
-    const viaje = viajes[0];
-    
-    // Verificar expiración
-    if (viaje.expira_compartir) {
-      const fechaExpiracion = new Date(viaje.expira_compartir);
-      const ahora = new Date();
-      
-      if (ahora > fechaExpiracion) {
-        return res.status(410).json({ 
-          error: 'expired',
-          mensaje: 'Este enlace ha expirado',
-          expiracion: viaje.expira_compartir
-        });
-      }
+
+    const viaje = todosViajes[0];
+
+    if (!viaje.compartir_activo) {
+      return res.status(404).json({ error: 'Link desactivado' });
+    }
+
+    if (viaje.ya_expiro) {
+      return res.status(410).json({
+        error: 'expired',
+        mensaje: 'Este enlace ha expirado',
+        expiracion: viaje.expira_compartir
+      });
     }
     
     const viajeId = viaje.id;
@@ -307,6 +307,7 @@ router.get('/publico/:token', async (req, res) => {
         id: viaje.id,
         nombre: viaje.nombre,
         tipo: viaje.tipo,
+        divisa: viaje.divisa || 'USD',
         expiraCompartir: viaje.expira_compartir
       },
       habitaciones: Array.from(habitacionesMap.values())

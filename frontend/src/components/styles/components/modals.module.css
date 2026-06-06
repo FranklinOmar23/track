@@ -5,8 +5,8 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(2px);
+  background-color: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -14,11 +14,12 @@
   padding: 1rem;
 }
 
-/* Contenedor principal del modal - fondo blanco sólido */
+/* Contenedor principal del modal - dark */
 .modal {
-  background-color: #ffffff;
+  background-color: #1a1f2e;
+  border: 1px solid rgba(255,255,255,0.07);
   border-radius: 1.5rem;
-  box-shadow: 0 20px 35px -8px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
   width: 100%;
   max-width: 500px;
   max-height: 90vh;
@@ -26,7 +27,7 @@
   padding: 1.75rem;
   position: relative;
   animation: fadeInUp 0.2s ease-out;
-  border: 1px solid #eef2f6;
+  color: #e2e8f0;
 }
 
 /* Modal más ancho para detalles de habitación */
@@ -53,7 +54,7 @@
   font-size: 1.5rem;
   font-weight: 600;
   margin: 0 0 1.25rem 0;
-  color: #0f172a;
+  color: #ffffff;
   letter-spacing: -0.01em;
 }
 
@@ -67,10 +68,10 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: #64748b;
+  color: #6b7280;
   margin: 0 0 0.75rem 0;
   padding-bottom: 0.25rem;
-  border-bottom: 1px solid #eef2f6;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
 }
 
 /* Grupos de formulario */
@@ -85,34 +86,46 @@
   font-size: 0.85rem;
   font-weight: 500;
   margin-bottom: 0.25rem;
-  color: #334155;
+  color: #9ca3af;
 }
 
 .formRow input,
 .formRow select,
 .formRow textarea {
   padding: 0.65rem 0.85rem;
-  border: 1px solid #cbd5e1;
+  border: 1px solid rgba(255,255,255,0.1);
   border-radius: 0.75rem;
   font-size: 0.9rem;
-  background-color: #fff;
+  background-color: rgba(255,255,255,0.05);
+  color: #e2e8f0;
   transition: all 0.2s;
   font-family: inherit;
+}
+
+.formRow input::placeholder,
+.formRow textarea::placeholder {
+  color: #4b5563;
+}
+
+.formRow select option {
+  background-color: #1a1f2e;
+  color: #e2e8f0;
 }
 
 .formRow input:focus,
 .formRow select:focus,
 .formRow textarea:focus {
   outline: none;
-  border-color: #0f172a;
-  box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.1);
+  border-color: #0d9488;
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
 }
 
 .formRow input:disabled,
 .formRow select:disabled {
-  background-color: #f8fafc;
+  background-color: rgba(255,255,255,0.02);
   cursor: not-allowed;
-  color: #64748b;
+  color: #4b5563;
+  border-color: rgba(255,255,255,0.04);
 }
 
 /* Filas de dos columnas (fechas) */
@@ -130,7 +143,7 @@
   gap: 0.75rem;
   margin-top: 1.75rem;
   padding-top: 0.75rem;
-  border-top: 1px solid #eef2f6;
+  border-top: 1px solid rgba(255,255,255,0.07);
 }
 
 /* Estilos base para botones */
@@ -142,39 +155,42 @@
   font-size: 0.85rem;
   cursor: pointer;
   transition: all 0.2s;
-  border: none;
-  background-color: #f1f5f9;
-  color: #1e293b;
+  border: 1px solid rgba(255,255,255,0.1);
+  background-color: rgba(255,255,255,0.07);
+  color: #d1d5db;
 }
 
 .modalActions button:hover,
 .button:hover {
-  background-color: #e2e8f0;
+  background-color: rgba(255,255,255,0.12);
   transform: translateY(-1px);
 }
 
 .button-primary {
-  background-color: #0f172a;
+  background-color: #0d9488;
   color: white;
+  border-color: #0d9488;
 }
 
 .button-primary:hover {
-  background-color: #1e293b;
+  background-color: #0f766e;
+  border-color: #0f766e;
 }
 
 .button-danger {
-  background-color: #f43f5e;
-  color: white;
+  background-color: rgba(244,63,94,0.2);
+  color: #fb7185;
+  border-color: rgba(244,63,94,0.3);
 }
 
 .button-danger:hover {
-  background-color: #e11d48;
+  background-color: rgba(244,63,94,0.3);
 }
 
 .button-secondary {
-  background-color: #f1f5f9;
-  color: #1e293b;
-  border: 1px solid #cbd5e1;
+  background-color: rgba(255,255,255,0.05);
+  color: #9ca3af;
+  border: 1px solid rgba(255,255,255,0.1);
 }
 
 /* Toggle STACK */
@@ -186,28 +202,29 @@
 }
 
 .stackToggle button {
-  background-color: #f1f5f9;
-  border: 1px solid #cbd5e1;
+  background-color: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.1);
   padding: 0.5rem 1rem;
   border-radius: 2rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
+  color: #d1d5db;
 }
 
 .stackToggle button.button-primary {
-  background-color: #0f172a;
+  background-color: #0d9488;
   color: white;
-  border-color: #0f172a;
+  border-color: #0d9488;
 }
 
 .stackLabel {
   font-size: 0.85rem;
-  color: #475569;
+  color: #6b7280;
 }
 
 .stackLabelActive {
-  color: #0f172a;
+  color: #2dd4bf;
   font-weight: 500;
 }
 
@@ -229,7 +246,7 @@
   font-size: 1.75rem;
   line-height: 1;
   cursor: pointer;
-  color: #94a3b8;
+  color: #6b7280;
   transition: color 0.2s;
   padding: 0;
   width: 32px;
@@ -241,23 +258,29 @@
 }
 
 .closeBtn:hover {
-  background-color: #f1f5f9;
-  color: #0f172a;
+  background-color: rgba(255,255,255,0.07);
+  color: #e2e8f0;
 }
 
 /* Tarjeta de persona dentro del modal */
 .personaCard {
-  background-color: #f8fafc;
+  background-color: rgba(255,255,255,0.03);
   border-radius: 1rem;
-  padding: 0.75rem;
-  margin-bottom: 0.75rem;
-  border: 1px solid #eef2f6;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  border: 1px solid rgba(255,255,255,0.07);
+  box-shadow: none;
+  transition: border-color 0.2s;
+}
+
+.personaCard:hover {
+  border-color: rgba(255,255,255,0.12);
 }
 
 .personaName {
   font-weight: 600;
   margin-bottom: 0.5rem;
-  color: #0f172a;
+  color: #ffffff;
 }
 
 .pagosList {
@@ -268,12 +291,12 @@
 }
 
 .pagoItem {
-  background: white;
+  background: rgba(255,255,255,0.05);
   padding: 0.2rem 0.6rem;
   border-radius: 1rem;
   font-size: 0.75rem;
-  border: 1px solid #e2e8f0;
-  color: #0f172a;
+  border: 1px solid rgba(255,255,255,0.08);
+  color: #d1d5db;
 }
 
 .personaTotals {
@@ -297,10 +320,12 @@
   cursor: pointer;
   border-radius: 0.5rem;
   transition: all 0.2s;
+  color: #9ca3af;
 }
 
 .personaActions button:hover {
-  background-color: #e2e8f0;
+  background-color: rgba(255,255,255,0.07);
+  color: #e2e8f0;
 }
 
 /* Totales de habitación */
@@ -308,10 +333,11 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1rem;
-  background-color: #f8fafc;
+  background-color: rgba(255,255,255,0.03);
   padding: 1rem;
   border-radius: 1rem;
   margin-top: 0.5rem;
+  border: 1px solid rgba(255,255,255,0.05);
 }
 
 .totalItem {
@@ -322,67 +348,52 @@
 .totalLabel {
   font-size: 0.7rem;
   text-transform: uppercase;
-  color: #64748b;
+  color: #6b7280;
 }
 
 .totalValue {
   font-size: 1.1rem;
   font-weight: 700;
-  color: #0f172a;
+  color: #ffffff;
 }
 
 .totalValueDanger {
-  color: #f43f5e;
+  color: #fb7185;
 }
 
 .totalValueSuccess {
-  color: #0d9488;
+  color: #2dd4bf;
 }
 
 /* Mensajes informativos */
 .infoMessage {
-  background-color: #fef9c3;
+  background-color: rgba(234,179,8,0.1);
   border-left: 4px solid #eab308;
   padding: 0.75rem;
   border-radius: 0.75rem;
   margin: 1rem 0;
   font-size: 0.85rem;
-  color: #854d0e;
+  color: #fde047;
 }
 
 /* Estilo para los botones de pago (cada pago individual) */
 .pagoItemButton {
-  background-color: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background-color: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
   padding: 0.25rem 0.75rem;
   border-radius: 9999px;
   font-size: 0.75rem;
   font-weight: 500;
-  color: #1e293b;
+  color: #d1d5db;
   cursor: pointer;
   transition: all 0.2s;
   white-space: nowrap;
 }
 
 .pagoItemButton:hover {
-  background-color: #e2e8f0;
-  border-color: #cbd5e1;
+  background-color: rgba(255,255,255,0.1);
+  border-color: rgba(255,255,255,0.15);
   transform: translateY(-1px);
-}
-
-/* Tarjeta de persona (fondo blanco, sombra) */
-.personaCard {
-  background-color: #ffffff;
-  border: 1px solid #eef2f6;
-  border-radius: 1rem;
-  padding: 1rem;
-  margin-bottom: 1rem;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-  transition: box-shadow 0.2s;
-}
-
-.personaCard:hover {
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
 /* Lista de pagos (flex wrap) */

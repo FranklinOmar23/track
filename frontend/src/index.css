@@ -4,16 +4,23 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
+    --background: 222 28% 7%;
+    --foreground: 210 40% 98%;
+    --primary: 173 80% 40%;
     --primary-foreground: 210 40% 98%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --border: 214.3 31.8% 91.4%;
+    --muted: 222 20% 16%;
+    --muted-foreground: 215 20% 55%;
+    --border: 222 20% 18%;
   }
 }
 
 body {
-  background-color: #f8fafc;
+  background-color: #0f1117;
+  color: #e2e8f0;
+}
+
+@media print {
+  body { background-color: #fff !important; color: #000 !important; }
+  .no-print { display: none !important; }
+  .print-bg { background-color: #fff !important; color: #000 !important; }
 }

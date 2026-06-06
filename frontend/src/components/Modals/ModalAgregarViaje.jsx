@@ -2,9 +2,18 @@ import React, { useState } from 'react';
 import { crearViajeConSlug } from '../../utils/api';
 import styles from '../styles/components/modals.module.css';
 
+const DIVISAS = [
+  { code: 'USD', label: 'USD — Dólar americano' },
+  { code: 'DOP', label: 'DOP — Peso dominicano' },
+  { code: 'EUR', label: 'EUR — Euro' },
+  { code: 'MXN', label: 'MXN — Peso mexicano' },
+  { code: 'COP', label: 'COP — Peso colombiano' },
+];
+
 const ModalAgregarViaje = ({ open, onClose, onCreate }) => {
   const [nombre, setNombre] = useState('');
   const [tipo, setTipo] = useState('resort');
+  const [divisa, setDivisa] = useState('USD');
   const [fechaInicio, setFechaInicio] = useState('');
   const [fechaFin, setFechaFin] = useState('');
   const [nota, setNota] = useState('');
@@ -21,6 +30,7 @@ const ModalAgregarViaje = ({ open, onClose, onCreate }) => {
       const nuevoViaje = await crearViajeConSlug({
         nombre: nombre.trim(),
         tipo,
+        divisa,
         fechaInicio: fechaInicio || null,
         fechaFin: fechaFin || null,
         nota: nota || null
@@ -28,6 +38,7 @@ const ModalAgregarViaje = ({ open, onClose, onCreate }) => {
       onCreate(nuevoViaje);
       setNombre('');
       setTipo('resort');
+      setDivisa('USD');
       setFechaInicio('');
       setFechaFin('');
       setNota('');
@@ -66,6 +77,15 @@ const ModalAgregarViaje = ({ open, onClose, onCreate }) => {
             <select value={tipo} onChange={(e) => setTipo(e.target.value)}>
               <option value="resort">🏨 Resort</option>
               <option value="tour">🚐 Tour</option>
+            </select>
+          </div>
+
+          <div className={styles.formRow}>
+            <label>Divisa</label>
+            <select value={divisa} onChange={(e) => setDivisa(e.target.value)}>
+              {DIVISAS.map((d) => (
+                <option key={d.code} value={d.code}>{d.label}</option>
+              ))}
             </select>
           </div>
 

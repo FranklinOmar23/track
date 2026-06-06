@@ -79,6 +79,12 @@ export const actualizarNombrePersona = (personaId, nombre) =>
     body: JSON.stringify({ nombre }),
   });
 
+export const agregarPersonaHabitacion = (habitacionId, persona) =>
+  request(`/api/habitaciones/${habitacionId}/personas`, {
+    method: 'POST',
+    body: JSON.stringify(persona),
+  });
+
 export const eliminarPersona = (personaId) =>
   request(`/api/personas/${personaId}`, {
     method: 'DELETE',

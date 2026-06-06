@@ -5,6 +5,7 @@ import HomeViajes from './components/layout/HomeViajes';
 import ViajeView from './components/layout/ViajeView';
 import ViajePublico from './components/Dashboard/ViajePublico';
 import ViajeExpirado from './components/Dashboard/ViajeExpirado';
+import ReportesView from './components/reportes/ReportesView';
 import './components/styles/global.css';
 
 
@@ -24,6 +25,7 @@ function AppContent() {
     <HabitacionesProvider>
       <Routes>
         <Route path="/" element={<HomeViajes onSelectViaje={handleSelectViaje} />} />
+        <Route path="/reportes" element={<ReportesView />} />
         <Route path="/:tipo/:slug" element={<ViajeView onBack={handleBack} />} />
         <Route path="/viaje/:tipo/:slug" element={<ViajeView />} />
         <Route path="/viaje-compartido/:token" element={<ViajePublico />} />

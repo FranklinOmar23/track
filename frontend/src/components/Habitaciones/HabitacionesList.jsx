@@ -5,12 +5,12 @@ import ModalDetallesHabitacion from '../Modals/ModalDetallesHabitacion';
 import { Tag } from 'lucide-react';
 
 const COLORES_ETIQUETA = [
-  { bg: 'bg-teal-100', text: 'text-teal-800', border: 'border-teal-300', header: 'bg-teal-50 border-teal-200' },
-  { bg: 'bg-violet-100', text: 'text-violet-800', border: 'border-violet-300', header: 'bg-violet-50 border-violet-200' },
-  { bg: 'bg-amber-100', text: 'text-amber-800', border: 'border-amber-300', header: 'bg-amber-50 border-amber-200' },
-  { bg: 'bg-rose-100', text: 'text-rose-800', border: 'border-rose-300', header: 'bg-rose-50 border-rose-200' },
-  { bg: 'bg-cyan-100', text: 'text-cyan-800', border: 'border-cyan-300', header: 'bg-cyan-50 border-cyan-200' },
-  { bg: 'bg-orange-100', text: 'text-orange-800', border: 'border-orange-300', header: 'bg-orange-50 border-orange-200' },
+  { bg: 'bg-teal-900/40',   text: 'text-teal-400',   border: 'border-teal-600/40',   header: 'bg-teal-900/20 border-teal-700/30' },
+  { bg: 'bg-violet-900/40', text: 'text-violet-400', border: 'border-violet-600/40', header: 'bg-violet-900/20 border-violet-700/30' },
+  { bg: 'bg-amber-900/40',  text: 'text-amber-400',  border: 'border-amber-600/40',  header: 'bg-amber-900/20 border-amber-700/30' },
+  { bg: 'bg-rose-900/40',   text: 'text-rose-400',   border: 'border-rose-600/40',   header: 'bg-rose-900/20 border-rose-700/30' },
+  { bg: 'bg-cyan-900/40',   text: 'text-cyan-400',   border: 'border-cyan-600/40',   header: 'bg-cyan-900/20 border-cyan-700/30' },
+  { bg: 'bg-orange-900/40', text: 'text-orange-400', border: 'border-orange-600/40', header: 'bg-orange-900/20 border-orange-700/30' },
 ];
 
 const getColorForEtiqueta = (etiqueta, etiquetasOrdenadas) => {
@@ -105,8 +105,8 @@ const HabitacionesList = () => {
             onClick={() => setEtiquetaFiltro('todas')}
             className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
               etiquetaFiltro === 'todas'
-                ? 'bg-primary text-primary-foreground border-primary'
-                : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+                ? 'bg-teal-500/20 text-teal-400 border-teal-500/40'
+                : 'bg-white/5 text-gray-400 border-white/10 hover:border-white/20'
             }`}
           >
             Todas ({habitaciones.length})
@@ -123,7 +123,7 @@ const HabitacionesList = () => {
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
                   activa
                     ? `${color.bg} ${color.text} ${color.border}`
-                    : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+                    : 'bg-white/5 text-gray-400 border-white/10 hover:border-white/20'
                 }`}
               >
                 <Tag className="h-3 w-3" />
@@ -137,8 +137,8 @@ const HabitacionesList = () => {
               onClick={() => setEtiquetaFiltro(etiquetaFiltro === '__sin__' ? 'todas' : '__sin__')}
               className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
                 etiquetaFiltro === '__sin__'
-                  ? 'bg-gray-200 text-gray-700 border-gray-400'
-                  : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
+                  ? 'bg-white/15 text-gray-200 border-white/30'
+                  : 'bg-white/5 text-gray-500 border-white/10 hover:border-white/20'
               }`}
             >
               Sin etiqueta ({grupos['__sin__'].length})
@@ -150,7 +150,7 @@ const HabitacionesList = () => {
       {/* Grupos de habitaciones */}
       {clavesOrdenadas.length === 0 ? (
         <div className="text-center py-12">
-          <p className="text-gray-500">No hay habitaciones que coincidan con el filtro.</p>
+          <p className="text-gray-600">No hay habitaciones que coincidan con el filtro.</p>
         </div>
       ) : (
         <div className="space-y-8 mt-4">
@@ -159,7 +159,7 @@ const HabitacionesList = () => {
             const esNombreada = clave !== '__sin__';
             const color = esNombreada
               ? getColorForEtiqueta(clave, etiquetasUnicas)
-              : { bg: 'bg-gray-100', text: 'text-gray-600', border: 'border-gray-200', header: 'bg-gray-50 border-gray-200' };
+              : { bg: 'bg-white/10', text: 'text-gray-400', border: 'border-white/10', header: 'bg-white/[0.03] border-white/[0.07]' };
 
             // Stats del grupo
             const totalGrupo = habs.reduce((s, h) => s + (h.total || 0), 0);
@@ -189,11 +189,11 @@ const HabitacionesList = () => {
                   <div className="flex items-center gap-4 text-xs text-gray-500">
                     <span>
                       Recaudado:{' '}
-                      <span className="font-semibold text-teal-600">{formatCurrency(pagadoGrupo)}</span>
+                      <span className="font-semibold text-emerald-400">{formatCurrency(pagadoGrupo)}</span>
                     </span>
                     <span>
                       Pendiente:{' '}
-                      <span className="font-semibold text-rose-500">
+                      <span className="font-semibold text-red-400">
                         {formatCurrency(Math.max(0, totalGrupo - pagadoGrupo))}
                       </span>
                     </span>

@@ -100,7 +100,34 @@ const ModalEditarHabitacion = ({ habitacion, open, onClose }) => {
         }
       }
 
-      // 3. Recargar habitaciones para reflejar cambios de nombres
+      // 3. Sincronizar niños
+      const ninosOriginales = (habActual.personas || []).filter(
+        (p) => p.esNino || /\(\d+ años\)/.test(p.n)
+      );
+      const ninosValidos = hayNinos ? ninos.filter((n) => n.nombre.trim()) : [];
+
+      // 3a. Eliminar los niños que ya no están en la lista
+      for (const original of ninosOriginales) {
+        const sigue = ninosValidos.find((n) => n.id === original.id);
+        if (!sigue) {
+          await api.eliminarPersona(original.id);
+        }
+      }
+
+      // 3b. Actualizar nombres de niños existentes o crear los nuevos
+      for (const nino of ninosValidos) {
+        const label = nino.edad ? `${nino.nombre.trim()} (${nino.edad} años)` : nino.nombre.trim();
+        if (nino.id) {
+          const original = ninosOriginales.find((n) => n.id === nino.id);
+          if (original && label !== original.n) {
+            await api.actualizarNombrePersona(nino.id, label);
+          }
+        } else {
+          await api.agregarPersonaHabitacion(habActual.id, { nombre: label, esNino: true });
+        }
+      }
+
+      // 4. Recargar habitaciones para reflejar todos los cambios
       if (state.selectedViajeId) await cargarHabitaciones(state.selectedViajeId);
 
       onClose();

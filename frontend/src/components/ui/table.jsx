@@ -12,7 +12,7 @@ export const Table = React.forwardRef(({ className, ...props }, ref) => (
 Table.displayName = "Table";
 
 export const TableHeader = React.forwardRef(({ className, ...props }, ref) => (
-  <thead ref={ref} className={`[&_tr]:border-b ${className || ''}`} {...props} />
+  <thead ref={ref} className={`[&_tr]:border-b border-white/[0.07] ${className || ''}`} {...props} />
 ));
 TableHeader.displayName = "TableHeader";
 
@@ -24,7 +24,7 @@ TableBody.displayName = "TableBody";
 export const TableRow = React.forwardRef(({ className, ...props }, ref) => (
   <tr
     ref={ref}
-    className={`border-b transition-colors hover:bg-gray-50 data-[state=selected]:bg-gray-100 ${className || ''}`}
+    className={`border-b border-white/[0.05] transition-colors hover:bg-white/[0.03] data-[state=selected]:bg-white/[0.07] ${className || ''}`}
     {...props}
   />
 ));
@@ -42,7 +42,7 @@ TableHead.displayName = "TableHead";
 export const TableCell = React.forwardRef(({ className, ...props }, ref) => (
   <td
     ref={ref}
-    className={`p-4 align-middle [&:has([role=checkbox])]:pr-0 ${className || ''}`}
+    className={`p-4 align-middle text-gray-300 [&:has([role=checkbox])]:pr-0 ${className || ''}`}
     {...props}
   />
 ));

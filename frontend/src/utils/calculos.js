@@ -7,8 +7,8 @@ export const calcularTotalPagado = (habitacion) => {
 
 // Calcula cuánto debe pagar una persona específica según si es niño o adulto
 export const calcularCuotaPersona = (habitacion, persona) => {
-  if (persona.esNino) {
-    // Los niños pagan precioNino (puede ser 0 si aún no se definió)
+  const esNino = persona.esNino || /\(\d+ años\)/.test(persona.n || '');
+  if (esNino) {
     return Number(habitacion.precioNino) || 0;
   }
 

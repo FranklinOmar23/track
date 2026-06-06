@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useHabitacionesContext } from '../../Context/HabitacionesContext';
-import { formatCurrency } from '../../utils/formatters';
-import { calcularTotalPagado } from '../../utils/calculos';
+import { useDivisa } from '../../hooks/useDivisa';
+import { calcularTotalPagado, calcularCuotaPersona } from '../../utils/calculos';
 import ModalRegistrarPago from './ModalRegistrarPago';
 import ModalMoverPersona from './ModalMoverPersona';
 import ModalEditarHabitacion from './ModalEditarHabitacion';
@@ -9,6 +9,7 @@ import styles from '../styles/components/modals.module.css';
 
 const ModalDetallesHabitacion = ({ habitacion: habitacionProp, onClose }) => {
   const { actualizarNota, actualizarEtiqueta, eliminarHabitacion, state } = useHabitacionesContext();
+  const { fmt } = useDivisa();
 
   // Leer siempre del contexto para reactividad
   const habitacion =
@@ -42,8 +43,11 @@ const ModalDetallesHabitacion = ({ habitacion: habitacionProp, onClose }) => {
   };
 
   const totalPagado = calcularTotalPagado(habitacion);
-  const pendiente = Math.max(0, habitacion.total - totalPagado);
-  const cantidadPersonas = habitacion.personas.filter((p) => p.n).length;
+  const cantidadNinos = habitacion.personas.filter(
+    (p) => p.esNino || /\(\d+ años\)/.test(p.n || '')
+  ).length;
+  const totalReal = habitacion.total + (Number(habitacion.precioNino) || 0) * cantidadNinos;
+  const pendiente = Math.max(0, totalReal - totalPagado);
 
   return (
     <>
@@ -119,9 +123,9 @@ const ModalDetallesHabitacion = ({ habitacion: habitacionProp, onClose }) => {
                   )}
                 </div>
                 <div className={styles.personaTotals}>
-                  <span>Pagado: <strong>{formatCurrency(persona.pagos?.reduce((s, p) => s + p.monto, 0) || 0)}</strong></span>
+                  <span>Pagado: <strong>{fmt(persona.pagos?.reduce((s, p) => s + p.monto, 0) || 0)}</strong></span>
                   <span>Pendiente: <strong className={styles.totalValueDanger}>
-                    -{formatCurrency((habitacion.total / cantidadPersonas) - (persona.pagos?.reduce((s, p) => s + p.monto, 0) || 0))}
+                    -{fmt(Math.max(0, calcularCuotaPersona(habitacion, persona) - (persona.pagos?.reduce((s, p) => s + p.monto, 0) || 0)))}
                   </strong></span>
                 </div>
                 <div className={styles.personaActions}>
@@ -148,21 +152,21 @@ const ModalDetallesHabitacion = ({ habitacion: habitacionProp, onClose }) => {
           <div className={styles.totalsGrid}>
             <div className={styles.totalItem}>
               <span className={styles.totalLabel}>Total habitación</span>
-              <span className={styles.totalValue}>{formatCurrency(habitacion.total)}</span>
+              <span className={styles.totalValue}>{fmt(habitacion.total)}</span>
             </div>
             <div className={styles.totalItem}>
               <span className={styles.totalLabel}>Recaudado</span>
-              <span className={`${styles.totalValue} ${styles.totalValueSuccess}`}>{formatCurrency(totalPagado)}</span>
+              <span className={`${styles.totalValue} ${styles.totalValueSuccess}`}>{fmt(totalPagado)}</span>
             </div>
             <div className={styles.totalItem}>
               <span className={styles.totalLabel}>Pendiente</span>
               <span className={`${styles.totalValue} ${pendiente > 0 ? styles.totalValueDanger : styles.totalValueSuccess}`}>
-                {pendiente > 0 ? `-${formatCurrency(pendiente)}` : '✓'}
+                {pendiente > 0 ? `-${fmt(pendiente)}` : '✓'}
               </span>
             </div>
             <div className={styles.totalItem}>
               <span className={styles.totalLabel}>Precio niño</span>
-              <span className={styles.totalValue}>{formatCurrency(habitacion.precioNino)}</span>
+              <span className={styles.totalValue}>{fmt(habitacion.precioNino)}</span>
             </div>
           </div>
 

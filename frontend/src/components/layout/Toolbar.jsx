@@ -92,7 +92,7 @@ const Toolbar = ({ onOpenAgregar, onOpenDesglose }) => {
             const id = e.target.value === '' ? null : e.target.value;
             seleccionarViaje(id);
           }}
-          className="flex-1 min-w-0 border border-gray-200 rounded-lg px-3 py-2 bg-white text-sm"
+          className="flex-1 min-w-0 border border-white/[0.07] rounded-lg px-3 py-2 bg-[#1a1f2e] text-gray-200 text-sm"
         >
           <option value="">Seleccionar viaje</option>
           {viajes.map((v) => (
@@ -104,7 +104,7 @@ const Toolbar = ({ onOpenAgregar, onOpenDesglose }) => {
 
         <button
           onClick={() => setIsAgregarViajeOpen(true)}
-          className="shrink-0 border border-gray-200 rounded-lg px-3 py-2 text-sm flex items-center gap-1 hover:bg-gray-50 whitespace-nowrap"
+          className="shrink-0 border border-white/[0.07] rounded-lg px-3 py-2 text-sm text-gray-300 flex items-center gap-1 hover:bg-white/5 whitespace-nowrap"
         >
           + Viaje
         </button>
@@ -114,8 +114,8 @@ const Toolbar = ({ onOpenAgregar, onOpenDesglose }) => {
           onClick={() => setIsCompartirOpen(true)}
           className={`shrink-0 rounded-lg px-3 py-2 text-sm flex items-center gap-1 whitespace-nowrap ${
             selectedViajeId
-              ? 'bg-teal-50 text-teal-700 border border-teal-200 hover:bg-teal-100'
-              : 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed'
+              ? 'bg-teal-500/20 text-teal-400 border border-teal-500/30 hover:bg-teal-500/30'
+              : 'bg-white/5 text-gray-600 border border-white/[0.05] cursor-not-allowed'
           }`}
           disabled={!selectedViajeId}
           title={!selectedViajeId ? 'Selecciona un viaje primero' : 'Compartir viaje'}
@@ -128,20 +128,20 @@ const Toolbar = ({ onOpenAgregar, onOpenDesglose }) => {
       {/* Fila 2: Búsqueda + filtro de estado */}
       <div className="flex gap-2">
         <div className="relative flex-1 min-w-0">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-600" />
           <input
             type="text"
             value={busqueda}
             onChange={handleSearchChange}
             placeholder="Buscar habitación o persona..."
-            className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg bg-white text-sm"
+            className="w-full pl-9 pr-3 py-2 border border-white/[0.07] rounded-lg bg-[#1a1f2e] text-gray-200 placeholder:text-gray-600 text-sm"
           />
         </div>
 
         <select
           value={estado}
           onChange={handleEstadoChange}
-          className="shrink-0 border border-gray-200 rounded-lg px-3 py-2 bg-white text-sm"
+          className="shrink-0 border border-white/[0.07] rounded-lg px-3 py-2 bg-[#1a1f2e] text-gray-200 text-sm"
         >
           <option value="todos">Todos</option>
           <option value="pendiente">Con saldo pendiente</option>
@@ -153,7 +153,7 @@ const Toolbar = ({ onOpenAgregar, onOpenDesglose }) => {
       <div className="flex gap-2">
         <button
           onClick={onOpenAgregar}
-          className="flex-1 bg-primary text-primary-foreground rounded-lg px-4 py-2 text-sm flex items-center justify-center gap-1.5"
+          className="flex-1 bg-teal-500 hover:bg-teal-600 text-white rounded-lg px-4 py-2 text-sm flex items-center justify-center gap-1.5 transition-colors"
         >
           <Plus className="h-4 w-4" />
           Agregar habitación
@@ -161,7 +161,7 @@ const Toolbar = ({ onOpenAgregar, onOpenDesglose }) => {
 
         <button
           onClick={onOpenDesglose}
-          className="flex-1 border border-gray-200 rounded-lg px-4 py-2 text-sm hover:bg-gray-50 text-center"
+          className="flex-1 border border-white/[0.07] rounded-lg px-4 py-2 text-sm text-gray-300 hover:bg-white/5 text-center transition-colors"
         >
           Desglose general
         </button>
@@ -169,36 +169,36 @@ const Toolbar = ({ onOpenAgregar, onOpenDesglose }) => {
 
       {/* Modal de compartir */}
       {isCompartirOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+        <div
+          className="fixed inset-0 bg-black/70 flex items-center justify-center z-50"
           onClick={handleCerrarCompartir}
         >
-          <div 
-            className="bg-white rounded-xl shadow-xl w-full max-w-md mx-4"
+          <div
+            className="bg-[#1a1f2e] border border-white/[0.07] rounded-xl shadow-2xl w-full max-w-md mx-4"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-6">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">
+                <h3 className="text-base font-semibold text-white">
                   Compartir viaje
                 </h3>
                 <button
                   onClick={handleCerrarCompartir}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-gray-500 hover:text-gray-300 transition-colors"
                 >
                   <X className="h-5 w-5" />
                 </button>
               </div>
 
-              <p className="text-sm text-gray-500 mb-4">
-                Comparte este enlace con consultores para que vean el estado del viaje <strong>{viajeActual?.nombre}</strong> (solo lectura)
+              <p className="text-sm text-gray-400 mb-4">
+                Comparte este enlace con consultores para que vean el estado del viaje{' '}
+                <strong className="text-gray-200">{viajeActual?.nombre}</strong> (solo lectura)
               </p>
 
               {!linkCompartir ? (
                 <>
-                  {/* Selector de duración */}
                   <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-400 mb-2">
                       <Clock className="h-4 w-4 inline mr-1" />
                       Tiempo de vigencia del enlace
                     </label>
@@ -210,8 +210,8 @@ const Toolbar = ({ onOpenAgregar, onOpenDesglose }) => {
                           onClick={() => setDuracion(op.valor)}
                           className={`px-3 py-2 text-sm rounded-lg border transition-all ${
                             duracion === op.valor
-                              ? 'bg-primary text-primary-foreground border-primary'
-                              : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
+                              ? 'bg-teal-500 text-white border-teal-500'
+                              : 'bg-white/5 text-gray-300 border-white/[0.07] hover:border-white/20'
                           }`}
                         >
                           {op.label}
@@ -226,7 +226,7 @@ const Toolbar = ({ onOpenAgregar, onOpenDesglose }) => {
                   <button
                     onClick={handleGenerarLink}
                     disabled={generando}
-                    className="w-full bg-primary text-primary-foreground rounded-lg px-4 py-2 text-sm flex items-center justify-center gap-2 hover:bg-primary/90 disabled:opacity-50"
+                    className="w-full bg-teal-500 hover:bg-teal-600 text-white rounded-lg px-4 py-2 text-sm flex items-center justify-center gap-2 disabled:opacity-50 transition-colors"
                   >
                     {generando ? (
                       <>
@@ -243,30 +243,30 @@ const Toolbar = ({ onOpenAgregar, onOpenDesglose }) => {
                 </>
               ) : (
                 <>
-                  <div className="bg-gray-50 rounded-lg p-3 mb-4">
+                  <div className="bg-black/30 rounded-lg p-3 mb-4 border border-white/[0.05]">
                     <p className="text-xs text-gray-500 mb-1">Enlace generado:</p>
-                    <p className="text-sm font-mono break-all">{linkCompartir}</p>
+                    <p className="text-sm font-mono break-all text-gray-200">{linkCompartir}</p>
                     {expiracionInfo && (
-                      <p className="text-xs text-amber-600 mt-2 flex items-center gap-1">
+                      <p className="text-xs text-amber-400 mt-2 flex items-center gap-1">
                         <Clock className="h-3 w-3" />
                         Válido hasta: {expiracionInfo.texto}
                       </p>
                     )}
                   </div>
-                  
+
                   <div className="flex gap-2 mb-3">
                     <button
                       onClick={handleCopiarLink}
-                      className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm flex items-center justify-center gap-1 hover:bg-gray-50"
+                      className="flex-1 border border-white/[0.07] text-gray-300 rounded-lg px-3 py-2 text-sm flex items-center justify-center gap-1 hover:bg-white/5 transition-colors"
                     >
-                      {copiado ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
+                      {copiado ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
                       {copiado ? 'Copiado' : 'Copiar enlace'}
                     </button>
                   </div>
-                  
+
                   <button
                     onClick={handleDesactivarLink}
-                    className="w-full border border-red-200 text-red-600 rounded-lg px-4 py-2 text-sm hover:bg-red-50"
+                    className="w-full border border-red-500/30 text-red-400 rounded-lg px-4 py-2 text-sm hover:bg-red-500/10 transition-colors"
                   >
                     Desactivar enlace
                   </button>

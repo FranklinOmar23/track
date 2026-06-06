@@ -1,8 +1,10 @@
 import React, { useMemo } from 'react';
 import styles from '../styles/components/modals.module.css';
-import { MESES, formatCurrency } from '../../utils/formatters';
+import { MESES } from '../../utils/formatters';
+import { useDivisa } from '../../hooks/useDivisa';
 
 const ModalDesglosePagos = ({ habitacion, onClose }) => {
+  const { fmt } = useDivisa();
   const mesesTotales = useMemo(() => {
     const map = new Map();
     // inicializar todos los meses en 0
@@ -28,7 +30,7 @@ const ModalDesglosePagos = ({ habitacion, onClose }) => {
           {mesesTotales.map(([mes, total]) => (
             <div key={mes} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid #eee' }}>
               <div style={{ fontWeight: 600 }}>{mes}</div>
-              <div>{formatCurrency(total)}</div>
+              <div>{fmt(total)}</div>
             </div>
           ))}
         </div>
