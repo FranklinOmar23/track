@@ -3,6 +3,13 @@ import pool from '../db.js';
 
 const router = Router();
 
+router.patch('/:id/gratis', async (req, res) => {
+  const personaId = Number(req.params.id);
+  const { esGratis } = req.body;
+  await pool.query('UPDATE personas SET es_gratis = ? WHERE id = ?', [esGratis ? 1 : 0, personaId]);
+  res.json({ id: personaId, esGratis: !!esGratis });
+});
+
 // ← NUEVO: editar nombre de persona
 router.put('/:id', async (req, res) => {
   const personaId = Number(req.params.id);

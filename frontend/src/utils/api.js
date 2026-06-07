@@ -85,6 +85,12 @@ export const agregarPersonaHabitacion = (habitacionId, persona) =>
     body: JSON.stringify(persona),
   });
 
+export const actualizarGratisPersona = (personaId, esGratis) =>
+  request(`/api/personas/${personaId}/gratis`, {
+    method: 'PATCH',
+    body: JSON.stringify({ esGratis }),
+  });
+
 export const eliminarPersona = (personaId) =>
   request(`/api/personas/${personaId}`, {
     method: 'DELETE',

@@ -6,51 +6,58 @@ const router = Router();
 
 router.get('/', async (req, res) => {
   const [rows] = await pool.query(
-    `SELECT id, nombre, COALESCE(tipo, 'resort') as tipo, 
+    `SELECT id, nombre, COALESCE(tipo, 'resort') as tipo,
      COALESCE(divisa, 'USD') as divisa,
-     fecha_inicio AS fechaInicio, fecha_fin AS fechaFin, nota, slug 
+     fecha_inicio AS fechaInicio, fecha_fin AS fechaFin, nota, slug,
+     COALESCE(edad_minima_pago, 0) AS edadMinimaPago
      FROM viajes ORDER BY id DESC`
   );
   res.json(rows);
 });
 
 router.post('/', async (req, res) => {
-  const { nombre, fechaInicio, fechaFin, nota, tipo = 'resort', divisa = 'USD' } = req.body;
+  const { nombre, fechaInicio, fechaFin, nota, tipo = 'resort', divisa = 'USD', edadMinimaPago = 0 } = req.body;
 
   if (!nombre) {
     return res.status(400).json({ error: 'Nombre del viaje es requerido.' });
   }
 
   const [result] = await pool.query(
-    'INSERT INTO viajes (nombre, fecha_inicio, fecha_fin, nota, tipo, divisa) VALUES (?, ?, ?, ?, ?, ?)',
-    [nombre, fechaInicio || null, fechaFin || null, nota || null, tipo, divisa]
+    'INSERT INTO viajes (nombre, fecha_inicio, fecha_fin, nota, tipo, divisa, edad_minima_pago) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    [nombre, fechaInicio || null, fechaFin || null, nota || null, tipo, divisa, Number(edadMinimaPago) || 0]
   );
 
-  res.status(201).json({ id: result.insertId, nombre, fechaInicio, fechaFin, nota, tipo, divisa });
+  res.status(201).json({ id: result.insertId, nombre, fechaInicio, fechaFin, nota, tipo, divisa, edadMinimaPago: Number(edadMinimaPago) || 0 });
 });
 
 // ← NUEVO: editar viaje
 router.put('/:id', async (req, res) => {
   const viajeId = Number(req.params.id);
-  const { nombre, fechaInicio, fechaFin, nota, tipo, divisa } = req.body;
+  const { nombre, fechaInicio, fechaFin, nota, tipo, divisa, edadMinimaPago = 0 } = req.body;
 
   if (!nombre) {
     return res.status(400).json({ error: 'Nombre es requerido.' });
   }
 
+  // Asegurar que la columna exista (safe migration)
+  try {
+    await pool.query(`ALTER TABLE viajes ADD COLUMN IF NOT EXISTS edad_minima_pago INT NOT NULL DEFAULT 0`);
+  } catch (_) {}
+
   await pool.query(
-    `UPDATE viajes SET 
-      nombre = ?, 
-      fecha_inicio = ?, 
-      fecha_fin = ?, 
-      nota = ?, 
+    `UPDATE viajes SET
+      nombre = ?,
+      fecha_inicio = ?,
+      fecha_fin = ?,
+      nota = ?,
       tipo = ?,
-      divisa = ?
+      divisa = ?,
+      edad_minima_pago = ?
      WHERE id = ?`,
-    [nombre, fechaInicio || null, fechaFin || null, nota || null, tipo || 'resort', divisa || 'USD', viajeId]
+    [nombre, fechaInicio || null, fechaFin || null, nota || null, tipo || 'resort', divisa || 'USD', Number(edadMinimaPago) || 0, viajeId]
   );
 
-  res.json({ id: viajeId, nombre, fechaInicio, fechaFin, nota, tipo, divisa });
+  res.json({ id: viajeId, nombre, fechaInicio, fechaFin, nota, tipo, divisa, edadMinimaPago: Number(edadMinimaPago) || 0 });
 });
 
 // ← NUEVO: eliminar viaje

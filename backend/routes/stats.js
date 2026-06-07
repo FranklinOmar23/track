@@ -109,31 +109,48 @@ router.get('/reportes/pagos-por-mes', async (req, res) => {
 router.get('/reportes/por-etiqueta', async (req, res) => {
   try {
     const { viajeId } = req.query;
-    const params = [];
-    const whereViaje = viajeId ? 'WHERE h.viaje_id = ?' : '';
-    if (viajeId) params.push(Number(viajeId));
+    const whereH  = viajeId ? 'WHERE viaje_id = ?' : '';
+    const whereHh = viajeId ? 'WHERE h.viaje_id = ?' : '';
+    const p1 = viajeId ? [Number(viajeId)] : [];
+    const p2 = viajeId ? [Number(viajeId)] : [];
 
+    // Dos subqueries para evitar la multiplicación de SUM(h.total) por el JOIN
     const [rows] = await pool.query(`
       SELECT
-        COALESCE(NULLIF(h.etiqueta,''), 'Sin etiqueta') as etiqueta,
-        COUNT(DISTINCT h.id)   as habitaciones,
-        COUNT(DISTINCT pers.id) as personas,
-        SUM(h.total)            as total_por_cobrar,
-        COALESCE(SUM(p.monto), 0) as total_pagado
-      FROM habitaciones h
-      LEFT JOIN personas pers ON pers.habitacion_id = h.id
-      LEFT JOIN pagos p ON p.persona_id = pers.id
-      ${whereViaje}
-      GROUP BY COALESCE(NULLIF(h.etiqueta,''), 'Sin etiqueta')
-      ORDER BY total_por_cobrar DESC
-    `, params);
+        et.etiqueta,
+        et.habitaciones,
+        et.total_por_cobrar,
+        COALESCE(pag.personas,     0) AS personas,
+        COALESCE(pag.total_pagado, 0) AS total_pagado
+      FROM (
+        SELECT
+          COALESCE(NULLIF(etiqueta,''), 'Sin etiqueta') AS etiqueta,
+          COUNT(id)  AS habitaciones,
+          SUM(total) AS total_por_cobrar
+        FROM habitaciones
+        ${whereH}
+        GROUP BY COALESCE(NULLIF(etiqueta,''), 'Sin etiqueta')
+      ) et
+      LEFT JOIN (
+        SELECT
+          COALESCE(NULLIF(h.etiqueta,''), 'Sin etiqueta') AS etiqueta,
+          COUNT(DISTINCT pers.id)          AS personas,
+          COALESCE(SUM(p.monto), 0)        AS total_pagado
+        FROM habitaciones h
+        LEFT JOIN personas pers ON pers.habitacion_id = h.id
+        LEFT JOIN pagos    p    ON p.persona_id       = pers.id
+        ${whereHh}
+        GROUP BY COALESCE(NULLIF(h.etiqueta,''), 'Sin etiqueta')
+      ) pag ON pag.etiqueta = et.etiqueta
+      ORDER BY et.total_por_cobrar DESC
+    `, [...p1, ...p2]);
 
     res.json(rows.map(r => ({
       etiqueta: r.etiqueta,
       habitaciones: Number(r.habitaciones),
-      personas: Number(r.personas),
+      personas:     Number(r.personas),
       total_por_cobrar: Number(r.total_por_cobrar),
-      total_pagado: Number(r.total_pagado),
+      total_pagado:     Number(r.total_pagado),
       pendiente: Number(r.total_por_cobrar) - Number(r.total_pagado),
       porcentaje: r.total_por_cobrar > 0
         ? ((Number(r.total_pagado) / Number(r.total_por_cobrar)) * 100).toFixed(1)
@@ -236,10 +253,15 @@ router.get('/viaje/slug/:slug', async (req, res) => {
 });
 
 router.post('/viajes/with-slug', async (req, res) => {
-  const { nombre, fechaInicio, fechaFin, nota, tipo = 'resort' } = req.body;
+  const { nombre, fechaInicio, fechaFin, nota, tipo = 'resort', divisa = 'USD', edadMinimaPago = 0 } = req.body;
   if (!nombre) return res.status(400).json({ error: 'Nombre del viaje es requerido.' });
 
   try {
+    // Asegurar columna (safe migration)
+    try {
+      await pool.query(`ALTER TABLE viajes ADD COLUMN IF NOT EXISTS edad_minima_pago INT NOT NULL DEFAULT 0`);
+    } catch (_) {}
+
     let slug = nombre.toLowerCase()
       .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
       .replace(/[^a-z0-9]+/g, '-')
@@ -249,11 +271,11 @@ router.post('/viajes/with-slug', async (req, res) => {
     if (existing.length > 0) slug = `${slug}-${Date.now()}`;
 
     const [result] = await pool.query(
-      'INSERT INTO viajes (nombre, fecha_inicio, fecha_fin, nota, tipo, slug) VALUES (?, ?, ?, ?, ?, ?)',
-      [nombre, fechaInicio || null, fechaFin || null, nota || null, tipo, slug]
+      'INSERT INTO viajes (nombre, fecha_inicio, fecha_fin, nota, tipo, divisa, slug, edad_minima_pago) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [nombre, fechaInicio || null, fechaFin || null, nota || null, tipo, divisa, slug, Number(edadMinimaPago) || 0]
     );
 
-    res.status(201).json({ id: result.insertId, nombre, fechaInicio, fechaFin, nota, tipo, slug });
+    res.status(201).json({ id: result.insertId, nombre, fechaInicio, fechaFin, nota, tipo, divisa, slug, edadMinimaPago: Number(edadMinimaPago) || 0 });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

@@ -108,7 +108,9 @@ export const DashboardFull = ({ onSelectViaje }) => {
         resorts={viajes.filter((v) => v.tipo === 'resort').length}
         tours={viajes.filter((v) => v.tipo === 'tour').length}
         recaudado={formatCurrency(totalPagado)}
+        totalPagadoRaw={totalPagado}
         porcentaje={porcentajeGlobal}
+        porcentajeRaw={parseFloat(porcentajeGlobal)}
       />
 
       <ChartSection viajes={viajesProcesados} />

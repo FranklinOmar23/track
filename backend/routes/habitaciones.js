@@ -3,6 +3,9 @@ import pool from '../db.js';
 
 const router = Router();
 
+// Migración idempotente: agrega es_gratis a personas si no existe
+pool.query(`ALTER TABLE personas ADD COLUMN IF NOT EXISTS es_gratis TINYINT(1) NOT NULL DEFAULT 0`).catch(() => {});
+
 const mapHabitaciones = (rows) => {
   const habitaciones = [];
   const mapa = new Map();
@@ -15,6 +18,7 @@ const mapHabitaciones = (rows) => {
         tipo: row.tipo,
         total: Number(row.total),
         precioNino: Number(row.precio_nino || 0),
+        edadMinimaPago: Number(row.edad_minima_pago || 0),
         stack: !!row.es_stack,
         nota: row.nota || '',
         etiqueta: row.etiqueta || '',
@@ -34,6 +38,7 @@ const mapHabitaciones = (rows) => {
           n: row.nombre,
           posicion: row.posicion,
           esNino: !!row.es_nino,
+          esGratis: !!row.es_gratis,
           pagos: [],
         };
         habitacion.personas.push(persona);
@@ -72,14 +77,17 @@ router.get('/', async (req, res) => {
       h.es_stack,
       h.nota,
       h.etiqueta,
+      COALESCE(v.edad_minima_pago, 0) AS edad_minima_pago,
       p.id AS persona_id,
       p.nombre,
       p.posicion,
       p.es_nino,
+      p.es_gratis,
       pag.id AS pago_id,
       pag.mes,
       pag.monto
     FROM habitaciones h
+    LEFT JOIN viajes v ON h.viaje_id = v.id
     LEFT JOIN personas p ON p.habitacion_id = h.id
     LEFT JOIN pagos pag ON pag.persona_id = p.id
     ${query.join(' ')}
@@ -114,9 +122,10 @@ router.post('/', async (req, res) => {
       if (!persona || !persona.n) continue;
 
       const esNino = persona.esNino ? 1 : 0;
+      const esGratis = (esNino && persona.esGratis) ? 1 : 0;
       const [personaResult] = await connection.query(
-        'INSERT INTO personas (habitacion_id, nombre, posicion, es_nino) VALUES (?, ?, ?, ?)',
-        [habitacionId, persona.n, index + 1, esNino]
+        'INSERT INTO personas (habitacion_id, nombre, posicion, es_nino, es_gratis) VALUES (?, ?, ?, ?, ?)',
+        [habitacionId, persona.n, index + 1, esNino, esGratis]
       );
 
       personaRows.push({
@@ -124,8 +133,19 @@ router.post('/', async (req, res) => {
         n: persona.n,
         posicion: index + 1,
         esNino: !!persona.esNino,
+        esGratis: !!(esNino && persona.esGratis),
         pagos: [],
       });
+    }
+
+    // Obtener edadMinimaPago del viaje asociado
+    let edadMinimaPago = 0;
+    if (req.body.viajeId) {
+      const [vRows] = await connection.query(
+        'SELECT COALESCE(edad_minima_pago, 0) AS edp FROM viajes WHERE id = ?',
+        [req.body.viajeId]
+      );
+      if (vRows[0]) edadMinimaPago = Number(vRows[0].edp) || 0;
     }
 
     await connection.commit();
@@ -136,6 +156,7 @@ router.post('/', async (req, res) => {
       tipo,
       total: Number(total || 0),
       precioNino: Number(precioNino || 0),
+      edadMinimaPago,
       stack: !!stack,
       nota: nota || '',
       etiqueta: etiqueta || '',
@@ -170,7 +191,7 @@ router.put('/:id', async (req, res) => {
 
 router.post('/:id/personas', async (req, res) => {
   const habitacionId = Number(req.params.id);
-  const { nombre, esNino } = req.body;
+  const { nombre, esNino, esGratis } = req.body;
 
   if (!nombre || !nombre.trim()) {
     return res.status(400).json({ error: 'Nombre es requerido.' });
@@ -182,12 +203,15 @@ router.post('/:id/personas', async (req, res) => {
   );
   const posicion = posRows[0].siguiente;
 
+  const esNinoVal = esNino ? 1 : 0;
+  const esGratisVal = (esNino && esGratis) ? 1 : 0;
+
   const [result] = await pool.query(
-    'INSERT INTO personas (habitacion_id, nombre, posicion, es_nino) VALUES (?, ?, ?, ?)',
-    [habitacionId, nombre.trim(), posicion, esNino ? 1 : 0]
+    'INSERT INTO personas (habitacion_id, nombre, posicion, es_nino, es_gratis) VALUES (?, ?, ?, ?, ?)',
+    [habitacionId, nombre.trim(), posicion, esNinoVal, esGratisVal]
   );
 
-  res.status(201).json({ id: result.insertId, n: nombre.trim(), posicion, esNino: !!esNino, pagos: [] });
+  res.status(201).json({ id: result.insertId, n: nombre.trim(), posicion, esNino: !!esNino, esGratis: !!(esNino && esGratis), pagos: [] });
 });
 
 router.delete('/:id', async (req, res) => {
