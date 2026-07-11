@@ -22,6 +22,9 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());
+// También aceptar bodies form-urlencoded para compatibilidad con proxies
+// que puedan transformar la petición (Hostinger, formularios, etc.).
+app.use(express.urlencoded({ extended: true }));
 
 const port = process.env.PORT || 4000;
 

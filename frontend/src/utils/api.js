@@ -1,10 +1,19 @@
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+const API_BASE = import.meta.env.VITE_API_URL?.trim().replace(/\/+$/g, '') || '';
 const TOKEN_KEY = 'rmt_token';
+
+const normalizeApiPath = (path) => {
+  const cleanedPath = `/${path}`.replace(/^\/+/g, '/');
+  return API_BASE.endsWith('/api') && cleanedPath.startsWith('/api')
+    ? cleanedPath.replace(/^\/api/, '') || '/'
+    : cleanedPath;
+};
 
 const request = async (path, options = {}) => {
   const token = localStorage.getItem(TOKEN_KEY);
+  const baseUrl = API_BASE || window.location.origin;
+  const url = `${baseUrl.replace(/\/+$|\s+/g, '')}${normalizeApiPath(path)}`;
 
-  const response = await fetch(`${API_BASE}${path}`, {
+  const response = await fetch(url, {
     headers: {
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
