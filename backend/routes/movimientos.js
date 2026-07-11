@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import pool from '../db.js';
+import { registrarLog } from '../utils/log.js';
 
 const router = Router();
 
@@ -86,6 +87,7 @@ router.post('/', async (req, res) => {
     }
 
     await connection.commit();
+    registrarLog(req.usuario, 'mover', 'movimiento', personaId, `${req.usuario} movió a la persona ${personaId} a la habitación ${destinoHabitacionId}`);
     res.json({ ok: true });
   } catch (error) {
     await connection.rollback();

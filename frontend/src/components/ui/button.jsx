@@ -1,5 +1,4 @@
 import React from 'react';
-
 export const Button = React.forwardRef(({ className, variant, size, children, ...props }, ref) => {
   const variantClasses = {
     default: "bg-gray-900 text-white hover:bg-gray-900/90",

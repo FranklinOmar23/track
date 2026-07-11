@@ -1,13 +1,23 @@
-import React from 'react';
-import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { AuthProvider, useAuthContext } from './Context/AuthContext';
 import { HabitacionesProvider } from './Context/HabitacionesContext';
 import HomeViajes from './components/layout/HomeViajes';
 import ViajeView from './components/layout/ViajeView';
 import ViajePublico from './components/Dashboard/ViajePublico';
 import ViajeExpirado from './components/Dashboard/ViajeExpirado';
 import ReportesView from './components/reportes/ReportesView';
+import ActividadView from './components/logs/ActividadView';
+import LoginView from './components/auth/LoginView';
 import './components/styles/global.css';
 
+
+function RequireAuth({ children }) {
+  const { isAuthenticated } = useAuthContext();
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  return children;
+}
 
 function AppContent() {
   const navigate = useNavigate();
@@ -22,23 +32,36 @@ function AppContent() {
   };
 
   return (
-    <HabitacionesProvider>
-      <Routes>
-        <Route path="/" element={<HomeViajes onSelectViaje={handleSelectViaje} />} />
-        <Route path="/reportes" element={<ReportesView />} />
-        <Route path="/:tipo/:slug" element={<ViajeView onBack={handleBack} />} />
-        <Route path="/viaje/:tipo/:slug" element={<ViajeView />} />
-        <Route path="/viaje-compartido/:token" element={<ViajePublico />} />
-        <Route path="/viaje-expirado" element={<ViajeExpirado />} />
-      </Routes>
-    </HabitacionesProvider>
+    <Routes>
+      <Route path="/" element={<HomeViajes onSelectViaje={handleSelectViaje} />} />
+      <Route path="/reportes" element={<ReportesView />} />
+      <Route path="/actividad" element={<ActividadView />} />
+      <Route path="/:tipo/:slug" element={<ViajeView onBack={handleBack} />} />
+      <Route path="/viaje/:tipo/:slug" element={<ViajeView />} />
+    </Routes>
   );
 }
 
 function App() {
   return (
     <BrowserRouter>
-      <AppContent />
+      <AuthProvider>
+        <Routes>
+          <Route path="/login" element={<LoginView />} />
+          <Route path="/viaje-compartido/:token" element={<ViajePublico />} />
+          <Route path="/viaje-expirado" element={<ViajeExpirado />} />
+          <Route
+            path="/*"
+            element={
+              <RequireAuth>
+                <HabitacionesProvider>
+                  <AppContent />
+                </HabitacionesProvider>
+              </RequireAuth>
+            }
+          />
+        </Routes>
+      </AuthProvider>
     </BrowserRouter>
   );
 }

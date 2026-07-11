@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Tag, ChevronRight } from 'lucide-react';
 import { useDivisa } from '../../hooks/useDivisa';
 
@@ -21,7 +21,7 @@ const getColorForEtiqueta = (etiqueta) => {
 };
 
 const getPaymentColor = (porcentaje, isStack) => {
-  if (isStack)         return { bar: '#10b981', rgb: '16,185,129' };
+  if (isStack)         return { bar: '#225343', rgb: '16,185,129' };
   if (porcentaje <= 0) return { bar: '#f43f5e', rgb: '244,63,94'  };
   if (porcentaje < 30) return { bar: '#f59e0b', rgb: '245,158,11' };
   if (porcentaje < 100)return { bar: '#0d9488', rgb: '13,148,136' };

@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { useHabitacionesContext } from '../../Context/HabitacionesContext';
 import styles from '../styles/components/modals.module.css';
 import { MESES } from '../../utils/formatters';

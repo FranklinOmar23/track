@@ -1,5 +1,4 @@
 import React from 'react';
-
 export const Card = React.forwardRef(({ className, ...props }, ref) => (
   <div
     ref={ref}

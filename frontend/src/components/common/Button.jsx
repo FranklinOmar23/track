@@ -1,4 +1,3 @@
-import React from 'react';
 
 const Button = ({ children, variant = 'default', className = '', ...props }) => {
   const baseClass = 'button';

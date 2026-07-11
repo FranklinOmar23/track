@@ -81,6 +81,28 @@ export const calcularEstadisticas = (habitaciones) => {
   return { total, pagado, pendiente };
 };
 
+/** Ranking de personas por lo pagado y lo pendiente, agregando por nombre
+ *  a través de todas las habitaciones en las que aparecen. */
+export const calcularRankingPersonas = (habitaciones) => {
+  const map = new Map();
+  habitaciones.forEach((hab) => {
+    hab.personas.forEach((persona) => {
+      if (!persona.n) return;
+      const nombre = persona.n.trim();
+      const pagado = (persona.pagos || []).reduce((s, p) => s + p.monto, 0);
+      const pendiente = calcularPendientePersona(hab, persona);
+      if (!map.has(nombre)) {
+        map.set(nombre, { nombre, pagado: 0, pendiente: 0, habitaciones: new Set() });
+      }
+      const entry = map.get(nombre);
+      entry.pagado += pagado;
+      entry.pendiente += pendiente;
+      entry.habitaciones.add(hab.num);
+    });
+  });
+  return [...map.values()].map((e) => ({ ...e, habitaciones: [...e.habitaciones] }));
+};
+
 /** Filtra habitaciones por búsqueda de texto y estado de pago. */
 export const filtrarHabitaciones = (habitaciones, { busqueda, estado }) =>
   habitaciones.filter((hab) => {

@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import styles from '../styles/components/modals.module.css';
 import { MESES } from '../../utils/formatters';
 import { useDivisa } from '../../hooks/useDivisa';

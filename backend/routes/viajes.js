@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import pool from '../db.js';
 import crypto from 'crypto';
+import { registrarLog } from '../utils/log.js';
 
 const router = Router();
 
@@ -26,6 +27,8 @@ router.post('/', async (req, res) => {
     'INSERT INTO viajes (nombre, fecha_inicio, fecha_fin, nota, tipo, divisa, edad_minima_pago) VALUES (?, ?, ?, ?, ?, ?, ?)',
     [nombre, fechaInicio || null, fechaFin || null, nota || null, tipo, divisa, Number(edadMinimaPago) || 0]
   );
+
+  registrarLog(req.usuario, 'crear', 'viaje', result.insertId, `${req.usuario} creó el viaje "${nombre}"`);
 
   res.status(201).json({ id: result.insertId, nombre, fechaInicio, fechaFin, nota, tipo, divisa, edadMinimaPago: Number(edadMinimaPago) || 0 });
 });
@@ -56,6 +59,8 @@ router.put('/:id', async (req, res) => {
      WHERE id = ?`,
     [nombre, fechaInicio || null, fechaFin || null, nota || null, tipo || 'resort', divisa || 'USD', Number(edadMinimaPago) || 0, viajeId]
   );
+
+  registrarLog(req.usuario, 'editar', 'viaje', viajeId, `${req.usuario} editó el viaje "${nombre}"`);
 
   res.json({ id: viajeId, nombre, fechaInicio, fechaFin, nota, tipo, divisa, edadMinimaPago: Number(edadMinimaPago) || 0 });
 });
@@ -90,6 +95,7 @@ router.delete('/:id', async (req, res) => {
     await connection.query('DELETE FROM viajes WHERE id = ?', [viajeId]);
 
     await connection.commit();
+    registrarLog(req.usuario, 'eliminar', 'viaje', viajeId, `${req.usuario} eliminó el viaje ${viajeId}`);
     res.json({ ok: true });
   } catch (error) {
     await connection.rollback();
@@ -135,6 +141,7 @@ router.post('/default', async (req, res) => {
 
     await connection.query('UPDATE habitaciones SET viaje_id = ? WHERE viaje_id IS NULL', [viaje.id]);
     await connection.commit();
+    registrarLog(req.usuario, 'crear', 'viaje', viaje.id, `${req.usuario} inicializó el viaje predeterminado "${viaje.nombre}"`);
     res.status(200).json(viaje);
   } catch (error) {
     await connection.rollback();
@@ -148,7 +155,8 @@ router.post('/default', async (req, res) => {
 router.post('/:id/compartir', async (req, res) => {
   const viajeId = Number(req.params.id);
   const { duracion } = req.body; // '1h', '7h', '24h', '7d', 'never'
-  
+  const tipo = req.body.tipo === 'pendientes' ? 'pendientes' : 'completo';
+
   try {
     // Calcular fecha de expiración
     let expiraCompartir = null;
@@ -179,22 +187,24 @@ router.post('/:id/compartir', async (req, res) => {
     // Asegurar que las columnas existen
     try {
       await pool.query(`
-        ALTER TABLE viajes 
+        ALTER TABLE viajes
         ADD COLUMN IF NOT EXISTS token_compartir VARCHAR(100),
         ADD COLUMN IF NOT EXISTS compartir_activo TINYINT(1) DEFAULT 1,
-        ADD COLUMN IF NOT EXISTS expira_compartir DATETIME NULL
+        ADD COLUMN IF NOT EXISTS expira_compartir DATETIME NULL,
+        ADD COLUMN IF NOT EXISTS tipo_compartir VARCHAR(20) DEFAULT 'completo'
       `);
     } catch (err) {
       console.log('Nota:', err.message);
     }
-    
+
     await pool.query(
-      `UPDATE viajes 
-       SET token_compartir = ?, 
+      `UPDATE viajes
+       SET token_compartir = ?,
            compartir_activo = 1,
-           expira_compartir = ?
+           expira_compartir = ?,
+           tipo_compartir = ?
        WHERE id = ?`,
-      [token, expiraCompartir, viajeId]
+      [token, expiraCompartir, tipo, viajeId]
     );
     
     const baseUrl = process.env.FRONTEND_URL || 'https://pagos.sadojtours.com';
@@ -208,9 +218,12 @@ router.post('/:id/compartir', async (req, res) => {
       }).format(expiraCompartir);
     }
     
-    res.json({ 
-      ok: true, 
-      token, 
+    registrarLog(req.usuario, 'editar', 'viaje', viajeId, `${req.usuario} generó un link para compartir el viaje ${viajeId} (${tipo === 'pendientes' ? 'solo pendientes' : 'completo'})`);
+
+    res.json({
+      ok: true,
+      token,
+      tipo,
       linkCompartir,
       expiraCompartir: expiraCompartir?.toISOString(),
       expiracionTexto,
@@ -221,106 +234,17 @@ router.post('/:id/compartir', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-// Obtener viaje por token (vista pública) - VERIFICAR EXPIRACIÓN
-router.get('/publico/:token', async (req, res) => {
-  const { token } = req.params;
+
+// Desactivar link de compartir
+router.delete('/:id/compartir', async (req, res) => {
+  const viajeId = Number(req.params.id);
 
   try {
-    // Verificar si existe (activo o no)
-    const [todosViajes] = await pool.query(
-      `SELECT id, nombre, tipo, COALESCE(divisa, 'USD') as divisa, fecha_inicio, fecha_fin, nota, slug,
-              expira_compartir, compartir_activo,
-              (expira_compartir IS NOT NULL AND expira_compartir <= UTC_TIMESTAMP()) AS ya_expiro
-       FROM viajes
-       WHERE token_compartir = ?`,
-      [token]
-    );
-
-    if (todosViajes.length === 0) {
-      return res.status(404).json({ error: 'Link inválido' });
-    }
-
-    const viaje = todosViajes[0];
-
-    if (!viaje.compartir_activo) {
-      return res.status(404).json({ error: 'Link desactivado' });
-    }
-
-    if (viaje.ya_expiro) {
-      return res.status(410).json({
-        error: 'expired',
-        mensaje: 'Este enlace ha expirado',
-        expiracion: viaje.expira_compartir
-      });
-    }
-    
-    const viajeId = viaje.id;
-    
-    // Obtener habitaciones con personas y pagos
-    const [habitaciones] = await pool.query(`
-      SELECT 
-        h.id, h.numero, h.tipo, h.total, h.precio_nino, h.es_stack, h.nota, h.etiqueta,
-        p.id as persona_id, p.nombre as persona_nombre, p.posicion, p.es_nino,
-        pag.id as pago_id, pag.mes, pag.monto
-      FROM habitaciones h
-      LEFT JOIN personas p ON p.habitacion_id = h.id
-      LEFT JOIN pagos pag ON pag.persona_id = p.id
-      WHERE h.viaje_id = ?
-      ORDER BY h.etiqueta, CAST(h.numero AS UNSIGNED), p.posicion
-    `, [viajeId]);
-    
-    // Agrupar por habitación
-    const habitacionesMap = new Map();
-    habitaciones.forEach(row => {
-      if (!habitacionesMap.has(row.id)) {
-        habitacionesMap.set(row.id, {
-          id: row.id,
-          num: row.numero,
-          tipo: row.tipo,
-          total: Number(row.total),
-          precioNino: Number(row.precio_nino),
-          stack: !!row.es_stack,
-          nota: row.nota || '',
-          etiqueta: row.etiqueta || '',
-          personas: []
-        });
-      }
-      
-      const hab = habitacionesMap.get(row.id);
-      if (row.persona_id) {
-        let persona = hab.personas.find(p => p.id === row.persona_id);
-        if (!persona) {
-          persona = {
-            id: row.persona_id,
-            n: row.persona_nombre,
-            posicion: row.posicion,
-            esNino: !!row.es_nino,
-            pagos: []
-          };
-          hab.personas.push(persona);
-        }
-        if (row.pago_id) {
-          persona.pagos.push({
-            id: row.pago_id,
-            mes: row.mes,
-            monto: Number(row.monto)
-          });
-        }
-      }
-    });
-    
-    res.json({
-      viaje: {
-        id: viaje.id,
-        nombre: viaje.nombre,
-        tipo: viaje.tipo,
-        divisa: viaje.divisa || 'USD',
-        expiraCompartir: viaje.expira_compartir
-      },
-      habitaciones: Array.from(habitacionesMap.values())
-    });
+    await pool.query('UPDATE viajes SET compartir_activo = 0 WHERE id = ?', [viajeId]);
+    registrarLog(req.usuario, 'editar', 'viaje', viajeId, `${req.usuario} desactivó el enlace compartido del viaje ${viajeId}`);
+    res.json({ ok: true });
   } catch (error) {
-    console.error('Error obteniendo viaje público:', error);
+    console.error('Error desactivando link:', error);
     res.status(500).json({ error: error.message });
   }
 });

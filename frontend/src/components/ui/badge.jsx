@@ -1,5 +1,4 @@
 import React from 'react';
-
 export const Badge = React.forwardRef(({ className, variant, ...props }, ref) => {
   const variantClasses = {
     default: "bg-white/10 text-white hover:bg-white/20",

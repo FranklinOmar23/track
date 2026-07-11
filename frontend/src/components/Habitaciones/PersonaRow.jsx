@@ -1,4 +1,3 @@
-import React from 'react';
 import { useDivisa } from '../../hooks/useDivisa';
 import styles from '../styles/components/habitaciones.module.css';
 

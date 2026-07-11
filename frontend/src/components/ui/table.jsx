@@ -1,5 +1,4 @@
 import React from 'react';
-
 export const Table = React.forwardRef(({ className, ...props }, ref) => (
   <div className="relative w-full overflow-auto">
     <table

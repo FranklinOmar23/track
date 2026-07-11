@@ -1,20 +1,40 @@
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+const TOKEN_KEY = 'rmt_token';
 
 const request = async (path, options = {}) => {
+  const token = localStorage.getItem(TOKEN_KEY);
+
   const response = await fetch(`${API_BASE}${path}`, {
     headers: {
       'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     ...options,
   });
 
   if (!response.ok) {
+    if (response.status === 401 && path !== '/api/auth/login') {
+      localStorage.removeItem(TOKEN_KEY);
+      window.location.href = '/login';
+    }
     const error = await response.json().catch(() => ({}));
     throw new Error(error.error || response.statusText || 'Error de red');
   }
 
   return response.json();
 };
+
+// ─── AUTENTICACIÓN ──────────────────────────────────────────────────────────
+export const login = (username, password) =>
+  request('/api/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ username, password }),
+  });
+
+export const fetchMe = () => request('/api/auth/me');
+
+export const fetchLogs = (limit) =>
+  request(`/api/logs${limit ? `?limit=${limit}` : ''}`);
 
 export const fetchHabitaciones = (viajeId) => {
   const query = viajeId ? `?viajeId=${viajeId}` : '';
@@ -131,10 +151,10 @@ export const crearViajeConSlug = (viaje) =>
   });
 
   // Generar link de compartir con duración
-export const generarLinkCompartir = (viajeId, duracion = '7d') =>
+export const generarLinkCompartir = (viajeId, duracion = '7d', tipo = 'completo') =>
   request(`/api/viajes/${viajeId}/compartir`, {
     method: 'POST',
-    body: JSON.stringify({ duracion }),
+    body: JSON.stringify({ duracion, tipo }),
   });
 
 // Desactivar link de compartir

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useHabitacionesContext } from '../../Context/HabitacionesContext';
 import { X, Save, Plus, Minus, Gift } from 'lucide-react';
 import * as api from '../../utils/api';

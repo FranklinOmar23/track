@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useHabitacionesContext } from '../../Context/HabitacionesContext';
 import { useDivisa } from '../../hooks/useDivisa';
 import { calcularTotalPagado, calcularCuotaPersona } from '../../utils/calculos';

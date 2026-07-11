@@ -1,4 +1,3 @@
-import React from 'react';
 import styles from '../styles/components/habitaciones.module.css';
 
 const ProgressBar = ({ percentage }) => {

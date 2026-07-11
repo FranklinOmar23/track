@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Users, EyeOff, Clock, AlertCircle, Search } from 'lucide-react';
+import { Users, EyeOff, Clock, AlertCircle, Search, Tag, LayoutGrid } from 'lucide-react';
 import { fetchViajePublico } from '../../utils/api';
 import { formatCurrency } from '../../utils/formatters';
+import { calcularPendientePersona } from '../../utils/calculos';
 
 const ViajeExpiradoScreen = () => (
   <div className="min-h-screen bg-[#0f1117] flex items-center justify-center px-4">
@@ -45,7 +46,7 @@ const HabitacionCard = ({ habitacion, fmt }) => {
   const isStack = habitacion.stack;
   const isComplete = !isStack && pendiente <= 0 && totalPagado > 0;
 
-  let borderColor = 'border-white/[0.07]';
+  let borderColor;
   if (isStack) borderColor = 'border-emerald-500/50';
   else if (isComplete) borderColor = 'border-teal-500/50';
   else if (porcentaje >= 30) borderColor = 'border-blue-500/40';
@@ -133,6 +134,7 @@ const ViajePublico = () => {
   const [errorType, setErrorType] = useState(null);
   const [data, setData] = useState(null);
   const [busqueda, setBusqueda] = useState('');
+  const [etiquetaFiltro, setEtiquetaFiltro] = useState('todas');
 
   useEffect(() => {
     if (!token) return;
@@ -173,15 +175,38 @@ const ViajePublico = () => {
   if (error) return <ErrorScreen mensaje={error} />;
   if (!data?.habitaciones) return <ErrorScreen mensaje="No se encontró información del viaje" />;
 
-  const query = busqueda.toLowerCase().trim();
-  const habitacionesFiltradas = query
-    ? data.habitaciones.filter(
-        (hab) =>
-          hab.num?.toString().toLowerCase().includes(query) ||
-          hab.etiqueta?.toLowerCase().includes(query) ||
-          hab.personas.some((p) => p.n?.toLowerCase().includes(query))
-      )
+  const esSoloPendientes = data.viaje?.tipoCompartir === 'pendientes';
+
+  const habitacionesBase = esSoloPendientes
+    ? data.habitaciones
+        .map((hab) => ({
+          ...hab,
+          personas: hab.personas.filter((p) => p.n && calcularPendientePersona(hab, p) > 0),
+        }))
+        .filter((hab) => hab.personas.length > 0)
     : data.habitaciones;
+
+  const etiquetasUnicas = [...new Set(
+    habitacionesBase.map((h) => h.etiqueta || '').filter(Boolean)
+  )].sort();
+
+  let habitacionesFiltradas = habitacionesBase;
+
+  if (etiquetaFiltro !== 'todas') {
+    habitacionesFiltradas = habitacionesFiltradas.filter((hab) =>
+      etiquetaFiltro === '__sin__' ? !hab.etiqueta : hab.etiqueta === etiquetaFiltro
+    );
+  }
+
+  const query = busqueda.toLowerCase().trim();
+  if (query) {
+    habitacionesFiltradas = habitacionesFiltradas.filter(
+      (hab) =>
+        hab.num?.toString().toLowerCase().includes(query) ||
+        hab.etiqueta?.toLowerCase().includes(query) ||
+        hab.personas.some((p) => p.n?.toLowerCase().includes(query))
+    );
+  }
 
   // Agrupar por etiqueta
   const grupos = {};
@@ -189,6 +214,13 @@ const ViajePublico = () => {
     const key = hab.etiqueta || 'General';
     if (!grupos[key]) grupos[key] = [];
     grupos[key].push(hab);
+  });
+
+  Object.keys(grupos).forEach((key) => {
+    grupos[key].sort((a, b) => {
+      if (!!a.stack !== !!b.stack) return a.stack ? -1 : 1;
+      return String(a.num).localeCompare(String(b.num), undefined, { numeric: true, sensitivity: 'base' });
+    });
   });
 
   const tieneExpiracion = data.viaje?.expiraCompartir;
@@ -207,6 +239,12 @@ const ViajePublico = () => {
             <div className={`flex items-center gap-1.5 mt-1 text-xs ${expiraPronto ? 'text-red-400' : 'text-gray-500'}`}>
               <EyeOff className="h-3 w-3" />
               <span>Vista de solo lectura</span>
+              {esSoloPendientes && (
+                <>
+                  <span>·</span>
+                  <span className="text-amber-400">Solo personas con saldo pendiente</span>
+                </>
+              )}
               {tieneExpiracion && (
                 <>
                   <span>·</span>
@@ -219,7 +257,7 @@ const ViajePublico = () => {
             </div>
           </div>
           <span className="text-xs text-gray-600 hidden sm:block">
-            {data.habitaciones.length} habitaciones
+            {habitacionesBase.length} habitaciones
           </span>
         </div>
 
@@ -243,11 +281,69 @@ const ViajePublico = () => {
           )}
         </div>
 
+        {/* Filtro por etiquetas */}
+        {etiquetasUnicas.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-6">
+            <button
+              onClick={() => setEtiquetaFiltro('todas')}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold transition-colors"
+              style={{
+                backgroundColor: etiquetaFiltro === 'todas' ? 'rgba(13,148,136,0.18)' : 'rgba(255,255,255,0.05)',
+                color: etiquetaFiltro === 'todas' ? '#2dd4bf' : 'rgba(255,255,255,0.45)',
+                border: `1px solid ${etiquetaFiltro === 'todas' ? 'rgba(13,148,136,0.4)' : 'rgba(255,255,255,0.08)'}`,
+              }}
+            >
+              <LayoutGrid className="h-3.5 w-3.5" />
+              Todas ({habitacionesBase.length})
+            </button>
+
+            {etiquetasUnicas.map((etiqueta) => {
+              const count = habitacionesBase.filter((h) => h.etiqueta === etiqueta).length;
+              const activa = etiquetaFiltro === etiqueta;
+              return (
+                <button
+                  key={etiqueta}
+                  onClick={() => setEtiquetaFiltro(activa ? 'todas' : etiqueta)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold transition-colors"
+                  style={{
+                    backgroundColor: activa ? 'rgba(13,148,136,0.18)' : 'rgba(255,255,255,0.05)',
+                    color: activa ? '#2dd4bf' : 'rgba(255,255,255,0.45)',
+                    border: `1px solid ${activa ? 'rgba(13,148,136,0.4)' : 'rgba(255,255,255,0.08)'}`,
+                  }}
+                >
+                  <Tag className="h-3 w-3" />
+                  {etiqueta} ({count})
+                </button>
+              );
+            })}
+
+            {habitacionesBase.some((h) => !h.etiqueta) && (
+              <button
+                onClick={() => setEtiquetaFiltro(etiquetaFiltro === '__sin__' ? 'todas' : '__sin__')}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold transition-colors"
+                style={{
+                  backgroundColor: etiquetaFiltro === '__sin__' ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.05)',
+                  color: etiquetaFiltro === '__sin__' ? '#e2e8f0' : 'rgba(255,255,255,0.35)',
+                  border: `1px solid ${etiquetaFiltro === '__sin__' ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.08)'}`,
+                }}
+              >
+                Sin etiqueta ({habitacionesBase.filter((h) => !h.etiqueta).length})
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Resultados vacíos */}
         {habitacionesFiltradas.length === 0 && (
           <div className="text-center py-12 text-gray-500">
             <Search className="h-8 w-8 mx-auto mb-2 opacity-40" />
-            <p>Sin resultados para "{busqueda}"</p>
+            <p>
+              {query
+                ? `Sin resultados para "${busqueda}"`
+                : esSoloPendientes
+                  ? 'Nadie tiene saldo pendiente en este viaje'
+                  : 'No hay habitaciones para mostrar'}
+            </p>
           </div>
         )}
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Plane, Building2, Bus, DollarSign, TrendingUp } from 'lucide-react';
 
 function useCountUp(target, duration = 1350) {
@@ -155,7 +155,7 @@ function StatCard({ stat, rawValue, index }) {
 
 export const DashboardStats = ({
   totalViajes, resorts, tours,
-  recaudado, porcentaje,
+  porcentaje,
   totalPagadoRaw, porcentajeRaw,
 }) => {
   const rawValues = {

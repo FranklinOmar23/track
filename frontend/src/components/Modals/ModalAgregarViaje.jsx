@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { crearViajeConSlug } from '../../utils/api';
 import { X, Plus } from 'lucide-react';
 

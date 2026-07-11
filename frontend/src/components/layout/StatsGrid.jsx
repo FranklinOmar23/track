@@ -1,10 +1,15 @@
-import React from 'react';
+import { useState } from 'react';
 import { useHabitacionesContext } from '../../Context/HabitacionesContext';
 import { calcularEstadisticas, calcularTotalPagado } from '../../utils/calculos';
 import { useDivisa } from '../../hooks/useDivisa';
+import ModalNumerosHabitaciones from '../Modals/ModalNumerosHabitaciones';
+import ModalTopPagadores from '../Modals/ModalTopPagadores';
 
-const StatCard = ({ label, value, color = 'text-white' }) => (
-  <div className="bg-[#1a1f2e] rounded-xl p-4 border border-white/[0.07]">
+const StatCard = ({ label, value, color = 'text-white', onClick }) => (
+  <div
+    className={`bg-[#1a1f2e] rounded-xl p-4 border border-white/[0.07] ${onClick ? 'cursor-pointer hover:border-white/20 transition-colors' : ''}`}
+    onClick={onClick}
+  >
     <p className="text-[10px] sm:text-xs uppercase tracking-wide text-gray-500 font-medium leading-tight">
       {label}
     </p>
@@ -15,6 +20,8 @@ const StatCard = ({ label, value, color = 'text-white' }) => (
 const StatsGrid = () => {
   const { state } = useHabitacionesContext();
   const { fmt } = useDivisa();
+  const [modalNumerosOpen, setModalNumerosOpen] = useState(false);
+  const [modalPagadoresOpen, setModalPagadoresOpen] = useState(false);
   const { total, pagado, pendiente } = calcularEstadisticas(state.habitaciones);
   const habitaciones = state.habitaciones.length;
   const stackCount = state.habitaciones.filter((hab) => hab.stack).length;
@@ -23,14 +30,30 @@ const StatsGrid = () => {
   ).length;
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
-      <StatCard label="Total por Cobrar" value={fmt(total)} />
-      <StatCard label="Recaudado" value={fmt(pagado)} color="text-emerald-400" />
-      <StatCard label="Pendiente" value={fmt(pendiente)} color="text-red-400" />
-      <StatCard label="Habitaciones" value={habitaciones} />
-      <StatCard label="Stack" value={stackCount} color="text-emerald-400" />
-      <StatCard label="Completadas" value={completas} color="text-emerald-400" />
-    </div>
+    <>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
+        <StatCard label="Total por Cobrar" value={fmt(total)} />
+        <StatCard label="Recaudado" value={fmt(pagado)} color="text-emerald-400" onClick={() => setModalPagadoresOpen(true)} />
+        <StatCard label="Pendiente" value={fmt(pendiente)} color="text-red-400" />
+        <StatCard label="Habitaciones" value={habitaciones} onClick={() => setModalNumerosOpen(true)} />
+        <StatCard label="Stack" value={stackCount} color="text-emerald-400" />
+        <StatCard label="Completadas" value={completas} color="text-emerald-400" />
+      </div>
+
+      {modalNumerosOpen && (
+        <ModalNumerosHabitaciones
+          habitaciones={state.habitaciones}
+          onClose={() => setModalNumerosOpen(false)}
+        />
+      )}
+
+      {modalPagadoresOpen && (
+        <ModalTopPagadores
+          habitaciones={state.habitaciones}
+          onClose={() => setModalPagadoresOpen(false)}
+        />
+      )}
+    </>
   );
 };
 

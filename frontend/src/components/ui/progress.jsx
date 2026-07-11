@@ -1,5 +1,4 @@
 import React from 'react';
-
 export const Progress = React.forwardRef(({ className, value, ...props }, ref) => (
   <div
     ref={ref}

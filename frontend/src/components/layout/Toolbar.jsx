@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useHabitacionesContext } from '../../Context/HabitacionesContext';
 import ModalAgregarViaje from '../Modals/ModalAgregarViaje';
-import { Search, Plus, Share2, Copy, Check, X, Clock } from 'lucide-react';
+import { Search, Plus, Share2, Copy, Check, X, Clock, ListFilter } from 'lucide-react';
 import { generarLinkCompartir, desactivarLinkCompartir } from '../../utils/api';
 
 const Toolbar = ({ onOpenAgregar, onOpenDesglose }) => {
@@ -13,7 +13,14 @@ const Toolbar = ({ onOpenAgregar, onOpenDesglose }) => {
   const [copiado, setCopiado] = useState(false);
   const [generando, setGenerando] = useState(false);
   const [duracion, setDuracion] = useState('7d');
+  const [tipoCompartir, setTipoCompartir] = useState('completo');
   const [expiracionInfo, setExpiracionInfo] = useState(null);
+  const [tipoGenerado, setTipoGenerado] = useState('completo');
+
+  const opcionesTipo = [
+    { valor: 'completo', label: 'Viaje completo', descripcion: 'Se ven todas las habitaciones y personas' },
+    { valor: 'pendientes', label: 'Solo pendientes', descripcion: 'Solo se ven las personas que aún deben dinero' },
+  ];
 
   const handleSearchChange = (e) => {
     setFiltros({ ...state.filtros, busqueda: e.target.value });
@@ -42,8 +49,9 @@ const Toolbar = ({ onOpenAgregar, onOpenDesglose }) => {
     }
     setGenerando(true);
     try {
-      const res = await generarLinkCompartir(selectedViajeId, duracion);
+      const res = await generarLinkCompartir(selectedViajeId, duracion, tipoCompartir);
       setLinkCompartir(res.linkCompartir);
+      setTipoGenerado(res.tipo || tipoCompartir);
       setExpiracionInfo({
         texto: res.expiracionTexto,
         fecha: res.expiraCompartir
@@ -69,7 +77,7 @@ const Toolbar = ({ onOpenAgregar, onOpenDesglose }) => {
       setLinkCompartir('');
       setExpiracionInfo(null);
       alert('Enlace desactivado correctamente');
-    } catch (error) {
+    } catch {
       alert('Error al desactivar el enlace');
     }
   };
@@ -80,6 +88,7 @@ const Toolbar = ({ onOpenAgregar, onOpenDesglose }) => {
     setExpiracionInfo(null);
     setCopiado(false);
     setDuracion('7d');
+    setTipoCompartir('completo');
   };
 
   return (
@@ -199,6 +208,32 @@ const Toolbar = ({ onOpenAgregar, onOpenDesglose }) => {
                 <>
                   <div className="mb-4">
                     <label className="block text-sm font-medium text-gray-400 mb-2">
+                      <ListFilter className="h-4 w-4 inline mr-1" />
+                      Qué se comparte
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {opcionesTipo.map((op) => (
+                        <button
+                          key={op.valor}
+                          type="button"
+                          onClick={() => setTipoCompartir(op.valor)}
+                          className={`px-3 py-2 text-sm rounded-lg border transition-all ${
+                            tipoCompartir === op.valor
+                              ? 'bg-teal-500 text-white border-teal-500'
+                              : 'bg-white/5 text-gray-300 border-white/[0.07] hover:border-white/20'
+                          }`}
+                        >
+                          {op.label}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2">
+                      {opcionesTipo.find(o => o.valor === tipoCompartir)?.descripcion}
+                    </p>
+                  </div>
+
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-400 mb-2">
                       <Clock className="h-4 w-4 inline mr-1" />
                       Tiempo de vigencia del enlace
                     </label>
@@ -244,7 +279,16 @@ const Toolbar = ({ onOpenAgregar, onOpenDesglose }) => {
               ) : (
                 <>
                   <div className="bg-black/30 rounded-lg p-3 mb-4 border border-white/[0.05]">
-                    <p className="text-xs text-gray-500 mb-1">Enlace generado:</p>
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-xs text-gray-500">Enlace generado:</p>
+                      <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${
+                        tipoGenerado === 'pendientes'
+                          ? 'bg-amber-500/15 text-amber-400 border border-amber-500/25'
+                          : 'bg-teal-500/15 text-teal-400 border border-teal-500/25'
+                      }`}>
+                        {tipoGenerado === 'pendientes' ? 'Solo pendientes' : 'Viaje completo'}
+                      </span>
+                    </div>
                     <p className="text-sm font-mono break-all text-gray-200">{linkCompartir}</p>
                     {expiracionInfo && (
                       <p className="text-xs text-amber-400 mt-2 flex items-center gap-1">

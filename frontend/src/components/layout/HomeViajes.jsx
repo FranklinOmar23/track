@@ -1,14 +1,16 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useHabitacionesContext } from '../../Context/HabitacionesContext';
+import { useAuthContext } from '../../Context/AuthContext';
 import ModalAgregarViaje from '../Modals/ModalAgregarViaje';
 import { DashboardFull } from '../Dashboard/DashboardFull';
 import { ViajeCard } from './ViajeCard';
-import { Plus, BarChart2 } from 'lucide-react';
+import { Plus, BarChart2, History, LogOut } from 'lucide-react';
 
 const HomeViajes = ({ onSelectViaje }) => {
   const navigate = useNavigate();
   const { state, crearViaje, seleccionarViaje } = useHabitacionesContext();
+  const { user, logout } = useAuthContext();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeView, setActiveView] = useState('dashboard');
 
@@ -42,9 +44,23 @@ const HomeViajes = ({ onSelectViaje }) => {
           <div className="relative flex flex-col gap-5 sm:flex-row sm:justify-between sm:items-center">
             {/* Title block */}
             <div className="animate-fade-in-up stagger-0">
-              <h1 className="text-3xl sm:text-4xl font-bold gradient-text tracking-tight leading-tight">
-                Mis Viajes
-              </h1>
+              <div className="flex items-center gap-3 flex-wrap">
+                <h1 className="text-3xl sm:text-4xl font-bold gradient-text tracking-tight leading-tight">
+                  Mis Viajes
+                </h1>
+                {user && (
+                  <span className="flex items-center gap-2 text-xs font-medium text-gray-400 bg-white/5 border border-white/[0.07] rounded-full px-3 py-1">
+                    {user.nombreDisplay || user.username}
+                    <button
+                      onClick={logout}
+                      className="flex items-center gap-1 text-gray-500 hover:text-white transition-colors"
+                      title="Cerrar sesión"
+                    >
+                      <LogOut className="h-3 w-3" />
+                    </button>
+                  </span>
+                )}
+              </div>
               <p className="text-gray-500 mt-2 text-sm">
                 Gestiona y monitorea todos tus viajes y pagos en tiempo real
               </p>
@@ -82,6 +98,14 @@ const HomeViajes = ({ onSelectViaje }) => {
               >
                 <BarChart2 className="h-4 w-4" />
                 Reportes
+              </button>
+
+              <button
+                onClick={() => navigate('/actividad')}
+                className="btn-press flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-semibold bg-white/5 text-gray-400 hover:bg-white/10 border border-white/[0.07] hover:border-white/15 transition-all duration-200 flex items-center gap-1.5"
+              >
+                <History className="h-4 w-4" />
+                Actividad
               </button>
 
               <button

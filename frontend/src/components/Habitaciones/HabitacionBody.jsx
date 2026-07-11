@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useHabitacionesContext } from '../../Context/HabitacionesContext';
 import PersonaRow from './PersonaRow';
 import ModalRegistrarPago from '../Modals/ModalRegistrarPago';

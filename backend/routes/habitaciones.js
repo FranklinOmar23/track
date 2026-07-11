@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import pool from '../db.js';
+import { registrarLog } from '../utils/log.js';
 
 const router = Router();
 
@@ -150,6 +151,8 @@ router.post('/', async (req, res) => {
 
     await connection.commit();
 
+    registrarLog(req.usuario, 'crear', 'habitacion', habitacionId, `${req.usuario} creó la habitación ${num}`);
+
     res.status(201).json({
       id: habitacionId,
       num,
@@ -186,6 +189,8 @@ router.put('/:id', async (req, res) => {
     [num, tipo, Number(total) || 0, Number(precioNino) || 0, etiqueta || '', stack ? 1 : 0, habitacionId]
   );
 
+  registrarLog(req.usuario, 'editar', 'habitacion', habitacionId, `${req.usuario} editó la habitación ${num}`);
+
   res.json({ id: habitacionId, num, tipo, total: Number(total) || 0, precioNino: Number(precioNino) || 0, etiqueta, stack: !!stack });
 });
 
@@ -211,12 +216,15 @@ router.post('/:id/personas', async (req, res) => {
     [habitacionId, nombre.trim(), posicion, esNinoVal, esGratisVal]
   );
 
+  registrarLog(req.usuario, 'crear', 'persona', result.insertId, `${req.usuario} agregó a ${nombre.trim()} en la habitación ${habitacionId}`);
+
   res.status(201).json({ id: result.insertId, n: nombre.trim(), posicion, esNino: !!esNino, esGratis: !!(esNino && esGratis), pagos: [] });
 });
 
 router.delete('/:id', async (req, res) => {
   const habitacionId = Number(req.params.id);
   await pool.query('DELETE FROM habitaciones WHERE id = ?', [habitacionId]);
+  registrarLog(req.usuario, 'eliminar', 'habitacion', habitacionId, `${req.usuario} eliminó la habitación ${habitacionId}`);
   res.json({ ok: true });
 });
 
@@ -241,6 +249,7 @@ router.patch('/:id/tipo', async (req, res) => {
   }
 
   await pool.query('UPDATE habitaciones SET tipo = ? WHERE id = ?', [nuevoTipo, habitacionId]);
+  registrarLog(req.usuario, 'editar', 'habitacion', habitacionId, `${req.usuario} cambió el tipo de la habitación ${habitacionId} a ${nuevoTipo}`);
   res.json({ ok: true });
 });
 
@@ -248,6 +257,7 @@ router.put('/:id/nota', async (req, res) => {
   const habitacionId = Number(req.params.id);
   const { nota } = req.body;
   await pool.query('UPDATE habitaciones SET nota = ? WHERE id = ?', [nota || '', habitacionId]);
+  registrarLog(req.usuario, 'editar', 'habitacion', habitacionId, `${req.usuario} actualizó la nota de la habitación ${habitacionId}`);
   res.json({ ok: true });
 });
 
@@ -255,6 +265,7 @@ router.put('/:id/etiqueta', async (req, res) => {
   const habitacionId = Number(req.params.id);
   const { etiqueta } = req.body;
   await pool.query('UPDATE habitaciones SET etiqueta = ? WHERE id = ?', [etiqueta || '', habitacionId]);
+  registrarLog(req.usuario, 'editar', 'habitacion', habitacionId, `${req.usuario} actualizó la etiqueta de la habitación ${habitacionId} a "${etiqueta || ''}"`);
   res.json({ ok: true });
 });
 

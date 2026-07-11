@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { DashboardStats } from './DashboardStats';
 import { ChartSection } from './ChartSection';
 import { ViajesTable } from './ViajesTable';
@@ -98,8 +98,6 @@ export const DashboardFull = ({ onSelectViaje }) => {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(value);
-
-  const resumen = statsExtra?.resumen || {};
 
   return (
     <div className="space-y-6">

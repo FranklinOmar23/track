@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useHabitacionesContext } from '../../Context/HabitacionesContext';
 import { MESES } from '../../utils/formatters';
 import { X, CreditCard, Trash2, Save } from 'lucide-react';

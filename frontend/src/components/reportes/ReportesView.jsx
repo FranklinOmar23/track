@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useHabitacionesContext } from '../../Context/HabitacionesContext';
 import {
@@ -6,7 +6,7 @@ import {
   fetchComparativaViajes, fetchPagosMesViaje,
 } from '../../utils/api';
 import { exportarHabitacionesExcel } from '../../utils/exportExcel';
-import { calcularTotalPagado, calcularPorcentaje } from '../../utils/calculos';
+import { calcularTotalPagado, calcularPorcentaje, calcularRankingPersonas } from '../../utils/calculos';
 import {
   AreaChart, Area, LineChart, Line, BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -15,7 +15,7 @@ import {
 import {
   ArrowLeft, DollarSign, Building2, Users, TrendingUp,
   FileDown, Printer, BarChart2, Flame, PieChart as PieIcon, Award,
-  ChevronRight,
+  Trophy,
 } from 'lucide-react';
 
 const MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
@@ -156,6 +156,46 @@ const ChartPanel = ({ title, subtitle, children, orbColor = '#0d9488', action })
     </div>
   </div>
 );
+
+// ─── Ranking list ─────────────────────────────────────────────────────────────
+const MEDAL_COLOR = ['#fbbf24', '#cbd5e1', '#d97706'];
+
+const RankingList = ({ title, subtitle, items, orbColor = '#0d9488', valueFmt = fmt, action }) => {
+  const max = items.length ? Math.max(...items.map((i) => i.value)) : 0;
+  return (
+    <ChartPanel title={title} subtitle={subtitle} orbColor={orbColor} action={action}>
+      {items.length === 0 ? <EmptyChart height={160} /> : (
+        <div className="space-y-2.5">
+          {items.map((it, idx) => (
+            <div key={it.label} className="flex items-center gap-3">
+              <div
+                className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-[11px] font-bold"
+                style={{
+                  background: idx < 3 ? `${MEDAL_COLOR[idx]}26` : 'rgba(255,255,255,0.06)',
+                  color: idx < 3 ? MEDAL_COLOR[idx] : '#6b7280',
+                  border: `1px solid ${idx < 3 ? `${MEDAL_COLOR[idx]}55` : 'rgba(255,255,255,0.1)'}`,
+                }}
+              >
+                {idx + 1}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-2 text-sm mb-1">
+                  <span className="text-gray-200 font-medium truncate">{it.label}</span>
+                  <span className="font-bold tabular-nums shrink-0" style={{ color: orbColor }}>{valueFmt(it.value)}</span>
+                </div>
+                <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
+                  <div className="h-full rounded-full transition-all duration-500"
+                    style={{ width: `${max > 0 ? (it.value / max) * 100 : 0}%`, background: orbColor }} />
+                </div>
+                {it.sub && <p className="text-[10px] text-gray-600 mt-1">{it.sub}</p>}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </ChartPanel>
+  );
+};
 
 // ─── Empty state ──────────────────────────────────────────────────────────────
 const EmptyChart = ({ height = 224 }) => (
@@ -316,6 +356,31 @@ const ReportesView = () => {
     porcentaje: Number(r.porcentaje) || 0,
   }));
 
+  // ── Rankings ─────────────────────────────────────────────────────────────────
+  const rankingViajes = [...comparativa]
+    .sort((a, b) => (b.total_pagado || 0) - (a.total_pagado || 0))
+    .slice(0, 10)
+    .map((v) => ({ label: v.nombre, value: Number(v.total_pagado) || 0, sub: `${Number(v.porcentaje) || 0}% cobrado` }));
+
+  const rankingPersonasBase = calcularRankingPersonas(state.habitaciones);
+
+  const rankingTopPagadores = [...rankingPersonasBase]
+    .filter((p) => p.pagado > 0)
+    .sort((a, b) => b.pagado - a.pagado)
+    .slice(0, 10)
+    .map((p) => ({ label: p.nombre, value: p.pagado, sub: `Hab. ${p.habitaciones.join(', ')}` }));
+
+  const rankingDeudores = [...rankingPersonasBase]
+    .filter((p) => p.pendiente > 0)
+    .sort((a, b) => b.pendiente - a.pendiente)
+    .slice(0, 10)
+    .map((p) => ({ label: p.nombre, value: p.pendiente, sub: `Hab. ${p.habitaciones.join(', ')}` }));
+
+  const rankingCentros = [...rendimientoData]
+    .sort((a, b) => b.pagado - a.pagado)
+    .slice(0, 10)
+    .map((r) => ({ label: r.fullName, value: r.pagado, sub: `${r.porcentaje}% cobrado · ${r.habitaciones} hab.` }));
+
   // ── Exports ──────────────────────────────────────────────────────────────────
   const handleExportPDF   = () => window.print();
   const handleExportExcel = () => {
@@ -439,6 +504,7 @@ const ReportesView = () => {
           <Tab id="heatmap"      label="Mapa de Calor" icon={Flame}      active={tab === 'heatmap'}      onClick={setTab} />
           <Tab id="distribucion" label="Distribución"  icon={PieIcon}    active={tab === 'distribucion'} onClick={setTab} />
           <Tab id="rendimiento"  label="Rendimiento"   icon={Award}      active={tab === 'rendimiento'}  onClick={setTab} />
+          <Tab id="rankings"     label="Rankings"      icon={Trophy}     active={tab === 'rankings'}     onClick={setTab} />
         </div>
 
         {/* ── Content ───────────────────────────────────────────────────────── */}
@@ -687,7 +753,7 @@ const ReportesView = () => {
                             <Pie data={estadoData} cx="50%" cy="50%" outerRadius={82}
                               paddingAngle={3} dataKey="value" strokeWidth={0}
                               isAnimationActive animationDuration={800} animationEasing="ease-out"
-                              label={({ name, value }) => `${value}`}
+                              label={({ value }) => `${value}`}
                               labelLine={{ stroke: 'rgba(255,255,255,0.12)', strokeWidth: 1 }}>
                               {estadoData.map((d, i) => <Cell key={i} fill={d.color} />)}
                             </Pie>
@@ -841,6 +907,36 @@ const ReportesView = () => {
                     </div>
                   )}
                 </div>
+              </div>
+            )}
+
+            {/* ── RANKINGS ──────────────────────────────────────────────────── */}
+            {tab === 'rankings' && (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-in">
+                <RankingList
+                  title="Viajes que más recaudan"
+                  subtitle="Todos los viajes, ordenados por dinero cobrado"
+                  items={rankingViajes}
+                  orbColor="#0d9488"
+                />
+                <RankingList
+                  title="Centros / etiquetas más rentables"
+                  subtitle="Del viaje seleccionado arriba, ordenados por dinero cobrado"
+                  items={rankingCentros}
+                  orbColor="#f59e0b"
+                />
+                <RankingList
+                  title="Personas que más pagan"
+                  subtitle="Suma de pagos por persona, en el viaje activo"
+                  items={rankingTopPagadores}
+                  orbColor="#10b981"
+                />
+                <RankingList
+                  title="Personas con más deuda pendiente"
+                  subtitle="Lo que aún deben, en el viaje activo"
+                  items={rankingDeudores}
+                  orbColor="#f43f5e"
+                />
               </div>
             )}
           </>

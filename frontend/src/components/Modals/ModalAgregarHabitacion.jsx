@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useHabitacionesContext } from '../../Context/HabitacionesContext';
 import { X, Plus, Minus, Gift } from 'lucide-react';
 

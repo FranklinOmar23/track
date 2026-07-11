@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useHabitacionesContext } from '../../Context/HabitacionesContext';
 import { HabitacionCard } from './HabitacionCard';
 import ModalDetallesHabitacion from '../Modals/ModalDetallesHabitacion';
@@ -80,6 +80,13 @@ const HabitacionesList = () => {
     const clave = hab.etiqueta || '__sin__';
     if (!grupos[clave]) grupos[clave] = [];
     grupos[clave].push(hab);
+  });
+
+  Object.keys(grupos).forEach((clave) => {
+    grupos[clave].sort((a, b) => {
+      if (!!a.stack !== !!b.stack) return a.stack ? -1 : 1;
+      return String(a.num).localeCompare(String(b.num), undefined, { numeric: true, sensitivity: 'base' });
+    });
   });
 
   const clavesOrdenadas = [
