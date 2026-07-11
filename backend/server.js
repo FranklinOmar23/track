@@ -17,9 +17,10 @@ dotenv.config();
 
 const app = express();
 app.use(cors({
-  origin: '*',  // Permite cualquier origen (solo para desarrollo)
+  origin: ['https://pagos.sadojtours.com', 'https://www.pagos.sadojtours.com'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
 }));
 app.use(express.json());
 // También aceptar bodies form-urlencoded para compatibilidad con proxies
