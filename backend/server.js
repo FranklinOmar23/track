@@ -15,13 +15,24 @@ import statsRoutes from './routes/stats.js'; // 👈 NUEVA
 
 dotenv.config();
 
-const app = express();
-app.use(cors({
-  origin: ['https://pagos.sadojtours.com', 'https://www.pagos.sadojtours.com'],
+const allowedOrigins = ['https://pagos.sadojtours.com', 'https://www.pagos.sadojtours.com'];
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+      return;
+    }
+    callback(null, false);
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
-}));
+  optionsSuccessStatus: 204,
+};
+
+const app = express();
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 app.use(express.json());
 // También aceptar bodies form-urlencoded para compatibilidad con proxies
 // que puedan transformar la petición (Hostinger, formularios, etc.).

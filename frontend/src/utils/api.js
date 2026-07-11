@@ -14,6 +14,7 @@ const request = async (path, options = {}) => {
   const url = `${baseUrl.replace(/\/+$|\s+/g, '')}${normalizeApiPath(path)}`;
 
   const response = await fetch(url, {
+    mode: 'cors',
     headers: {
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
