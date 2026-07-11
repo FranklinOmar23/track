@@ -186,6 +186,6 @@ initDb()
     console.error('Error inicializando la base de datos:', error);
     console.warn('El servidor continuará y la vista de bienvenida seguirá disponible.');
     app.listen(port, () => {
-      console.log(`Backend listo en http://localhost:${port}`);
+      console.log(`Backend READY en http://localhost:${port}`);
     });
   });
