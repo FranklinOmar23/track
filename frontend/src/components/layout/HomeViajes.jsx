@@ -5,14 +5,25 @@ import { useAuthContext } from '../../Context/AuthContext';
 import ModalAgregarViaje from '../Modals/ModalAgregarViaje';
 import { DashboardFull } from '../Dashboard/DashboardFull';
 import { ViajeCard } from './ViajeCard';
-import { Plus, BarChart2, History, LogOut } from 'lucide-react';
+import { Plus, BarChart2, History, LogOut, Archive, LockOpen } from 'lucide-react';
 
 const HomeViajes = ({ onSelectViaje }) => {
   const navigate = useNavigate();
-  const { state, crearViaje, seleccionarViaje } = useHabitacionesContext();
+  const { state, crearViaje, seleccionarViaje, cambiarEstadoViaje } = useHabitacionesContext();
   const { user, logout } = useAuthContext();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeView, setActiveView] = useState('dashboard');
+  const viajesActivos  = state.viajes.filter((v) => v.estado !== 'cerrado');
+  const viajesCerrados = state.viajes.filter((v) => v.estado === 'cerrado');
+
+  const handleReabrir = async (viaje) => {
+    if (!window.confirm(`¿Reabrir "${viaje.nombre}"? Volverá a la lista de viajes activos y se podrá editar.`)) return;
+    try {
+      await cambiarEstadoViaje(viaje.id, 'activo');
+    } catch (error) {
+      alert(`No se pudo reabrir el viaje: ${error.message}`);
+    }
+  };
 
   const handleSelectViaje = async (viaje) => {
     await seleccionarViaje(viaje.id);
@@ -21,7 +32,6 @@ const HomeViajes = ({ onSelectViaje }) => {
 
   const handleCrearViaje = async (datos) => {
     await crearViaje(datos);
-    setIsModalOpen(false);
   };
 
   return (
@@ -93,6 +103,19 @@ const HomeViajes = ({ onSelectViaje }) => {
               </button>
 
               <button
+                onClick={() => setActiveView('historial')}
+                className={`btn-press flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 flex items-center gap-1.5 ${
+                  activeView === 'historial'
+                    ? 'bg-teal-500 text-white'
+                    : 'bg-white/5 text-gray-400 hover:bg-white/10 border border-white/[0.07] hover:border-white/15'
+                }`}
+                style={activeView === 'historial' ? { boxShadow: '0 4px 16px -4px rgba(13,148,136,0.4)' } : undefined}
+              >
+                <Archive className="h-4 w-4" />
+                Historial{viajesCerrados.length > 0 ? ` (${viajesCerrados.length})` : ''}
+              </button>
+
+              <button
                 onClick={() => navigate('/reportes')}
                 className="btn-press flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-semibold bg-white/5 text-gray-400 hover:bg-white/10 border border-white/[0.07] hover:border-white/15 transition-all duration-200 flex items-center gap-1.5"
               >
@@ -126,11 +149,43 @@ const HomeViajes = ({ onSelectViaje }) => {
         {/* ── Main Content ── */}
         {activeView === 'dashboard' ? (
           <DashboardFull onSelectViaje={handleSelectViaje} />
+        ) : activeView === 'historial' ? (
+          <div>
+            <div className="mb-5">
+              <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                <Archive className="h-5 w-5 text-gray-400" /> Historial de viajes
+              </h2>
+              <p className="text-sm text-gray-500 mt-1">
+                Viajes cerrados. Puedes consultarlos pero no editarlos.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {viajesCerrados.map((viaje, i) => (
+                <div key={viaje.id} className="flex flex-col gap-2">
+                  <ViajeCard viaje={viaje} onSelect={handleSelectViaje} index={i} />
+                  <button type="button" onClick={() => handleReabrir(viaje)}
+                    className="self-end flex items-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-teal-300 px-2 py-1 rounded-lg hover:bg-teal-500/10 transition-colors">
+                    <LockOpen className="h-3.5 w-3.5" /> Reabrir
+                  </button>
+                </div>
+              ))}
+              {viajesCerrados.length === 0 && (
+                <p className="col-span-full text-center py-16 text-gray-600 text-sm">
+                  Aún no hay viajes cerrados. Cierra un viaje desde "Editar viaje" en el dashboard cuando termine.
+                </p>
+              )}
+            </div>
+          </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {state.viajes.map((viaje, i) => (
+            {viajesActivos.map((viaje, i) => (
               <ViajeCard key={viaje.id} viaje={viaje} onSelect={handleSelectViaje} index={i} />
             ))}
+            {state.viajes.length > 0 && viajesActivos.length === 0 && (
+              <p className="col-span-full text-center py-16 text-gray-600 text-sm">
+                No hay viajes activos. Los viajes cerrados están en Historial.
+              </p>
+            )}
             {state.viajes.length === 0 && (
               <div className="col-span-full text-center py-20 animate-fade-in">
                 <div className="text-5xl mb-4 animate-float inline-block">✈️</div>

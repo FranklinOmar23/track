@@ -5,7 +5,7 @@ import { Search, Plus, Share2, Copy, Check, X, Clock, ListFilter } from 'lucide-
 import { generarLinkCompartir, desactivarLinkCompartir } from '../../utils/api';
 
 const Toolbar = ({ onOpenAgregar, onOpenDesglose }) => {
-  const { state, setFiltros, crearViaje, seleccionarViaje } = useHabitacionesContext();
+  const { state, setFiltros, crearViaje, seleccionarViaje, soloLectura } = useHabitacionesContext();
   const { busqueda, estado } = state.filtros;
   const [isAgregarViajeOpen, setIsAgregarViajeOpen] = useState(false);
   const [isCompartirOpen, setIsCompartirOpen] = useState(false);
@@ -160,13 +160,15 @@ const Toolbar = ({ onOpenAgregar, onOpenDesglose }) => {
 
       {/* Fila 3: Botones de acción */}
       <div className="flex gap-2">
-        <button
-          onClick={onOpenAgregar}
-          className="flex-1 bg-teal-500 hover:bg-teal-600 text-white rounded-lg px-4 py-2 text-sm flex items-center justify-center gap-1.5 transition-colors"
-        >
-          <Plus className="h-4 w-4" />
-          Agregar habitación
-        </button>
+        {!soloLectura && (
+          <button
+            onClick={onOpenAgregar}
+            className="flex-1 bg-teal-500 hover:bg-teal-600 text-white rounded-lg px-4 py-2 text-sm flex items-center justify-center gap-1.5 transition-colors"
+          >
+            <Plus className="h-4 w-4" />
+            Agregar habitación
+          </button>
+        )}
 
         <button
           onClick={onOpenDesglose}

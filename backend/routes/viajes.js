@@ -1,19 +1,24 @@
-import { Router } from 'express';
+import { asyncRouter } from '../utils/asyncRouter.js';
 import pool from '../db.js';
+import { viajeParamAbierto } from '../utils/viajeCerrado.js';
 import crypto from 'crypto';
 import { registrarLog } from '../utils/log.js';
+import { normalizarGanancia } from '../utils/ganancia.js';
 
-const router = Router();
+const router = asyncRouter();
 
 router.get('/', async (req, res) => {
   const [rows] = await pool.query(
     `SELECT id, nombre, COALESCE(tipo, 'resort') as tipo,
      COALESCE(divisa, 'USD') as divisa,
      fecha_inicio AS fechaInicio, fecha_fin AS fechaFin, nota, slug,
-     COALESCE(edad_minima_pago, 0) AS edadMinimaPago
+     COALESCE(edad_minima_pago, 0) AS edadMinimaPago,
+     COALESCE(ganancia_tipo, 'ninguna') AS gananciaTipo,
+     COALESCE(ganancia_valor, 0) AS gananciaValor,
+     COALESCE(estado, 'activo') AS estado, cerrado_at AS cerradoAt
      FROM viajes ORDER BY id DESC`
   );
-  res.json(rows);
+  res.json(rows.map((v) => ({ ...v, gananciaValor: Number(v.gananciaValor) || 0 })));
 });
 
 router.post('/', async (req, res) => {
@@ -34,9 +39,10 @@ router.post('/', async (req, res) => {
 });
 
 // ← NUEVO: editar viaje
-router.put('/:id', async (req, res) => {
+router.put('/:id', viajeParamAbierto, async (req, res) => {
   const viajeId = Number(req.params.id);
   const { nombre, fechaInicio, fechaFin, nota, tipo, divisa, edadMinimaPago = 0 } = req.body;
+  const { gananciaTipo, gananciaValor } = normalizarGanancia(req.body);
 
   if (!nombre) {
     return res.status(400).json({ error: 'Nombre es requerido.' });
@@ -55,18 +61,40 @@ router.put('/:id', async (req, res) => {
       nota = ?,
       tipo = ?,
       divisa = ?,
-      edad_minima_pago = ?
+      edad_minima_pago = ?,
+      ganancia_tipo = ?,
+      ganancia_valor = ?
      WHERE id = ?`,
-    [nombre, fechaInicio || null, fechaFin || null, nota || null, tipo || 'resort', divisa || 'USD', Number(edadMinimaPago) || 0, viajeId]
+    [nombre, fechaInicio || null, fechaFin || null, nota || null, tipo || 'resort', divisa || 'USD', Number(edadMinimaPago) || 0, gananciaTipo, gananciaValor, viajeId]
   );
 
   registrarLog(req.usuario, 'editar', 'viaje', viajeId, `${req.usuario} editó el viaje "${nombre}"`);
 
-  res.json({ id: viajeId, nombre, fechaInicio, fechaFin, nota, tipo, divisa, edadMinimaPago: Number(edadMinimaPago) || 0 });
+  res.json({ id: viajeId, nombre, fechaInicio, fechaFin, nota, tipo, divisa, edadMinimaPago: Number(edadMinimaPago) || 0, gananciaTipo, gananciaValor });
+});
+
+// Cerrar / reabrir viaje
+router.patch('/:id/estado', async (req, res) => {
+  const viajeId = Number(req.params.id);
+  const estado = req.body.estado === 'cerrado' ? 'cerrado' : 'activo';
+  const cerradoAt = estado === 'cerrado' ? new Date() : null;
+
+  const [result] = await pool.query(
+    'UPDATE viajes SET estado = ?, cerrado_at = ? WHERE id = ?',
+    [estado, cerradoAt, viajeId]
+  );
+
+  if (result.affectedRows === 0) {
+    return res.status(404).json({ error: 'Viaje no encontrado.' });
+  }
+
+  registrarLog(req.usuario, 'editar', 'viaje', viajeId, `${req.usuario} ${estado === 'cerrado' ? 'cerró' : 'reabrió'} el viaje ${viajeId}`);
+
+  res.json({ id: viajeId, estado, cerradoAt: cerradoAt?.toISOString() ?? null });
 });
 
 // ← NUEVO: eliminar viaje
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', viajeParamAbierto, async (req, res) => {
   const viajeId = Number(req.params.id);
   const connection = await pool.getConnection();
 

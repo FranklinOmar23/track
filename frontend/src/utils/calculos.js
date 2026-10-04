@@ -120,3 +120,43 @@ export const filtrarHabitaciones = (habitaciones, { busqueda, estado }) =>
 
     return true;
   });
+
+/** Personas que cuentan para la ganancia por persona: con nombre y que no entran gratis. */
+const personaCuentaParaGanancia = (habitacion, persona) => {
+  if (!persona.n) return false;
+  const esNino = persona.esNino || /\(\d+ años?\)/.test(persona.n);
+  if (!esNino) return true;
+  return !persona.esGratis && ninoDebePagar(persona, habitacion.edadMinimaPago);
+};
+
+/** Ganancia del viaje según su configuración.
+ *  - porcentaje: % sobre el total por cobrar (estimada) y sobre lo pagado (cobrada)
+ *  - por_persona: monto fijo × personas que pagan; se considera cobrada en proporción a lo pagado
+ */
+export const calcularGanancia = (viaje, habitaciones) => {
+  const tipo  = viaje?.gananciaTipo || 'ninguna';
+  const valor = Number(viaje?.gananciaValor) || 0;
+  const { total, pagado } = calcularEstadisticas(habitaciones);
+  const pax = habitaciones.reduce(
+    (sum, hab) => sum + hab.personas.filter((p) => personaCuentaParaGanancia(hab, p)).length,
+    0
+  );
+
+  if (tipo === 'porcentaje') {
+    return { tipo, valor, pax, estimada: (total * valor) / 100, cobrada: (pagado * valor) / 100 };
+  }
+  if (tipo === 'por_persona') {
+    const estimada = pax * valor;
+    const cobrada  = total > 0 ? estimada * Math.min(1, pagado / total) : 0;
+    return { tipo, valor, pax, estimada, cobrada };
+  }
+  return { tipo: 'ninguna', valor: 0, pax, estimada: 0, cobrada: 0 };
+};
+
+/** Ganancia estimada a partir de los totales del dashboard (sin habitaciones cargadas). */
+export const calcularGananciaResumen = ({ ganancia_tipo, ganancia_valor, total_por_cobrar, personas_pagan }) => {
+  const valor = Number(ganancia_valor) || 0;
+  if (ganancia_tipo === 'porcentaje') return ((Number(total_por_cobrar) || 0) * valor) / 100;
+  if (ganancia_tipo === 'por_persona') return (Number(personas_pagan) || 0) * valor;
+  return 0;
+};

@@ -3,7 +3,7 @@ import { useHabitacionesContext } from '../../Context/HabitacionesContext';
 import { MESES } from '../../utils/formatters';
 import { X, CreditCard, Trash2, Save } from 'lucide-react';
 
-const ModalRegistrarPago = ({ habId, perIdx, persona, pago = null, onClose }) => {
+const ModalRegistrarPago = ({ habId, persona, pago = null, onClose }) => {
   const { state, registrarPago, actualizarPago, eliminarPago } = useHabitacionesContext();
   const [mes, setMes]       = useState('');
   const [monto, setMonto]   = useState('');
@@ -34,9 +34,9 @@ const ModalRegistrarPago = ({ habId, perIdx, persona, pago = null, onClose }) =>
     const pagoData = { mes, monto: parseFloat(monto) };
     try {
       if (pago?.id) {
-        await actualizarPago(habId, perIdx, pago.id, pagoData);
+        await actualizarPago(persona.id, pago.id, pagoData);
       } else {
-        await registrarPago(habId, perIdx, pagoData);
+        await registrarPago(persona.id, pagoData);
       }
       onClose();
     } catch (error) {
@@ -51,7 +51,7 @@ const ModalRegistrarPago = ({ habId, perIdx, persona, pago = null, onClose }) =>
     if (!pago?.id) return;
     setLoading(true);
     try {
-      await eliminarPago(habId, perIdx, pago.id);
+      await eliminarPago(persona.id, pago.id);
       onClose();
     } catch (error) {
       console.error('Error eliminando pago:', error);

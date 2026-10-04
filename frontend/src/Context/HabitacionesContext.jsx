@@ -149,6 +149,17 @@ export const HabitacionesProvider = ({ children }) => {
     }
   };
 
+  const cambiarEstadoViaje = async (id, estado) => {
+    try {
+      const actualizado = await api.cambiarEstadoViaje(id, estado);
+      dispatch({ type: 'ACTUALIZAR_VIAJE', payload: actualizado });
+      return actualizado;
+    } catch (error) {
+      console.error('Error cambiando estado del viaje:', error);
+      throw error;
+    }
+  };
+
   const eliminarViaje = async (id) => {
     try {
       await api.eliminarViaje(id);
@@ -202,66 +213,57 @@ export const HabitacionesProvider = ({ children }) => {
     }
   };
 
-  const registrarPago = async (habId, perIdx, pago) => {
+  const recargar = async () => {
+    if (state.selectedViajeId) await cargarHabitaciones(state.selectedViajeId);
+  };
+
+  const registrarPago = async (personaId, pago) => {
     try {
-      const habitacion = state.habitaciones.find((hab) => hab.id === habId);
-      const persona = habitacion?.personas[perIdx];
-      if (!persona?.id) return;
-      await api.registrarPago(persona.id, pago);
-      if (state.selectedViajeId) await cargarHabitaciones(state.selectedViajeId);
+      await api.registrarPago(personaId, pago);
+      await recargar();
     } catch (error) {
       console.error('Error registrando pago:', error);
       throw error;
     }
   };
 
-  const actualizarPago = async (habId, perIdx, pagoId, pago) => {
+  const actualizarPago = async (personaId, pagoId, pago) => {
     try {
-      const habitacion = state.habitaciones.find((hab) => hab.id === habId);
-      const persona = habitacion?.personas[perIdx];
-      if (!persona?.id) return;
-      await api.actualizarPago(persona.id, pagoId, pago);
-      if (state.selectedViajeId) await cargarHabitaciones(state.selectedViajeId);
+      await api.actualizarPago(personaId, pagoId, pago);
+      await recargar();
     } catch (error) {
       console.error('Error actualizando pago:', error);
       throw error;
     }
   };
 
-  const eliminarPago = async (habId, perIdx, pagoId) => {
+  const eliminarPago = async (personaId, pagoId) => {
     try {
-      const habitacion = state.habitaciones.find((hab) => hab.id === habId);
-      const persona = habitacion?.personas[perIdx];
-      if (!persona?.id) return;
-      await api.eliminarPago(persona.id, pagoId);
-      if (state.selectedViajeId) await cargarHabitaciones(state.selectedViajeId);
+      await api.eliminarPago(personaId, pagoId);
+      await recargar();
     } catch (error) {
       console.error('Error eliminando pago:', error);
       throw error;
     }
   };
 
-  const eliminarPersona = async (habId, perIdx) => {
+  const eliminarPersona = async (personaId) => {
     try {
-      const habitacion = state.habitaciones.find((hab) => hab.id === habId);
-      const persona = habitacion?.personas[perIdx];
-      if (!persona?.id) return;
-      await api.eliminarPersona(persona.id);
-      await cargarHabitaciones(state.selectedViajeId);
+      await api.eliminarPersona(personaId);
+      await recargar();
     } catch (error) {
       console.error('Error eliminando persona:', error);
+      throw error;
     }
   };
 
-  const moverPersona = async (habOrigen, habDestino, perIdx) => {
+  const moverPersona = async (personaId, habDestino) => {
     try {
-      const habitacion = state.habitaciones.find((hab) => hab.id === habOrigen);
-      const persona = habitacion?.personas[perIdx];
-      if (!persona?.id) return;
-      await api.moverPersona(persona.id, habDestino);
-      await cargarHabitaciones(state.selectedViajeId);
+      await api.moverPersona(personaId, habDestino);
+      await recargar();
     } catch (error) {
       console.error('Error moviendo persona:', error);
+      throw error;
     }
   };
 
@@ -288,11 +290,16 @@ export const HabitacionesProvider = ({ children }) => {
     dispatch({ type: 'SET_FILTROS', payload: filtros });
   };
 
+  const viajeActual = state.viajes.find((v) => v.id === state.selectedViajeId);
+  const soloLectura = viajeActual?.estado === 'cerrado';
+
   const value = {
     state,
+    soloLectura,
     cargarHabitaciones,
     crearViaje,
     editarViaje,
+    cambiarEstadoViaje,
     eliminarViaje,
     seleccionarViaje,
     agregarHabitacion,

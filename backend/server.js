@@ -15,10 +15,17 @@ import statsRoutes from './routes/stats.js'; // 👈 NUEVA
 
 dotenv.config();
 
-const allowedOrigins = ['https://pagos.sadojtours.com', 'https://www.pagos.sadojtours.com'];
+const allowedOrigins = [
+  'https://pagos.sadojtours.com',
+  'https://www.pagos.sadojtours.com',
+  ...(process.env.CORS_ORIGINS || '').split(',').map((o) => o.trim()).filter(Boolean),
+];
+// En desarrollo se permite el frontend local (Vite en cualquier puerto)
+const esLocalhost = (origin) =>
+  process.env.NODE_ENV !== 'production' && /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
 const corsOptions = {
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (!origin || allowedOrigins.includes(origin) || esLocalhost(origin)) {
       callback(null, true);
       return;
     }

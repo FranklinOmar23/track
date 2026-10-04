@@ -4,7 +4,8 @@ import { Progress } from '../ui/progress';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '../ui/table';
-import { FileText, Building2, Bus, Eye, Pencil } from 'lucide-react';
+import { FileText, Building2, Bus, Eye, Pencil, Lock } from 'lucide-react';
+import { calcularGananciaResumen } from '../../utils/calculos';
 import ModalEditarViaje from '../Modals/ModalEditarViaje';
 
 const formatCurrency = (value, divisa = 'USD') =>
@@ -54,6 +55,7 @@ export const ViajesTable = ({ viajes, onSelectViaje }) => {
                 <TableHead className="font-semibold text-gray-500 text-xs tracking-wider uppercase text-right">Total</TableHead>
                 <TableHead className="font-semibold text-gray-500 text-xs tracking-wider uppercase text-right hidden sm:table-cell">Pagado</TableHead>
                 <TableHead className="font-semibold text-gray-500 text-xs tracking-wider uppercase text-right">Pendiente</TableHead>
+                <TableHead className="font-semibold text-gray-500 text-xs tracking-wider uppercase text-right hidden lg:table-cell">Ganancia</TableHead>
                 <TableHead className="font-semibold text-gray-500 text-xs tracking-wider uppercase text-center hidden sm:table-cell">Progreso</TableHead>
                 <TableHead className="font-semibold text-gray-500 text-xs tracking-wider uppercase text-center">Acción</TableHead>
               </TableRow>
@@ -65,12 +67,14 @@ export const ViajesTable = ({ viajes, onSelectViaje }) => {
                 const pendiente  = viaje.pendiente        || 0;
                 const porcentaje = total > 0 ? ((pagado / total) * 100).toFixed(1) : 0;
                 const divisa     = viaje.divisa || 'USD';
+                const ganancia   = calcularGananciaResumen(viaje);
+                const cerrado    = viaje.estado === 'cerrado';
                 const delay      = STAGGER_DELAYS[Math.min(rowIdx, STAGGER_DELAYS.length - 1)];
 
                 return (
                   <TableRow
                     key={viaje.id}
-                    className="border-b border-white/[0.04] hover:bg-white/[0.025] transition-colors"
+                    className={`border-b border-white/[0.04] hover:bg-white/[0.025] transition-colors ${cerrado ? 'opacity-60' : ''}`}
                     style={{
                       animation: `fadeInUp 0.45s cubic-bezier(0.23,1,0.32,1) both`,
                       animationDelay: `${250 + delay}ms`,
@@ -78,6 +82,11 @@ export const ViajesTable = ({ viajes, onSelectViaje }) => {
                   >
                     <TableCell className="font-medium text-white max-w-[120px] sm:max-w-[200px] py-3.5">
                       <span className="truncate block text-sm">{viaje.nombre}</span>
+                      {cerrado && (
+                        <span className="text-[10px] font-semibold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded mt-0.5 mr-1 inline-flex items-center gap-1">
+                          <Lock className="h-2.5 w-2.5" /> Cerrado
+                        </span>
+                      )}
                       {divisa !== 'USD' && (
                         <span className="text-[10px] font-semibold text-gray-500 bg-white/5 px-1.5 py-0.5 rounded mt-0.5 inline-block">
                           {divisa}
@@ -115,6 +124,18 @@ export const ViajesTable = ({ viajes, onSelectViaje }) => {
                     </TableCell>
                     <TableCell className="text-right font-semibold text-rose-400 text-sm py-3.5">
                       {formatCurrency(pendiente, divisa)}
+                    </TableCell>
+
+                    <TableCell className="text-right font-semibold text-sm hidden lg:table-cell py-3.5">
+                      {viaje.ganancia_tipo && viaje.ganancia_tipo !== 'ninguna' ? (
+                        <span className="text-emerald-300" title={viaje.ganancia_tipo === 'porcentaje'
+                          ? `${viaje.ganancia_valor}% del total`
+                          : `${formatCurrency(viaje.ganancia_valor, divisa)} × ${viaje.personas_pagan || 0} pax`}>
+                          {formatCurrency(ganancia, divisa)}
+                        </span>
+                      ) : (
+                        <span className="text-gray-600">—</span>
+                      )}
                     </TableCell>
 
                     <TableCell className="text-center hidden sm:table-cell py-3.5">

@@ -1,11 +1,11 @@
-import { Router } from 'express';
+import { asyncRouter } from '../utils/asyncRouter.js';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import pool from '../db.js';
 import { requireAuth } from '../middleware/auth.js';
 import { registrarLog } from '../utils/log.js';
 
-const router = Router();
+const router = asyncRouter();
 
 router.post('/login', async (req, res, next) => {
   try {

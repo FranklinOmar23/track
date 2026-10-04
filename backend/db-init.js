@@ -1,11 +1,17 @@
 import bcrypt from 'bcryptjs';
 import pool from './db.js';
 
-const USUARIOS_INICIALES = [
-  { username: 'ODISLA', password: 'Odisla123*', nombreDisplay: 'Odisla' },
-  { username: 'LDISLA', password: 'LDisla123*', nombreDisplay: 'Ldisla' },
-  { username: 'JDELORBE', password: 'JDelOrbe*', nombreDisplay: 'JDelOrbe' },
-];
+// Usuarios semilla desde SEED_USERS (JSON). Solo se insertan si no existen.
+const leerUsuariosIniciales = () => {
+  if (!process.env.SEED_USERS) return [];
+  try {
+    const usuarios = JSON.parse(process.env.SEED_USERS);
+    return Array.isArray(usuarios) ? usuarios.filter((u) => u?.username && u?.password) : [];
+  } catch (error) {
+    console.error('SEED_USERS no es un JSON válido:', error.message);
+    return [];
+  }
+};
 
 export const initDb = async () => {
   await pool.query(`
@@ -31,11 +37,24 @@ export const initDb = async () => {
     )
   `);
 
-  for (const usuario of USUARIOS_INICIALES) {
+  // Ganancia y estado (abierto/cerrado) por viaje
+  try {
+    await pool.query(`
+      ALTER TABLE viajes
+        ADD COLUMN IF NOT EXISTS ganancia_tipo VARCHAR(20) NOT NULL DEFAULT 'ninguna',
+        ADD COLUMN IF NOT EXISTS ganancia_valor DECIMAL(12,2) NOT NULL DEFAULT 0,
+        ADD COLUMN IF NOT EXISTS estado VARCHAR(20) NOT NULL DEFAULT 'activo',
+        ADD COLUMN IF NOT EXISTS cerrado_at DATETIME NULL
+    `);
+  } catch (error) {
+    console.error('No se pudieron agregar columnas de ganancia/estado a viajes:', error.message);
+  }
+
+  for (const usuario of leerUsuariosIniciales()) {
     const passwordHash = await bcrypt.hash(usuario.password, 10);
     await pool.query(
       'INSERT IGNORE INTO usuarios (username, password_hash, nombre_display) VALUES (?, ?, ?)',
-      [usuario.username, passwordHash, usuario.nombreDisplay]
+      [String(usuario.username).trim().toUpperCase(), passwordHash, usuario.nombreDisplay || usuario.username]
     );
   }
 };

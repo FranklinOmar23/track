@@ -25,6 +25,7 @@ export const DashboardFull = ({ onSelectViaje }) => {
             pendiente:        Number(v.pendiente)        || 0,
             total_habitaciones: Number(v.total_habitaciones) || 0,
             total_personas:   Number(v.total_personas)   || 0,
+            personas_pagan:   Number(v.personas_pagan)   || 0,
           };
         });
         setStatsExtra({ resumen: data.resumen, statsMap });
@@ -55,12 +56,13 @@ export const DashboardFull = ({ onSelectViaje }) => {
   }
 
   // Viajes del contexto (reactivos a ediciones) + stats del API (totales)
-  const viajes = state.viajes;
+  // Los viajes cerrados van al Historial, no al dashboard
+  const viajes = state.viajes.filter((v) => v.estado !== 'cerrado');
 
   if (!viajes || viajes.length === 0) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-600">No hay viajes registrados aún.</p>
+        <p className="text-gray-600">No hay viajes activos.</p>
       </div>
     );
   }
@@ -74,14 +76,15 @@ export const DashboardFull = ({ onSelectViaje }) => {
       total_habitaciones: 0,
       total_personas: 0,
     };
+    // Todos los datos del viaje del contexto (fechas, nota, política, ganancia, estado)
+    // + totales del API. Antes solo se pasaban algunos campos y el modal de editar
+    // recibía fechas vacías, que al guardar se borraban.
     return {
+      ...v,
       ...extra,
-      // Datos reactivos del contexto (nombre, tipo, divisa siempre frescos)
-      id:     v.id,
-      nombre: v.nombre,
-      tipo:   v.tipo,
       divisa: v.divisa || 'USD',
-      slug:   v.slug,
+      ganancia_tipo:  v.gananciaTipo || 'ninguna',
+      ganancia_valor: Number(v.gananciaValor) || 0,
     };
   });
 

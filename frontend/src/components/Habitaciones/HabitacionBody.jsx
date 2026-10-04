@@ -24,15 +24,18 @@ const HabitacionBody = ({ habitacion }) => {
 
   return (
     <div className={styles.habBody}>
-      {habitacion.personas.filter((persona) => persona.n).map((persona, index) => (
+      {habitacion.personas.filter((persona) => persona.n).map((persona) => (
         <PersonaRow
-          key={`${habitacion.id}-${index}`}
+          key={persona.id}
           persona={persona}
           cuota={calcularCuotaPersona(habitacion, persona)}
-          onRegistrarPago={() => setModalPago({ perIdx: index, persona, pago: null })}
-          onMover={() => setModalMover({ perIdx: index, persona })}
-          onEditarPago={(pago) => setModalPago({ perIdx: index, persona, pago })}
-          onEliminar={() => eliminarPersona(habitacion.id, index)}
+          onRegistrarPago={() => setModalPago({ persona, pago: null })}
+          onMover={() => setModalMover({ persona })}
+          onEditarPago={(pago) => setModalPago({ persona, pago })}
+          onEliminar={() => {
+            if (!window.confirm(`¿Eliminar a ${persona.n} de la habitación?`)) return;
+            eliminarPersona(persona.id).catch((error) => alert(`No se pudo eliminar: ${error.message}`));
+          }}
         />
       ))}
 
@@ -80,7 +83,6 @@ const HabitacionBody = ({ habitacion }) => {
       {modalPago && (
         <ModalRegistrarPago
           habId={habitacion.id}
-          perIdx={modalPago.perIdx}
           persona={modalPago.persona}
           pago={modalPago.pago}
           onClose={() => setModalPago(null)}
@@ -97,7 +99,6 @@ const HabitacionBody = ({ habitacion }) => {
       {modalMover && (
         <ModalMoverPersona
           habOrigen={habitacion.id}
-          perIdx={modalMover.perIdx}
           persona={modalMover.persona}
           onClose={() => setModalMover(null)}
         />

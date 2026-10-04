@@ -1,7 +1,7 @@
-import { Router } from 'express';
+import { asyncRouter } from '../utils/asyncRouter.js';
 import pool from '../db.js';
 
-const router = Router();
+const router = asyncRouter();
 
 router.get('/', async (req, res) => {
   const limitRaw = Number(req.query.limit) || 500;

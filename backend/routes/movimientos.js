@@ -1,10 +1,11 @@
-import { Router } from 'express';
+import { asyncRouter } from '../utils/asyncRouter.js';
 import pool from '../db.js';
+import { movimientoAbierto } from '../utils/viajeCerrado.js';
 import { registrarLog } from '../utils/log.js';
 
-const router = Router();
+const router = asyncRouter();
 
-router.post('/', async (req, res) => {
+router.post('/', movimientoAbierto, async (req, res) => {
   const { personaId, destinoHabitacionId } = req.body;
 
   if (!personaId || !destinoHabitacionId) {
@@ -75,7 +76,8 @@ router.post('/', async (req, res) => {
       [habitacionOrigenId]
     );
 
-    const nuevoOcupadosOrigen = ocupacionOrigenRows[0].total - 1;
+    // El conteo ya excluye a la persona movida (se hace después del UPDATE)
+    const nuevoOcupadosOrigen = ocupacionOrigenRows[0].total;
 
     if (nuevoOcupadosOrigen > 0) {
       const nuevoTipoOrigen = nuevoOcupadosOrigen === 1 ? 'Single' : nuevoOcupadosOrigen === 2 ? 'Doble' : 'Triple';

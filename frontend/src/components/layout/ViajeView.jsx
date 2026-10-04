@@ -9,7 +9,7 @@ import Toolbar from './Toolbar';
 import HabitacionesList from '../Habitaciones/HabitacionesList';
 import ModalAgregarHabitacion from '../Modals/ModalAgregarHabitacion';
 import ModalDesgloseGeneral from '../Modals/ModalDesgloseGeneral';
-import { FileDown, LogOut } from 'lucide-react';
+import { FileDown, LogOut, Lock } from 'lucide-react';
 
 const ViajeView = ({ onBack }) => {
   const { slug } = useParams();
@@ -92,6 +92,11 @@ const ViajeView = ({ onBack }) => {
             </button>
           </div>
         </div>
+        {state.viajes.find((v) => v.id === viaje.id)?.estado === 'cerrado' && (
+          <div className="flex items-center gap-2 mb-4 px-4 py-2.5 rounded-xl text-sm text-amber-300 bg-amber-500/10 border border-amber-500/20">
+            <Lock className="h-4 w-4" /> Viaje cerrado · modo solo lectura. Para hacer cambios, reábrelo desde Historial.
+          </div>
+        )}
         <StatsGrid />
         <Toolbar
           onOpenAgregar={() => setIsAgregarOpen(true)}

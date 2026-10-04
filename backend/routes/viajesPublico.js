@@ -1,7 +1,7 @@
-import { Router } from 'express';
+import { asyncRouter } from '../utils/asyncRouter.js';
 import pool from '../db.js';
 
-const router = Router();
+const router = asyncRouter();
 
 // Obtener viaje por token (vista pública) - VERIFICAR EXPIRACIÓN
 router.get('/:token', async (req, res) => {

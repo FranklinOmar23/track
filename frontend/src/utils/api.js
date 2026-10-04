@@ -145,6 +145,12 @@ export const eliminarViaje = (id) =>
     method: 'DELETE',
   });
 
+export const cambiarEstadoViaje = (id, estado) =>
+  request(`/api/viajes/${id}/estado`, {
+    method: 'PATCH',
+    body: JSON.stringify({ estado }),
+  });
+
 export const ensureDefaultViaje = () =>
   request('/api/viajes/default', {
     method: 'POST',
@@ -192,3 +198,5 @@ export const fetchComparativaViajes = () =>
 
 export const fetchPagosMesViaje = () =>
   request('/api/stats/reportes/pagos-mes-viaje');
+export const fetchReporteGanancias = () =>
+  request('/api/stats/reportes/ganancias');

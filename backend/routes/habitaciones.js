@@ -1,8 +1,9 @@
-import { Router } from 'express';
+import { asyncRouter } from '../utils/asyncRouter.js';
 import pool from '../db.js';
+import { viajeBodyAbierto, habitacionParamAbierta } from '../utils/viajeCerrado.js';
 import { registrarLog } from '../utils/log.js';
 
-const router = Router();
+const router = asyncRouter();
 
 // Migración idempotente: agrega es_gratis a personas si no existe
 pool.query(`ALTER TABLE personas ADD COLUMN IF NOT EXISTS es_gratis TINYINT(1) NOT NULL DEFAULT 0`).catch(() => {});
@@ -98,7 +99,7 @@ router.get('/', async (req, res) => {
   res.json(mapHabitaciones(rows));
 });
 
-router.post('/', async (req, res) => {
+router.post('/', viajeBodyAbierto, async (req, res) => {
   const { num, tipo, total, precioNino, stack, nota, etiqueta, personas = [] } = req.body;
 
   if (!num || !tipo) {
@@ -174,7 +175,7 @@ router.post('/', async (req, res) => {
 });
 
 // ← NUEVO: editar habitación (num, tipo, total, precioNino, etiqueta)
-router.put('/:id', async (req, res) => {
+router.put('/:id', habitacionParamAbierta, async (req, res) => {
   const habitacionId = Number(req.params.id);
   const { num, tipo, total, precioNino, etiqueta, stack } = req.body;
 
@@ -194,7 +195,7 @@ router.put('/:id', async (req, res) => {
   res.json({ id: habitacionId, num, tipo, total: Number(total) || 0, precioNino: Number(precioNino) || 0, etiqueta, stack: !!stack });
 });
 
-router.post('/:id/personas', async (req, res) => {
+router.post('/:id/personas', habitacionParamAbierta, async (req, res) => {
   const habitacionId = Number(req.params.id);
   const { nombre, esNino, esGratis } = req.body;
 
@@ -221,14 +222,14 @@ router.post('/:id/personas', async (req, res) => {
   res.status(201).json({ id: result.insertId, n: nombre.trim(), posicion, esNino: !!esNino, esGratis: !!(esNino && esGratis), pagos: [] });
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', habitacionParamAbierta, async (req, res) => {
   const habitacionId = Number(req.params.id);
   await pool.query('DELETE FROM habitaciones WHERE id = ?', [habitacionId]);
   registrarLog(req.usuario, 'eliminar', 'habitacion', habitacionId, `${req.usuario} eliminó la habitación ${habitacionId}`);
   res.json({ ok: true });
 });
 
-router.patch('/:id/tipo', async (req, res) => {
+router.patch('/:id/tipo', habitacionParamAbierta, async (req, res) => {
   const habitacionId = Number(req.params.id);
   const { nuevoTipo } = req.body;
 
@@ -253,7 +254,7 @@ router.patch('/:id/tipo', async (req, res) => {
   res.json({ ok: true });
 });
 
-router.put('/:id/nota', async (req, res) => {
+router.put('/:id/nota', habitacionParamAbierta, async (req, res) => {
   const habitacionId = Number(req.params.id);
   const { nota } = req.body;
   await pool.query('UPDATE habitaciones SET nota = ? WHERE id = ?', [nota || '', habitacionId]);
@@ -261,7 +262,7 @@ router.put('/:id/nota', async (req, res) => {
   res.json({ ok: true });
 });
 
-router.put('/:id/etiqueta', async (req, res) => {
+router.put('/:id/etiqueta', habitacionParamAbierta, async (req, res) => {
   const habitacionId = Number(req.params.id);
   const { etiqueta } = req.body;
   await pool.query('UPDATE habitaciones SET etiqueta = ? WHERE id = ?', [etiqueta || '', habitacionId]);

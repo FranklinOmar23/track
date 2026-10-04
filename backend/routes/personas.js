@@ -1,10 +1,11 @@
-import { Router } from 'express';
+import { asyncRouter } from '../utils/asyncRouter.js';
 import pool from '../db.js';
+import { personaParamAbierta } from '../utils/viajeCerrado.js';
 import { registrarLog } from '../utils/log.js';
 
-const router = Router();
+const router = asyncRouter();
 
-router.patch('/:id/gratis', async (req, res) => {
+router.patch('/:id/gratis', personaParamAbierta, async (req, res) => {
   const personaId = Number(req.params.id);
   const { esGratis } = req.body;
   await pool.query('UPDATE personas SET es_gratis = ? WHERE id = ?', [esGratis ? 1 : 0, personaId]);
@@ -13,7 +14,7 @@ router.patch('/:id/gratis', async (req, res) => {
 });
 
 // ← NUEVO: editar nombre de persona
-router.put('/:id', async (req, res) => {
+router.put('/:id', personaParamAbierta, async (req, res) => {
   const personaId = Number(req.params.id);
   const { nombre } = req.body;
 
@@ -35,7 +36,7 @@ router.put('/:id', async (req, res) => {
   res.json({ id: personaId, nombre: nombre.trim() });
 });
 
-router.post('/:id/pagos', async (req, res) => {
+router.post('/:id/pagos', personaParamAbierta, async (req, res) => {
   const personaId = Number(req.params.id);
   const { mes, monto } = req.body;
 
@@ -53,7 +54,7 @@ router.post('/:id/pagos', async (req, res) => {
   res.status(201).json({ id: result.insertId, personaId, mes, monto });
 });
 
-router.put('/:id/pagos/:pagoId', async (req, res) => {
+router.put('/:id/pagos/:pagoId', personaParamAbierta, async (req, res) => {
   const personaId = Number(req.params.id);
   const pagoId = Number(req.params.pagoId);
   const { mes, monto } = req.body;
@@ -76,7 +77,7 @@ router.put('/:id/pagos/:pagoId', async (req, res) => {
   res.json({ id: pagoId, personaId, mes, monto });
 });
 
-router.delete('/:id/pagos/:pagoId', async (req, res) => {
+router.delete('/:id/pagos/:pagoId', personaParamAbierta, async (req, res) => {
   const personaId = Number(req.params.id);
   const pagoId = Number(req.params.pagoId);
 
@@ -94,7 +95,7 @@ router.delete('/:id/pagos/:pagoId', async (req, res) => {
   res.json({ ok: true });
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', personaParamAbierta, async (req, res) => {
   const personaId = Number(req.params.id);
   const connection = await pool.getConnection();
 
@@ -127,7 +128,7 @@ router.delete('/:id', async (req, res) => {
       [habitacionId]
     );
 
-    if (habitacion.length && newTipo !== habitacion[0].tipo) {
+    if (newOccupancy > 0 && habitacion.length && newTipo !== habitacion[0].tipo) {
       await connection.query(
         'UPDATE habitaciones SET tipo = ? WHERE id = ?',
         [newTipo, habitacionId]

@@ -6,6 +6,7 @@ import {
   fetchComparativaViajes, fetchPagosMesViaje,
 } from '../../utils/api';
 import { exportarHabitacionesExcel } from '../../utils/exportExcel';
+import GananciasReporte from './GananciasReporte';
 import { calcularTotalPagado, calcularPorcentaje, calcularRankingPersonas } from '../../utils/calculos';
 import {
   AreaChart, Area, LineChart, Line, BarChart, Bar,
@@ -15,7 +16,7 @@ import {
 import {
   ArrowLeft, DollarSign, Building2, Users, TrendingUp,
   FileDown, Printer, BarChart2, Flame, PieChart as PieIcon, Award,
-  Trophy,
+  Trophy, Coins,
 } from 'lucide-react';
 
 const MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
@@ -505,6 +506,7 @@ const ReportesView = () => {
           <Tab id="distribucion" label="Distribución"  icon={PieIcon}    active={tab === 'distribucion'} onClick={setTab} />
           <Tab id="rendimiento"  label="Rendimiento"   icon={Award}      active={tab === 'rendimiento'}  onClick={setTab} />
           <Tab id="rankings"     label="Rankings"      icon={Trophy}     active={tab === 'rankings'}     onClick={setTab} />
+          <Tab id="ganancias"    label="Ganancias"     icon={Coins}      active={tab === 'ganancias'}    onClick={setTab} />
         </div>
 
         {/* ── Content ───────────────────────────────────────────────────────── */}
@@ -911,6 +913,8 @@ const ReportesView = () => {
             )}
 
             {/* ── RANKINGS ──────────────────────────────────────────────────── */}
+            {tab === 'ganancias' && <GananciasReporte viajeId={viajeId} />}
+
             {tab === 'rankings' && (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-in">
                 <RankingList

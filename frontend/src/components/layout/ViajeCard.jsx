@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Lock } from 'lucide-react';
 
 const formatFecha = (fecha) => {
   if (!fecha) return null;
@@ -26,7 +26,7 @@ export const ViajeCard = ({ viaje, onSelect, index = 0 }) => {
   return (
     <button
       type="button"
-      className={`group relative overflow-hidden text-left w-full rounded-xl p-5 animate-fade-in-up ${stagger}`}
+      className={`group relative overflow-hidden text-left w-full rounded-xl p-5 animate-fade-in-up ${stagger} ${viaje.estado === 'cerrado' ? 'opacity-70' : ''}`}
       style={{
         backgroundColor: '#1a1f2e',
         border: `1px solid ${hovered ? `rgba(${accent},0.35)` : 'rgba(255,255,255,0.07)'}`,
@@ -110,6 +110,11 @@ export const ViajeCard = ({ viaje, onSelect, index = 0 }) => {
         <span className={`inline-block mt-3 text-xs px-2.5 py-1 rounded-full border font-semibold ${badgeClass}`}>
           {tipo === 'tour' ? 'Tour' : 'Resort'}
         </span>
+        {viaje.estado === 'cerrado' && (
+          <span className="inline-flex items-center gap-1 mt-3 ml-2 text-xs px-2.5 py-1 rounded-full border font-semibold bg-amber-900/30 text-amber-400 border-amber-600/30">
+            <Lock className="h-3 w-3" /> Cerrado
+          </span>
+        )}
       </div>
     </button>
   );

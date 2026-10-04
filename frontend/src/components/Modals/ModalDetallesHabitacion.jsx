@@ -9,7 +9,7 @@ import { X, Pencil, Plus, ArrowRightLeft, CreditCard, Trash2, Tag, Gift } from '
 import { ninoDebePagar } from '../../utils/calculos';
 
 const ModalDetallesHabitacion = ({ habitacion: habitacionProp, onClose }) => {
-  const { actualizarNota, actualizarEtiqueta, eliminarHabitacion, state } = useHabitacionesContext();
+  const { actualizarNota, actualizarEtiqueta, eliminarHabitacion, state, soloLectura } = useHabitacionesContext();
   const { fmt } = useDivisa();
 
   const habitacion = state.habitaciones.find((h) => h.id === habitacionProp.id) || habitacionProp;
@@ -90,11 +90,13 @@ const ModalDetallesHabitacion = ({ habitacion: habitacionProp, onClose }) => {
               )}
             </div>
             <div className="flex items-center gap-1.5">
-              <button type="button" onClick={() => setEditarOpen(true)}
-                className="p-1.5 rounded-lg text-gray-500 hover:text-teal-300 hover:bg-teal-500/10 transition-colors"
-                title="Editar habitación">
-                <Pencil className="h-4 w-4" />
-              </button>
+              {!soloLectura && (
+                <button type="button" onClick={() => setEditarOpen(true)}
+                  className="p-1.5 rounded-lg text-gray-500 hover:text-teal-300 hover:bg-teal-500/10 transition-colors"
+                  title="Editar habitación">
+                  <Pencil className="h-4 w-4" />
+                </button>
+              )}
               <button type="button" onClick={onClose}
                 className="p-1.5 rounded-lg text-gray-500 hover:text-gray-200 hover:bg-white/[0.06] transition-colors">
                 <X className="h-4 w-4" />
@@ -142,6 +144,7 @@ const ModalDetallesHabitacion = ({ habitacion: habitacionProp, onClose }) => {
               <div className="flex gap-2">
                 <select
                   className="input-dark flex-1"
+                  disabled={soloLectura}
                   value={etiqueta}
                   onChange={(e) => {
                     setEtiqueta(e.target.value);
@@ -179,7 +182,7 @@ const ModalDetallesHabitacion = ({ habitacion: habitacionProp, onClose }) => {
             <div>
               <label className="modal-section-label">Personas ({habitacion.personas.filter((p) => p.n).length})</label>
               <div className="space-y-2">
-                {habitacion.personas.filter((p) => p.n).map((persona, personaIndex) => {
+                {habitacion.personas.filter((p) => p.n).map((persona) => {
                   const pagadoPersona = persona.pagos?.reduce((s, p) => s + p.monto, 0) || 0;
                   const cuota         = calcularCuotaPersona(habitacion, persona);
                   const pendienteP    = Math.max(0, cuota - pagadoPersona);
@@ -212,22 +215,22 @@ const ModalDetallesHabitacion = ({ habitacion: habitacionProp, onClose }) => {
                             )}
                           </div>
                         </div>
-                        <div className="flex items-center gap-1">
+                        {!soloLectura && <div className="flex items-center gap-1">
                           <button
                             type="button"
-                            onClick={() => setModalPago({ habId: habitacion.id, perIdx: personaIndex, persona, pago: null })}
+                            onClick={() => setModalPago({ habId: habitacion.id, persona, pago: null })}
                             className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold text-teal-400 hover:bg-teal-500/10 border border-transparent hover:border-teal-500/20 transition-all"
                           >
                             <Plus className="h-3 w-3" /> Pago
                           </button>
                           <button
                             type="button"
-                            onClick={() => setModalMover({ habOrigen: habitacion.id, perIdx: personaIndex, persona })}
+                            onClick={() => setModalMover({ habOrigen: habitacion.id, persona })}
                             className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold text-gray-500 hover:text-gray-300 hover:bg-white/[0.06] border border-transparent hover:border-white/10 transition-all"
                           >
                             <ArrowRightLeft className="h-3 w-3" /> Mover
                           </button>
-                        </div>
+                        </div>}
                       </div>
 
                       {/* Pagos list */}
@@ -236,14 +239,15 @@ const ModalDetallesHabitacion = ({ habitacion: habitacionProp, onClose }) => {
                           <button
                             key={idx}
                             type="button"
-                            onClick={() => setModalPago({ habId: habitacion.id, perIdx: personaIndex, persona, pago })}
+                            onClick={() => !soloLectura && setModalPago({ habId: habitacion.id, persona, pago })}
+                            disabled={soloLectura}
                             className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all"
                             style={{
                               background: 'rgba(13,148,136,0.12)',
                               border: '1px solid rgba(13,148,136,0.2)',
                               color: '#5eead4',
                             }}
-                            title="Click para editar/eliminar pago"
+                            title={soloLectura ? undefined : 'Click para editar/eliminar pago'}
                           >
                             <CreditCard className="h-2.5 w-2.5" />
                             {pago.mes} — {fmt(pago.monto)}
@@ -296,8 +300,9 @@ const ModalDetallesHabitacion = ({ habitacion: habitacionProp, onClose }) => {
                 className="input-dark resize-none"
                 value={nota}
                 onChange={(e) => setNota(e.target.value)}
-                onBlur={handleSaveNota}
-                placeholder="Añadir notas..."
+                onBlur={soloLectura ? undefined : handleSaveNota}
+                readOnly={soloLectura}
+                placeholder={soloLectura ? 'Sin notas' : 'Añadir notas...'}
                 rows={3}
                 style={{ minHeight: '72px' }}
               />
@@ -305,7 +310,13 @@ const ModalDetallesHabitacion = ({ habitacion: habitacionProp, onClose }) => {
 
             {/* ── Actions ── */}
             <div className="pt-2 space-y-2" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-              {confirmDelete ? (
+              {soloLectura ? (
+                <div className="flex justify-end">
+                  <button className="btn-modal-secondary" onClick={onClose}>
+                    Cerrar
+                  </button>
+                </div>
+              ) : confirmDelete ? (
                 <div className="p-3 rounded-xl" style={{ background: 'rgba(244,63,94,0.08)', border: '1px solid rgba(244,63,94,0.2)' }}>
                   <p className="text-sm text-rose-300 font-semibold mb-2">¿Eliminar esta habitación y todos sus pagos?</p>
                   <div className="flex gap-2">
@@ -336,7 +347,6 @@ const ModalDetallesHabitacion = ({ habitacion: habitacionProp, onClose }) => {
       {modalPago && (
         <ModalRegistrarPago
           habId={modalPago.habId}
-          perIdx={modalPago.perIdx}
           persona={modalPago.persona}
           pago={modalPago.pago}
           onClose={() => setModalPago(null)}
@@ -346,7 +356,6 @@ const ModalDetallesHabitacion = ({ habitacion: habitacionProp, onClose }) => {
       {modalMover && (
         <ModalMoverPersona
           habOrigen={modalMover.habOrigen}
-          perIdx={modalMover.perIdx}
           persona={modalMover.persona}
           onClose={() => setModalMover(null)}
         />

@@ -67,7 +67,17 @@ const ModalEditarHabitacion = ({ habitacion, open, onClose }) => {
   const agregarNino      = () => setNinos([...ninos, { nombre: '', edad: '', gratis: false }]);
   const eliminarNino     = (idx) => setNinos(ninos.filter((_, i) => i !== idx));
   const actualizarNino   = (idx, campo, valor) => setNinos(ninos.map((n, i) => i === idx ? { ...n, [campo]: valor } : n));
-  const actualizarPersona = (idx, valor) => setPersonas(personas.map((p, i) => i === idx ? { ...p, nombre: valor } : p));
+  const actualizarPersona = (idx, valor) => setPersonas((prev) => {
+    const copy = [...prev];
+    copy[idx] = { ...(copy[idx] || {}), nombre: valor };
+    return copy;
+  });
+  const quitarPersona = (idx) => setPersonas((prev) => {
+    const copy = prev.filter((_, i) => i !== idx);
+    while (copy.length < numSlots) copy.push({ nombre: '' });
+    return copy;
+  });
+  const numInputs = Math.max(numSlots, personas.length);
 
   const handleTipoChange = (nuevoTipo) => {
     setTipo(nuevoTipo);
@@ -93,13 +103,17 @@ const ModalEditarHabitacion = ({ habitacion, open, onClose }) => {
       const personasOriginales = (habActual.personas || []).filter(
         (p) => !p.esNino && !/\(\d+ años\)/.test(p.n)
       );
-      for (let i = 0; i < personas.length; i++) {
-        const original = personasOriginales[i];
-        const editada  = personas[i];
-        if (!editada.nombre.trim()) continue;
-        if (original && editada.nombre.trim() !== original.n) {
-          await api.actualizarNombrePersona(original.id, editada.nombre.trim());
-        } else if (!original) {
+      for (const original of personasOriginales) {
+        const editada = personas.find((p) => p.id === original.id);
+        const nombre  = editada?.nombre.trim() || '';
+        if (!nombre) {
+          await api.eliminarPersona(original.id);
+        } else if (nombre !== original.n) {
+          await api.actualizarNombrePersona(original.id, nombre);
+        }
+      }
+      for (const editada of personas) {
+        if (!editada.id && editada.nombre.trim()) {
           await api.agregarPersonaHabitacion(habActual.id, { nombre: editada.nombre.trim(), esNino: false });
         }
       }
@@ -195,16 +209,24 @@ const ModalEditarHabitacion = ({ habitacion, open, onClose }) => {
           <div>
             <label className="modal-section-label">Personas</label>
             <div className="space-y-2">
-              {Array.from({ length: numSlots }).map((_, idx) => (
-                <input
-                  key={idx}
-                  className="input-dark"
-                  type="text"
-                  value={personas[idx]?.nombre ?? ''}
-                  onChange={(e) => actualizarPersona(idx, e.target.value)}
-                  placeholder={`Persona ${idx + 1}${idx === 0 ? ' (obligatorio)' : ' (opcional)'}`}
-                  disabled={loading}
-                />
+              {Array.from({ length: numInputs }).map((_, idx) => (
+                <div key={personas[idx]?.id ?? `nuevo-${idx}`} className="flex items-center gap-2">
+                  <input
+                    className="input-dark flex-1"
+                    type="text"
+                    value={personas[idx]?.nombre ?? ''}
+                    onChange={(e) => actualizarPersona(idx, e.target.value)}
+                    placeholder={`Persona ${idx + 1}${idx === 0 ? ' (obligatorio)' : ' (opcional)'}`}
+                    disabled={loading}
+                  />
+                  {personas[idx]?.nombre && (
+                    <button type="button" onClick={() => quitarPersona(idx)} disabled={loading}
+                      title="Quitar persona"
+                      className="p-1.5 rounded-lg text-rose-400 hover:bg-rose-500/10 transition-colors shrink-0">
+                      <Minus className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
               ))}
             </div>
           </div>

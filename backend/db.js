@@ -13,6 +13,8 @@ const pool = mysql.createPool({
   connectionLimit: 10,
   queueLimit: 0,
   timezone: '+00:00',
+  // DATE como 'YYYY-MM-DD' (evita '...T00:00:00.000Z' que rompe <input type="date">)
+  dateStrings: ['DATE'],
 });
 
 export default pool;

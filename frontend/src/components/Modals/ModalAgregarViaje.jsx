@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { crearViajeConSlug } from '../../utils/api';
 import { X, Plus } from 'lucide-react';
+import GananciaFields from './GananciaFields';
 
 const DIVISAS = [
   { code: 'USD', label: 'USD — Dólar americano' },
@@ -11,6 +11,7 @@ const DIVISAS = [
 ];
 
 const EDAD_OPTIONS = [1,2,3,4,5,6,7,8,9,10,11,12];
+const gananciaPorDefecto = (tipo) => (tipo === 'tour' ? 'por_persona' : 'porcentaje');
 
 const ModalAgregarViaje = ({ open, onClose, onCreate }) => {
   const [nombre, setNombre]               = useState('');
@@ -20,6 +21,9 @@ const ModalAgregarViaje = ({ open, onClose, onCreate }) => {
   const [fechaFin, setFechaFin]           = useState('');
   const [nota, setNota]                   = useState('');
   const [edadMinimaPago, setEdadMinimaPago] = useState(0);
+  const [gananciaTipo, setGananciaTipo]   = useState(gananciaPorDefecto('resort'));
+  const [gananciaValor, setGananciaValor] = useState('');
+  const [gananciaTocada, setGananciaTocada] = useState(false);
   const [loading, setLoading]             = useState(false);
 
   if (!open) return null;
@@ -29,16 +33,19 @@ const ModalAgregarViaje = ({ open, onClose, onCreate }) => {
     if (!nombre.trim()) return;
     setLoading(true);
     try {
-      const nuevoViaje = await crearViajeConSlug({
+      // onCreate crea el viaje (vía contexto); no llamar a la API aquí para no duplicarlo
+      await onCreate({
         nombre: nombre.trim(), tipo, divisa,
         fechaInicio: fechaInicio || null,
         fechaFin: fechaFin || null,
         nota: nota || null,
         edadMinimaPago: Number(edadMinimaPago) || 0,
+        gananciaTipo,
+        gananciaValor: Number(gananciaValor) || 0,
       });
-      onCreate(nuevoViaje);
       setNombre(''); setTipo('resort'); setDivisa('USD');
       setFechaInicio(''); setFechaFin(''); setNota(''); setEdadMinimaPago(0);
+      setGananciaTipo(gananciaPorDefecto('resort')); setGananciaValor(''); setGananciaTocada(false);
       onClose();
     } catch (error) {
       console.error(error);
@@ -89,7 +96,10 @@ const ModalAgregarViaje = ({ open, onClose, onCreate }) => {
           {/* Tipo */}
           <div>
             <label className="modal-section-label">Tipo de viaje</label>
-            <select className="input-dark" value={tipo} onChange={(e) => setTipo(e.target.value)}>
+            <select className="input-dark" value={tipo} onChange={(e) => {
+              setTipo(e.target.value);
+              if (!gananciaTocada) setGananciaTipo(gananciaPorDefecto(e.target.value));
+            }}>
               <option value="resort">🏨 Resort</option>
               <option value="tour">🚐 Tour</option>
             </select>
@@ -116,6 +126,15 @@ const ModalAgregarViaje = ({ open, onClose, onCreate }) => {
               <input className="input-dark" type="date" value={fechaFin} onChange={(e) => setFechaFin(e.target.value)} />
             </div>
           </div>
+
+          <GananciaFields
+            tipo={gananciaTipo}
+            valor={gananciaValor}
+            divisa={divisa}
+            onTipoChange={(t) => { setGananciaTipo(t); setGananciaTocada(true); }}
+            onValorChange={setGananciaValor}
+            disabled={loading}
+          />
 
           {/* Nota */}
           <div>

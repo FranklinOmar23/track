@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useHabitacionesContext } from '../../Context/HabitacionesContext';
-import { X, Save, Trash2 } from 'lucide-react';
+import { X, Save, Trash2, Lock, LockOpen } from 'lucide-react';
+import GananciaFields from './GananciaFields';
 
 const DIVISAS = [
   { code: 'USD', label: 'USD — Dólar americano' },
@@ -13,7 +14,7 @@ const DIVISAS = [
 const EDAD_OPTIONS = [1,2,3,4,5,6,7,8,9,10,11,12];
 
 const ModalEditarViaje = ({ viaje, open, onClose }) => {
-  const { editarViaje, eliminarViaje } = useHabitacionesContext();
+  const { editarViaje, eliminarViaje, cambiarEstadoViaje } = useHabitacionesContext();
   const [nombre, setNombre]                       = useState('');
   const [tipo, setTipo]                           = useState('resort');
   const [divisa, setDivisa]                       = useState('USD');
@@ -21,6 +22,8 @@ const ModalEditarViaje = ({ viaje, open, onClose }) => {
   const [fechaFin, setFechaFin]                   = useState('');
   const [nota, setNota]                           = useState('');
   const [edadMinimaPago, setEdadMinimaPago]       = useState(0);
+  const [gananciaTipo, setGananciaTipo]           = useState('ninguna');
+  const [gananciaValor, setGananciaValor]         = useState('');
   const [loading, setLoading]                     = useState(false);
   const [confirmDelete, setConfirmDelete]         = useState(false);
 
@@ -33,6 +36,8 @@ const ModalEditarViaje = ({ viaje, open, onClose }) => {
       setFechaFin(viaje.fechaFin ? viaje.fechaFin.slice(0, 10) : '');
       setNota(viaje.nota || '');
       setEdadMinimaPago(Number(viaje.edadMinimaPago) || 0);
+      setGananciaTipo(viaje.gananciaTipo || 'ninguna');
+      setGananciaValor(Number(viaje.gananciaValor) ? String(viaje.gananciaValor) : '');
       setConfirmDelete(false);
     }
   }, [viaje, open]);
@@ -49,10 +54,28 @@ const ModalEditarViaje = ({ viaje, open, onClose }) => {
         fechaFin: fechaFin || null,
         nota: nota || null,
         edadMinimaPago: Number(edadMinimaPago) || 0,
+        gananciaTipo,
+        gananciaValor: Number(gananciaValor) || 0,
       });
       onClose();
     } catch {
       alert('Error al guardar el viaje');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const cerrado = viaje.estado === 'cerrado';
+
+  const handleCambiarEstado = async () => {
+    const accion = cerrado ? 'reabrir' : 'cerrar';
+    if (!window.confirm(`¿Seguro que quieres ${accion} "${viaje.nombre}"?`)) return;
+    setLoading(true);
+    try {
+      await cambiarEstadoViaje(viaje.id, cerrado ? 'activo' : 'cerrado');
+      onClose();
+    } catch {
+      alert(`Error al ${accion} el viaje`);
     } finally {
       setLoading(false);
     }
@@ -134,6 +157,15 @@ const ModalEditarViaje = ({ viaje, open, onClose }) => {
               style={{ minHeight: '72px' }} />
           </div>
 
+          <GananciaFields
+            tipo={gananciaTipo}
+            valor={gananciaValor}
+            divisa={divisa}
+            onTipoChange={setGananciaTipo}
+            onValorChange={setGananciaValor}
+            disabled={loading}
+          />
+
           {/* Política de niños */}
           <div>
             <label className="modal-section-label">Política de niños (resort)</label>
@@ -198,6 +230,14 @@ const ModalEditarViaje = ({ viaje, open, onClose }) => {
 
           {/* Actions */}
           <div className="pt-2 space-y-2" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+            <button type="button" onClick={handleCambiarEstado} disabled={loading}
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold transition-colors"
+              style={cerrado
+                ? { background: 'rgba(13,148,136,0.1)', border: '1px solid rgba(13,148,136,0.3)', color: '#5eead4' }
+                : { background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)', color: '#fbbf24' }}>
+              {cerrado ? <LockOpen className="h-3.5 w-3.5" /> : <Lock className="h-3.5 w-3.5" />}
+              {cerrado ? 'Reabrir viaje' : 'Cerrar viaje (ya terminó)'}
+            </button>
             {confirmDelete ? (
               <div
                 className="p-3 rounded-xl mb-3"

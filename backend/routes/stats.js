@@ -1,7 +1,10 @@
-import { Router } from 'express';
+import { asyncRouter } from '../utils/asyncRouter.js';
 import pool from '../db.js';
+import { registrarLog } from '../utils/log.js';
+import { normalizarGanancia } from '../utils/ganancia.js';
+import { calcularGananciasPorViaje } from '../utils/gananciaReporte.js';
 
-const router = Router();
+const router = asyncRouter();
 
 // ─── DASHBOARD EXISTENTE ────────────────────────────────────────────────────
 
@@ -15,6 +18,9 @@ router.get('/dashboard', async (req, res) => {
         v.slug,
         v.fecha_inicio,
         v.fecha_fin,
+        COALESCE(v.estado, 'activo') as estado,
+        COALESCE(v.ganancia_tipo, 'ninguna') as ganancia_tipo,
+        COALESCE(v.ganancia_valor, 0) as ganancia_valor,
         COALESCE(
           (SELECT SUM(h.total) FROM habitaciones h WHERE h.viaje_id = v.id), 0
         ) as total_por_cobrar,
@@ -33,7 +39,15 @@ router.get('/dashboard', async (req, res) => {
             FROM personas pers
             JOIN habitaciones h ON pers.habitacion_id = h.id
             WHERE h.viaje_id = v.id), 0
-        ) as total_personas
+        ) as total_personas,
+        COALESCE(
+          (SELECT COUNT(DISTINCT pers.id)
+            FROM personas pers
+            JOIN habitaciones h ON pers.habitacion_id = h.id
+            WHERE h.viaje_id = v.id
+              AND pers.nombre IS NOT NULL AND pers.nombre != ''
+              AND COALESCE(pers.es_gratis, 0) = 0), 0
+        ) as personas_pagan
       FROM viajes v
       ORDER BY v.id DESC
     `);
@@ -45,6 +59,8 @@ router.get('/dashboard', async (req, res) => {
       pendiente: Number(v.total_por_cobrar) - Number(v.total_pagado),
       total_habitaciones: Number(v.total_habitaciones),
       total_personas: Number(v.total_personas),
+      personas_pagan: Number(v.personas_pagan),
+      ganancia_valor: Number(v.ganancia_valor),
     }));
 
     const totalGlobalPorCobrar = viajesConPendiente.reduce((s, v) => s + v.total_por_cobrar, 0);
@@ -236,13 +252,42 @@ router.get('/reportes/pagos-mes-viaje', async (req, res) => {
   }
 });
 
+// ─── REPORTE: GANANCIAS POR VIAJE ────────────────────────────────────────────
+// GET /api/stats/reportes/ganancias
+router.get('/reportes/ganancias', async (req, res) => {
+  const [viajes] = await pool.query(`
+    SELECT id, nombre, COALESCE(tipo, 'resort') AS tipo, COALESCE(divisa, 'USD') AS divisa,
+           COALESCE(estado, 'activo') AS estado, fecha_inicio, fecha_fin,
+           COALESCE(edad_minima_pago, 0) AS edad_minima_pago,
+           COALESCE(ganancia_tipo, 'ninguna') AS ganancia_tipo,
+           COALESCE(ganancia_valor, 0) AS ganancia_valor
+    FROM viajes
+    ORDER BY id DESC
+  `);
+
+  const [filas] = await pool.query(`
+    SELECT h.viaje_id, h.id AS habitacion_id, h.total, h.precio_nino,
+           p.id AS persona_id, p.nombre, p.es_nino, COALESCE(p.es_gratis, 0) AS es_gratis
+    FROM habitaciones h
+    LEFT JOIN personas p ON p.habitacion_id = h.id
+    WHERE h.viaje_id IS NOT NULL
+  `);
+
+  const [pagos] = await pool.query(
+    'SELECT persona_id, SUM(monto) AS total FROM pagos GROUP BY persona_id'
+  );
+  const pagosPorPersona = new Map(pagos.map((p) => [p.persona_id, Number(p.total) || 0]));
+
+  res.json(calcularGananciasPorViaje(viajes, filas, pagosPorPersona));
+});
+
 // ─── RUTAS EXISTENTES ────────────────────────────────────────────────────────
 
 router.get('/viaje/slug/:slug', async (req, res) => {
   const { slug } = req.params;
   try {
     const [rows] = await pool.query(
-      'SELECT id, nombre, tipo, fecha_inicio, fecha_fin, nota, slug FROM viajes WHERE slug = ?',
+      `SELECT id, nombre, tipo, fecha_inicio, fecha_fin, nota, slug, COALESCE(estado, 'activo') AS estado FROM viajes WHERE slug = ?`,
       [slug]
     );
     if (rows.length === 0) return res.status(404).json({ error: 'Viaje no encontrado' });
@@ -254,6 +299,7 @@ router.get('/viaje/slug/:slug', async (req, res) => {
 
 router.post('/viajes/with-slug', async (req, res) => {
   const { nombre, fechaInicio, fechaFin, nota, tipo = 'resort', divisa = 'USD', edadMinimaPago = 0 } = req.body;
+  const { gananciaTipo, gananciaValor } = normalizarGanancia(req.body);
   if (!nombre) return res.status(400).json({ error: 'Nombre del viaje es requerido.' });
 
   try {
@@ -271,11 +317,17 @@ router.post('/viajes/with-slug', async (req, res) => {
     if (existing.length > 0) slug = `${slug}-${Date.now()}`;
 
     const [result] = await pool.query(
-      'INSERT INTO viajes (nombre, fecha_inicio, fecha_fin, nota, tipo, divisa, slug, edad_minima_pago) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [nombre, fechaInicio || null, fechaFin || null, nota || null, tipo, divisa, slug, Number(edadMinimaPago) || 0]
+      `INSERT INTO viajes (nombre, fecha_inicio, fecha_fin, nota, tipo, divisa, slug, edad_minima_pago, ganancia_tipo, ganancia_valor)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [nombre, fechaInicio || null, fechaFin || null, nota || null, tipo, divisa, slug, Number(edadMinimaPago) || 0, gananciaTipo, gananciaValor]
     );
 
-    res.status(201).json({ id: result.insertId, nombre, fechaInicio, fechaFin, nota, tipo, divisa, slug, edadMinimaPago: Number(edadMinimaPago) || 0 });
+    registrarLog(req.usuario, 'crear', 'viaje', result.insertId, `${req.usuario} creó el viaje "${nombre}"`);
+
+    res.status(201).json({
+      id: result.insertId, nombre, fechaInicio, fechaFin, nota, tipo, divisa, slug,
+      edadMinimaPago: Number(edadMinimaPago) || 0, gananciaTipo, gananciaValor, estado: 'activo', cerradoAt: null,
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

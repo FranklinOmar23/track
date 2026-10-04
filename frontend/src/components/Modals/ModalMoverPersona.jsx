@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useHabitacionesContext } from '../../Context/HabitacionesContext';
 import { X, ArrowRightLeft } from 'lucide-react';
 
-const ModalMoverPersona = ({ habOrigen, perIdx, persona, onClose }) => {
+const ModalMoverPersona = ({ habOrigen, persona, onClose }) => {
   const { state, moverPersona } = useHabitacionesContext();
 
   const destinos = state.habitaciones.filter((hab) => {
@@ -18,10 +18,19 @@ const ModalMoverPersona = ({ habOrigen, perIdx, persona, onClose }) => {
     setDestinoSeleccionado(destinos[0]?.id || '');
   }, [destinos.length]);
 
-  const handleMover = () => {
-    if (!destinoSeleccionado) return;
-    moverPersona(habOrigen, parseInt(destinoSeleccionado, 10), perIdx);
-    onClose();
+  const [loading, setLoading] = useState(false);
+
+  const handleMover = async () => {
+    if (!destinoSeleccionado || !persona?.id) return;
+    setLoading(true);
+    try {
+      await moverPersona(persona.id, parseInt(destinoSeleccionado, 10));
+      onClose();
+    } catch (error) {
+      alert(`No se pudo mover a la persona: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -80,7 +89,7 @@ const ModalMoverPersona = ({ habOrigen, perIdx, persona, onClose }) => {
                   Cancelar
                 </button>
                 <button type="button" className="btn-modal-primary flex-1"
-                  onClick={handleMover} disabled={!destinoSeleccionado}>
+                  onClick={handleMover} disabled={!destinoSeleccionado || loading}>
                   <ArrowRightLeft className="h-3.5 w-3.5" />
                   Mover
                 </button>
