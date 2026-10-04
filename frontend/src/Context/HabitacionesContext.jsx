@@ -7,7 +7,6 @@ const initialState = {
   viajes: [],
   selectedViajeId: null,
   habitaciones: [],
-  expandedHabs: {},
   filtros: {
     busqueda: '',
     estado: 'todos',
@@ -59,15 +58,6 @@ function habitacionesReducer(state, action) {
       return {
         ...state,
         habitaciones: state.habitaciones.filter((hab) => hab.id !== action.payload),
-      };
-
-    case 'TOGGLE_EXPANDED':
-      return {
-        ...state,
-        expandedHabs: {
-          ...state.expandedHabs,
-          [action.payload]: !state.expandedHabs[action.payload],
-        },
       };
 
     case 'ACTUALIZAR_NOTA':
@@ -305,7 +295,6 @@ export const HabitacionesProvider = ({ children }) => {
     agregarHabitacion,
     editarHabitacion,
     eliminarHabitacion,
-    toggleExpanded: (id) => dispatch({ type: 'TOGGLE_EXPANDED', payload: id }),
     registrarPago,
     actualizarPago,
     eliminarPago,

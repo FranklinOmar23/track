@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useHabitacionesContext } from '../../Context/HabitacionesContext';
 import { X, ArrowRightLeft } from 'lucide-react';
+import { capacidadPorTipo } from '../../utils/calculos';
 
 const ModalMoverPersona = ({ habOrigen, persona, onClose }) => {
   const { state, moverPersona } = useHabitacionesContext();
@@ -8,7 +9,7 @@ const ModalMoverPersona = ({ habOrigen, persona, onClose }) => {
   const destinos = state.habitaciones.filter((hab) => {
     if (hab.id === habOrigen) return false;
     const ocupados  = hab.personas.filter((p) => p.n).length;
-    const capacidad = hab.tipo === 'Triple' ? 3 : hab.tipo === 'Single' ? 1 : 2;
+    const capacidad = capacidadPorTipo(hab.tipo);
     return ocupados <= capacidad;
   });
 
@@ -74,7 +75,7 @@ const ModalMoverPersona = ({ habOrigen, persona, onClose }) => {
                   onChange={(e) => setDestinoSeleccionado(e.target.value)}>
                   {destinos.map((hab) => {
                     const ocupados  = hab.personas.filter((p) => p.n).length;
-                    const capacidad = hab.tipo === 'Triple' ? 3 : hab.tipo === 'Single' ? 1 : 2;
+                    const capacidad = capacidadPorTipo(hab.tipo);
                     const llena     = ocupados >= capacidad;
                     const label     = llena
                       ? `Hab ${hab.num} (${hab.tipo} → ${hab.tipo === 'Single' ? 'Doble' : 'Triple'})`

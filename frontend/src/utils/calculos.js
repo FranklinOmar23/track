@@ -19,6 +19,11 @@ export const ninoDebePagar = (persona, edadMinimaPago) => {
   return edad >= umbral;
 };
 
+const CAPACIDAD_POR_TIPO = { Single: 1, Doble: 2, Triple: 3 };
+
+/** Cantidad de personas que caben según el tipo de habitación. */
+export const capacidadPorTipo = (tipo) => CAPACIDAD_POR_TIPO[tipo] ?? 2;
+
 // ── Funciones públicas ────────────────────────────────────────────────────────
 
 /** Suma todos los pagos registrados de todas las personas de la habitación. */

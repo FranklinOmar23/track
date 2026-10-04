@@ -1,35 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import { Plane, Building2, Bus, DollarSign, TrendingUp } from 'lucide-react';
-
-function useCountUp(target, duration = 1350) {
-  const [value, setValue] = useState(0);
-  const rafRef = useRef(null);
-
-  useEffect(() => {
-    if (typeof target !== 'number' || target === 0) {
-      setValue(0);
-      return;
-    }
-    const start = performance.now();
-    const tick = (now) => {
-      const t = Math.min((now - start) / duration, 1);
-      const ease = 1 - Math.pow(1 - t, 3);
-      setValue(target * ease);
-      if (t < 1) rafRef.current = requestAnimationFrame(tick);
-      else setValue(target);
-    };
-    rafRef.current = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(rafRef.current);
-  }, [target, duration]);
-
-  return value;
-}
-
-const fmt = (n) =>
-  new Intl.NumberFormat('es-DO', {
-    style: 'currency', currency: 'USD',
-    minimumFractionDigits: 0, maximumFractionDigits: 0,
-  }).format(Math.round(n));
+import { useCountUp } from '../../hooks/useCountUp';
+import { formatCurrency } from '../../utils/formatters';
 
 const STATS = [
   {
@@ -77,7 +49,6 @@ const STATS = [
     accentRgb: '245,158,11',
     borderHover: 'rgba(245,158,11,0.35)',
     isCurrency: true,
-    render: (n) => fmt(n),
   },
   {
     key: 'porcentaje',
@@ -96,11 +67,13 @@ const STATS = [
 
 const STAGGER = ['stagger-0', 'stagger-1', 'stagger-2', 'stagger-3', 'stagger-4'];
 
-function StatCard({ stat, rawValue, index }) {
+function StatCard({ stat, rawValue, index, divisa }) {
   const animated = useCountUp(rawValue, 1350);
   const [hovered, setHovered] = useState(false);
 
-  const display = stat.render(animated) + (stat.suffix && !stat.isCurrency ? stat.suffix : '');
+  const display = stat.isCurrency
+    ? formatCurrency(Math.round(animated), divisa)
+    : stat.render(animated) + (stat.suffix || '');
 
   return (
     <div
@@ -156,7 +129,7 @@ function StatCard({ stat, rawValue, index }) {
 export const DashboardStats = ({
   totalViajes, resorts, tours,
   porcentaje,
-  totalPagadoRaw, porcentajeRaw,
+  totalPagadoRaw, porcentajeRaw, divisa = 'USD',
 }) => {
   const rawValues = {
     totalViajes: totalViajes || 0,
@@ -174,6 +147,7 @@ export const DashboardStats = ({
           stat={stat}
           rawValue={rawValues[stat.key]}
           index={i}
+          divisa={divisa}
         />
       ))}
     </div>

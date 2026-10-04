@@ -1,5 +1,6 @@
 import { asyncRouter } from '../utils/asyncRouter.js';
 import pool from '../db.js';
+import { tipoPorOcupacion } from '../utils/habitacion.js';
 import { personaParamAbierta } from '../utils/viajeCerrado.js';
 import { registrarLog } from '../utils/log.js';
 
@@ -121,7 +122,7 @@ router.delete('/:id', personaParamAbierta, async (req, res) => {
     );
 
     const newOccupancy = remaining[0].count;
-    const newTipo = newOccupancy === 1 ? 'Single' : newOccupancy === 2 ? 'Doble' : 'Triple';
+    const newTipo = tipoPorOcupacion(newOccupancy);
 
     const [habitacion] = await connection.query(
       'SELECT tipo FROM habitaciones WHERE id = ?',

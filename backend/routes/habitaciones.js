@@ -1,12 +1,10 @@
 import { asyncRouter } from '../utils/asyncRouter.js';
 import pool from '../db.js';
+import { capacidadPorTipo } from '../utils/habitacion.js';
 import { viajeBodyAbierto, habitacionParamAbierta } from '../utils/viajeCerrado.js';
 import { registrarLog } from '../utils/log.js';
 
 const router = asyncRouter();
-
-// Migración idempotente: agrega es_gratis a personas si no existe
-pool.query(`ALTER TABLE personas ADD COLUMN IF NOT EXISTS es_gratis TINYINT(1) NOT NULL DEFAULT 0`).catch(() => {});
 
 const mapHabitaciones = (rows) => {
   const habitaciones = [];
@@ -243,7 +241,7 @@ router.patch('/:id/tipo', habitacionParamAbierta, async (req, res) => {
   );
 
   const ocupados = hab[0].ocupados;
-  const capacidadRequerida = nuevoTipo === 'Triple' ? 3 : nuevoTipo === 'Single' ? 1 : 2;
+  const capacidadRequerida = capacidadPorTipo(nuevoTipo);
 
   if (ocupados > capacidadRequerida) {
     return res.status(400).json({ error: `No se puede cambiar a ${nuevoTipo} con ${ocupados} personas.` });

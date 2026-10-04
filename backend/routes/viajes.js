@@ -48,11 +48,6 @@ router.put('/:id', viajeParamAbierto, async (req, res) => {
     return res.status(400).json({ error: 'Nombre es requerido.' });
   }
 
-  // Asegurar que la columna exista (safe migration)
-  try {
-    await pool.query(`ALTER TABLE viajes ADD COLUMN IF NOT EXISTS edad_minima_pago INT NOT NULL DEFAULT 0`);
-  } catch (_) {}
-
   await pool.query(
     `UPDATE viajes SET
       nombre = ?,
@@ -212,19 +207,6 @@ router.post('/:id/compartir', async (req, res) => {
     // ✅ USAR crypto del import (NO require)
     const token = crypto.randomBytes(32).toString('hex');
     
-    // Asegurar que las columnas existen
-    try {
-      await pool.query(`
-        ALTER TABLE viajes
-        ADD COLUMN IF NOT EXISTS token_compartir VARCHAR(100),
-        ADD COLUMN IF NOT EXISTS compartir_activo TINYINT(1) DEFAULT 1,
-        ADD COLUMN IF NOT EXISTS expira_compartir DATETIME NULL,
-        ADD COLUMN IF NOT EXISTS tipo_compartir VARCHAR(20) DEFAULT 'completo'
-      `);
-    } catch (err) {
-      console.log('Nota:', err.message);
-    }
-
     await pool.query(
       `UPDATE viajes
        SET token_compartir = ?,

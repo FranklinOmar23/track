@@ -6,13 +6,9 @@ import {
 } from '../ui/table';
 import { FileText, Building2, Bus, Eye, Pencil, Lock } from 'lucide-react';
 import { calcularGananciaResumen } from '../../utils/calculos';
+import { formatCurrency } from '../../utils/formatters';
 import ModalEditarViaje from '../Modals/ModalEditarViaje';
 
-const formatCurrency = (value, divisa = 'USD') =>
-  new Intl.NumberFormat('es-DO', {
-    style: 'currency', currency: divisa,
-    minimumFractionDigits: 0, maximumFractionDigits: 0,
-  }).format(value || 0);
 
 const STAGGER_DELAYS = [0, 40, 80, 120, 160, 200, 240];
 

@@ -7,37 +7,13 @@ import { TrendingUp, Wallet, Hourglass, Percent, FileDown, AlertCircle, Lock } f
 import { fetchReporteGanancias } from '../../utils/api';
 import { formatCurrency } from '../../utils/formatters';
 import { exportarGananciasExcel } from '../../utils/exportExcel';
-
-const DARK_TOOLTIP = {
-  backgroundColor: '#1a1f2e',
-  border: '1px solid rgba(255,255,255,0.1)',
-  borderRadius: '10px',
-  color: '#e2e8f0',
-  fontSize: '12px',
-};
+import { ChartPanel } from './ui';
+import { DARK_TOOLTIP } from './datosReportes';
 
 const COLOR_ESTIMADA = '#10b981';
 const COLOR_COBRADA  = '#0d9488';
 const COLOR_RESORT   = '#14b8a6';
 const COLOR_TOUR     = '#06b6d4';
-
-const Panel = ({ title, subtitle, action, children }) => (
-  <div
-    className="relative rounded-2xl overflow-hidden p-6"
-    style={{
-      background: 'linear-gradient(135deg, #1a1f2e 0%, #1e2538 100%)',
-      border: '1px solid rgba(255,255,255,0.07)',
-      boxShadow: '0 4px 24px rgba(0,0,0,0.25)',
-    }}
-  >
-    <div className="flex items-start justify-between gap-3 mb-1">
-      <h3 className="text-sm font-bold text-white">{title}</h3>
-      {action}
-    </div>
-    {subtitle && <p className="text-xs text-gray-600 mb-5">{subtitle}</p>}
-    {children}
-  </div>
-);
 
 const Kpi = ({ label, value, sub, icon: Icon, color }) => (
   <div className="rounded-2xl p-5"
@@ -165,7 +141,7 @@ const GananciasReporte = ({ viajeId }) => {
       {/* Gráficas */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
-          <Panel title="Ganancia por viaje" subtitle="Estimada vs. cobrada · top 10">
+          <ChartPanel title="Ganancia por viaje" subtitle="Estimada vs. cobrada · top 10">
             {barras.length === 0 ? (
               <p className="text-center text-xs text-gray-600 py-20">Sin viajes con margen configurado</p>
             ) : (
@@ -184,10 +160,10 @@ const GananciasReporte = ({ viajeId }) => {
                 </BarChart>
               </ResponsiveContainer>
             )}
-          </Panel>
+          </ChartPanel>
         </div>
 
-        <Panel title="Resorts vs. Tours" subtitle="Ganancia estimada por tipo de viaje">
+        <ChartPanel title="Resorts vs. Tours" subtitle="Ganancia estimada por tipo de viaje">
           {totalEstimada === 0 ? (
             <p className="text-center text-xs text-gray-600 py-20">Sin datos</p>
           ) : (
@@ -212,11 +188,11 @@ const GananciasReporte = ({ viajeId }) => {
               </div>
             </>
           )}
-        </Panel>
+        </ChartPanel>
       </div>
 
       {/* Tabla detalle */}
-      <Panel
+      <ChartPanel
         title="Detalle por viaje"
         subtitle={`${filtrados.length} viaje${filtrados.length !== 1 ? 's' : ''} · ${viajeId ? 'viaje seleccionado' : divisa}`}
         action={
@@ -269,7 +245,7 @@ const GananciasReporte = ({ viajeId }) => {
             </tbody>
           </table>
         </div>
-      </Panel>
+      </ChartPanel>
     </div>
   );
 };

@@ -303,11 +303,6 @@ router.post('/viajes/with-slug', async (req, res) => {
   if (!nombre) return res.status(400).json({ error: 'Nombre del viaje es requerido.' });
 
   try {
-    // Asegurar columna (safe migration)
-    try {
-      await pool.query(`ALTER TABLE viajes ADD COLUMN IF NOT EXISTS edad_minima_pago INT NOT NULL DEFAULT 0`);
-    } catch (_) {}
-
     let slug = nombre.toLowerCase()
       .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
       .replace(/[^a-z0-9]+/g, '-')

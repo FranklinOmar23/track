@@ -1,5 +1,6 @@
 import { asyncRouter } from '../utils/asyncRouter.js';
 import pool from '../db.js';
+import { capacidadPorTipo, tipoPorOcupacion } from '../utils/habitacion.js';
 import { movimientoAbierto } from '../utils/viajeCerrado.js';
 import { registrarLog } from '../utils/log.js';
 
@@ -31,7 +32,7 @@ router.post('/', movimientoAbierto, async (req, res) => {
     }
 
     const destTipoActual = destHabRows[0].tipo;
-    const capacidadActual = destTipoActual === 'Triple' ? 3 : destTipoActual === 'Single' ? 1 : 2;
+    const capacidadActual = capacidadPorTipo(destTipoActual);
 
     const [ocupacionRows] = await connection.query(
       'SELECT COUNT(*) AS total FROM personas WHERE habitacion_id = ? AND nombre IS NOT NULL AND nombre != ""',
@@ -64,7 +65,7 @@ router.post('/', movimientoAbierto, async (req, res) => {
 
     // Auto-actualizar tipo de habitación destino
     const nuevoOcupadosDestino = ocupadosDestino + 1;
-    const nuevoTipoDestino = nuevoOcupadosDestino === 1 ? 'Single' : nuevoOcupadosDestino === 2 ? 'Doble' : 'Triple';
+    const nuevoTipoDestino = tipoPorOcupacion(nuevoOcupadosDestino);
 
     if (nuevoTipoDestino !== destTipoActual) {
       await connection.query('UPDATE habitaciones SET tipo = ? WHERE id = ?', [nuevoTipoDestino, destinoHabitacionId]);
@@ -80,7 +81,7 @@ router.post('/', movimientoAbierto, async (req, res) => {
     const nuevoOcupadosOrigen = ocupacionOrigenRows[0].total;
 
     if (nuevoOcupadosOrigen > 0) {
-      const nuevoTipoOrigen = nuevoOcupadosOrigen === 1 ? 'Single' : nuevoOcupadosOrigen === 2 ? 'Doble' : 'Triple';
+      const nuevoTipoOrigen = tipoPorOcupacion(nuevoOcupadosOrigen);
       const [habOrigenTipo] = await connection.query('SELECT tipo FROM habitaciones WHERE id = ?', [habitacionOrigenId]);
 
       if (nuevoTipoOrigen !== habOrigenTipo[0].tipo) {

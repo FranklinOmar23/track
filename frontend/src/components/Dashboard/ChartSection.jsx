@@ -4,6 +4,7 @@ import {
   PieChart, Pie, Cell,
 } from 'recharts';
 import { BarChart3, PieChart as PieChartIcon } from 'lucide-react';
+import { formatCurrency } from '../../utils/formatters';
 
 const DARK_TOOLTIP = {
   backgroundColor: '#12151f',
@@ -15,11 +16,6 @@ const DARK_TOOLTIP = {
   fontSize: '13px',
 };
 
-const fmt = (value) =>
-  new Intl.NumberFormat('es-DO', {
-    style: 'currency', currency: 'DOP',
-    minimumFractionDigits: 0, maximumFractionDigits: 0,
-  }).format(value || 0);
 
 const CustomBarShape = (props) => {
   const { fill, x, y, width, height } = props;
@@ -32,7 +28,7 @@ const CustomBarShape = (props) => {
   );
 };
 
-const CustomTooltipBar = ({ active, payload, label }) => {
+const CustomTooltipBar = ({ active, payload, label, fmt }) => {
   if (!active || !payload?.length) return null;
   return (
     <div style={DARK_TOOLTIP}>
@@ -48,7 +44,7 @@ const CustomTooltipBar = ({ active, payload, label }) => {
   );
 };
 
-const CustomTooltipPie = ({ active, payload }) => {
+const CustomTooltipPie = ({ active, payload, fmt }) => {
   if (!active || !payload?.length) return null;
   const p = payload[0];
   return (
@@ -62,7 +58,8 @@ const CustomTooltipPie = ({ active, payload }) => {
   );
 };
 
-export const ChartSection = ({ viajes }) => {
+export const ChartSection = ({ viajes, divisa = 'USD' }) => {
+  const fmt = (value) => formatCurrency(value, divisa);
   const [barHovered, setBarHovered] = useState(false);
   const [pieHovered, setPieHovered] = useState(false);
 
@@ -137,7 +134,7 @@ export const ChartSection = ({ viajes }) => {
                   tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`}
                   width={42}
                 />
-                <Tooltip content={<CustomTooltipBar />} cursor={{ fill: 'rgba(255,255,255,0.03)', radius: 4 }} />
+                <Tooltip content={<CustomTooltipBar fmt={fmt} />} cursor={{ fill: 'rgba(255,255,255,0.03)', radius: 4 }} />
                 <Bar dataKey="pagado"    name="Pagado"    fill="#0d9488" radius={[4,4,0,0]} shape={<CustomBarShape />} isAnimationActive animationDuration={900} animationEasing="ease-out" />
                 <Bar dataKey="pendiente" name="Pendiente" fill="#f43f5e" radius={[4,4,0,0]} shape={<CustomBarShape />} isAnimationActive animationDuration={900} animationEasing="ease-out" animationBegin={150} />
               </BarChart>
@@ -208,7 +205,7 @@ export const ChartSection = ({ viajes }) => {
                     <Cell key={i} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip content={<CustomTooltipPie />} />
+                <Tooltip content={<CustomTooltipPie fmt={fmt} />} />
               </PieChart>
             </ResponsiveContainer>
 

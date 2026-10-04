@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useDivisa } from '../../hooks/useDivisa';
 import { useHabitacionesContext } from '../../Context/HabitacionesContext';
 import { HabitacionCard } from './HabitacionCard';
 import ModalDetallesHabitacion from '../Modals/ModalDetallesHabitacion';
@@ -18,13 +19,8 @@ const getColorForEtiqueta = (etiqueta, etiquetasOrdenadas) => {
   return COLORES_ETIQUETA[idx % COLORES_ETIQUETA.length];
 };
 
-const formatCurrency = (value) =>
-  new Intl.NumberFormat('es-DO', {
-    style: 'currency', currency: 'USD',
-    minimumFractionDigits: 0, maximumFractionDigits: 0,
-  }).format(value || 0);
-
 const HabitacionesList = () => {
+  const { fmt: formatCurrency } = useDivisa();
   const { state } = useHabitacionesContext();
   const { habitaciones, filtros } = state;
   const [selectedHabitacion, setSelectedHabitacion] = useState(null);

@@ -4,6 +4,7 @@ import { ChartSection } from './ChartSection';
 import { ViajesTable } from './ViajesTable';
 import { fetchDashboardStats } from '../../utils/api';
 import { useHabitacionesContext } from '../../Context/HabitacionesContext';
+import { divisaPrincipal } from '../../utils/formatters';
 
 export const DashboardFull = ({ onSelectViaje }) => {
   const { state } = useHabitacionesContext();
@@ -94,13 +95,7 @@ export const DashboardFull = ({ onSelectViaje }) => {
     ? ((totalPagado / totalPorCobrar) * 100).toFixed(1)
     : 0;
 
-  const formatCurrency = (value) =>
-    new Intl.NumberFormat('es-DO', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value);
+  const divisa = divisaPrincipal(viajes);
 
   return (
     <div className="space-y-6">
@@ -108,13 +103,13 @@ export const DashboardFull = ({ onSelectViaje }) => {
         totalViajes={viajes.length}
         resorts={viajes.filter((v) => v.tipo === 'resort').length}
         tours={viajes.filter((v) => v.tipo === 'tour').length}
-        recaudado={formatCurrency(totalPagado)}
+        divisa={divisa}
         totalPagadoRaw={totalPagado}
         porcentaje={porcentajeGlobal}
         porcentajeRaw={parseFloat(porcentajeGlobal)}
       />
 
-      <ChartSection viajes={viajesProcesados} />
+      <ChartSection viajes={viajesProcesados} divisa={divisa} />
 
       <ViajesTable viajes={viajesProcesados} onSelectViaje={onSelectViaje} />
     </div>

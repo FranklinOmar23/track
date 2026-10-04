@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useHabitacionesContext } from '../../Context/HabitacionesContext';
-import { X, Save, Plus, Minus, Gift } from 'lucide-react';
+import { X, Save, Minus } from 'lucide-react';
+import { EtiquetaFields, NinosFields, StackToggle } from './HabitacionFormFields';
 import * as api from '../../utils/api';
+import { capacidadPorTipo } from '../../utils/calculos';
 
 const ModalEditarHabitacion = ({ habitacion, open, onClose }) => {
   const { editarHabitacion, cargarHabitaciones, state } = useHabitacionesContext();
@@ -37,7 +39,7 @@ const ModalEditarHabitacion = ({ habitacion, open, onClose }) => {
       const ninosExistentes = todasPersonas.filter((p) => p.esNino || /\(\d+ años\)/.test(p.n));
       const adultos = todasPersonas.filter((p) => !p.esNino && !/\(\d+ años\)/.test(p.n));
 
-      const slots = (habActual.tipo === 'Triple' ? 3 : habActual.tipo === 'Doble' ? 2 : 1);
+      const slots = capacidadPorTipo(habActual.tipo);
       const loaded = adultos.map((p) => ({ id: p.id, nombre: p.n }));
       while (loaded.length < slots) loaded.push({ nombre: '' });
       setPersonas(loaded);
@@ -61,12 +63,9 @@ const ModalEditarHabitacion = ({ habitacion, open, onClose }) => {
 
   if (!open || !habitacion) return null;
 
-  const numSlots = tipo === 'Triple' ? 3 : tipo === 'Doble' ? 2 : 1;
+  const numSlots = capacidadPorTipo(tipo);
 
   const etiquetaFinal    = etiqueta === '__nueva__' ? etiquetaNueva.trim() : etiqueta;
-  const agregarNino      = () => setNinos([...ninos, { nombre: '', edad: '', gratis: false }]);
-  const eliminarNino     = (idx) => setNinos(ninos.filter((_, i) => i !== idx));
-  const actualizarNino   = (idx, campo, valor) => setNinos(ninos.map((n, i) => i === idx ? { ...n, [campo]: valor } : n));
   const actualizarPersona = (idx, valor) => setPersonas((prev) => {
     const copy = [...prev];
     copy[idx] = { ...(copy[idx] || {}), nombre: valor };
@@ -81,7 +80,7 @@ const ModalEditarHabitacion = ({ habitacion, open, onClose }) => {
 
   const handleTipoChange = (nuevoTipo) => {
     setTipo(nuevoTipo);
-    const slots = nuevoTipo === 'Triple' ? 3 : nuevoTipo === 'Doble' ? 2 : 1;
+    const slots = capacidadPorTipo(nuevoTipo);
     setPersonas((prev) => {
       const copy = [...prev];
       while (copy.length < slots) copy.push({ nombre: '' });
@@ -185,25 +184,14 @@ const ModalEditarHabitacion = ({ habitacion, open, onClose }) => {
             </select>
           </div>
 
-          <div>
-            <label className="modal-section-label">Centro / Etiqueta</label>
-            <select className="input-dark" value={etiqueta}
-              onChange={(e) => { setEtiqueta(e.target.value); if (e.target.value !== '__nueva__') setEtiquetaNueva(''); }}
-              disabled={loading}>
-              <option value="">Sin etiqueta</option>
-              {etiquetasExistentes.map((e) => <option key={e} value={e}>{e}</option>)}
-              <option value="__nueva__">+ Nueva etiqueta...</option>
-            </select>
-          </div>
-
-          {etiqueta === '__nueva__' && (
-            <div>
-              <label className="modal-section-label">Nombre de la etiqueta</label>
-              <input className="input-dark" type="text" value={etiquetaNueva}
-                onChange={(e) => setEtiquetaNueva(e.target.value)}
-                placeholder="Ej: Centro Nueva Isabela" autoFocus disabled={loading} />
-            </div>
-          )}
+          <EtiquetaFields
+            etiqueta={etiqueta}
+            onEtiquetaChange={setEtiqueta}
+            nueva={etiquetaNueva}
+            onNuevaChange={setEtiquetaNueva}
+            opciones={etiquetasExistentes}
+            disabled={loading}
+          />
 
           {/* Personas adultas */}
           <div>
@@ -231,96 +219,21 @@ const ModalEditarHabitacion = ({ habitacion, open, onClose }) => {
             </div>
           </div>
 
-          {/* Niños toggle */}
-          <div>
-            <button type="button" disabled={loading}
-              onClick={() => { setHayNinos(!hayNinos); if (hayNinos) { setNinos([{ nombre: '', edad: '', gratis: false }]); setPrecioNino(''); } }}
-              className="flex items-center gap-2.5 w-full px-3.5 py-2.5 rounded-xl transition-all duration-200"
-              style={{
-                background: hayNinos ? 'rgba(245,158,11,0.1)' : 'rgba(255,255,255,0.04)',
-                border: `1px solid ${hayNinos ? 'rgba(245,158,11,0.3)' : 'rgba(255,255,255,0.08)'}`,
-              }}>
-              <div className="w-4 h-4 rounded flex items-center justify-center shrink-0"
-                style={{ background: hayNinos ? '#f59e0b' : 'rgba(255,255,255,0.1)', transition: 'background 150ms' }}>
-                {hayNinos && <span className="text-[10px] font-bold text-black">✓</span>}
-              </div>
-              <span className="text-sm font-medium" style={{ color: hayNinos ? '#fbbf24' : 'rgba(255,255,255,0.5)' }}>
-                ¿Hay niños en esta habitación?
-              </span>
-            </button>
-          </div>
+          <NinosFields
+            hayNinos={hayNinos}
+            onHayNinosChange={setHayNinos}
+            ninos={ninos}
+            onNinosChange={setNinos}
+            precioNino={precioNino}
+            onPrecioNinoChange={setPrecioNino}
+            stackActivo={stackActivo}
+            disabled={loading}
+          />
 
-          {hayNinos && (
-            <div className="space-y-2 pl-1">
-              {ninos.map((nino, idx) => (
-                <div key={idx} className="rounded-xl p-3 space-y-2"
-                  style={{ background: nino.gratis ? 'rgba(16,185,129,0.05)' : 'rgba(255,255,255,0.03)', border: `1px solid ${nino.gratis ? 'rgba(16,185,129,0.2)' : 'rgba(255,255,255,0.06)'}`, transition: 'all 200ms' }}>
-                  <div className="flex gap-2 items-center">
-                    <input className="input-dark flex-1" type="text" value={nino.nombre}
-                      onChange={(e) => actualizarNino(idx, 'nombre', e.target.value)}
-                      placeholder={`Niño ${idx + 1} — nombre`} disabled={loading} />
-                    <input className="input-dark" type="number" value={nino.edad}
-                      onChange={(e) => actualizarNino(idx, 'edad', e.target.value)}
-                      placeholder="Edad" min="0" max="17" style={{ width: '70px' }} disabled={loading} />
-                    {ninos.length > 1 && (
-                      <button type="button" onClick={() => eliminarNino(idx)} disabled={loading}
-                        className="p-1.5 rounded-lg text-rose-400 hover:bg-rose-500/10 transition-colors shrink-0">
-                        <Minus className="h-3.5 w-3.5" />
-                      </button>
-                    )}
-                  </div>
-                  <button type="button" disabled={loading}
-                    onClick={() => actualizarNino(idx, 'gratis', !nino.gratis)}
-                    className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg transition-all duration-150 text-left w-full"
-                    style={{ background: nino.gratis ? 'rgba(16,185,129,0.1)' : 'rgba(255,255,255,0.03)', border: `1px solid ${nino.gratis ? 'rgba(16,185,129,0.25)' : 'rgba(255,255,255,0.06)'}` }}>
-                    <div className="w-3.5 h-3.5 rounded flex items-center justify-center shrink-0"
-                      style={{ background: nino.gratis ? '#10b981' : 'rgba(255,255,255,0.1)', transition: 'background 150ms' }}>
-                      {nino.gratis && <span className="text-[9px] font-bold text-black">✓</span>}
-                    </div>
-                    <Gift className="h-3 w-3 shrink-0" style={{ color: nino.gratis ? '#34d399' : 'rgba(255,255,255,0.3)' }} />
-                    <span className="text-xs" style={{ color: nino.gratis ? '#34d399' : 'rgba(255,255,255,0.35)' }}>
-                      {nino.gratis ? 'No paga — entra gratis' : 'Marcar como gratis (no paga)'}
-                    </span>
-                  </button>
-                </div>
-              ))}
-              <button type="button" onClick={agregarNino} disabled={loading}
-                className="flex items-center gap-1.5 text-xs text-teal-400 hover:text-teal-300 transition-colors px-1 py-0.5">
-                <Plus className="h-3 w-3" /> Agregar otro niño
-              </button>
-              <div className="mt-2">
-                <label className="modal-section-label">Precio por niño ($)</label>
-                <input className="input-dark" type="number" value={precioNino}
-                  onChange={(e) => setPrecioNino(e.target.value)} placeholder="0"
-                  disabled={stackActivo || loading} />
-              </div>
-            </div>
-          )}
-
-          {/* STACK toggle */}
-          <div>
-            <button type="button" disabled={loading}
-              onClick={() => setStackActivo(!stackActivo)}
-              className="flex items-center gap-2.5 w-full px-3.5 py-2.5 rounded-xl transition-all duration-200"
-              style={{
-                background: stackActivo ? 'rgba(16,185,129,0.1)' : 'rgba(255,255,255,0.04)',
-                border: `1px solid ${stackActivo ? 'rgba(16,185,129,0.3)' : 'rgba(255,255,255,0.08)'}`,
-              }}>
-              <div className="w-4 h-4 rounded flex items-center justify-center shrink-0"
-                style={{ background: stackActivo ? '#10b981' : 'rgba(255,255,255,0.1)', transition: 'background 150ms' }}>
-                {stackActivo && <span className="text-[10px] font-bold text-black">✓</span>}
-              </div>
-              <span className="text-sm font-bold" style={{ color: stackActivo ? '#34d399' : 'rgba(255,255,255,0.5)' }}>
-                STACK
-              </span>
-              <span className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
-                {stackActivo ? '— no paga' : '— habitación normal'}
-              </span>
-            </button>
-          </div>
+          <StackToggle activo={stackActivo} onChange={setStackActivo} disabled={loading} />
 
           <div>
-            <label className="modal-section-label">Total habitación ($)</label>
+            <label className="modal-section-label">Total habitación</label>
             <input className="input-dark" type="number" value={total}
               onChange={(e) => setTotal(e.target.value)} placeholder="0"
               disabled={stackActivo || loading} />

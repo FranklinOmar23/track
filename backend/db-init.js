@@ -37,10 +37,22 @@ export const initDb = async () => {
     )
   `);
 
-  // Ganancia y estado (abierto/cerrado) por viaje
+  // Columnas agregadas con el tiempo (idempotente). Antes se ejecutaban en cada request.
+  try {
+    await pool.query('ALTER TABLE personas ADD COLUMN IF NOT EXISTS es_gratis TINYINT(1) NOT NULL DEFAULT 0');
+  } catch (error) {
+    console.error('No se pudo agregar personas.es_gratis:', error.message);
+  }
+
+  // Edad mínima de pago, compartir, ganancia y estado (abierto/cerrado) por viaje
   try {
     await pool.query(`
       ALTER TABLE viajes
+        ADD COLUMN IF NOT EXISTS edad_minima_pago INT NOT NULL DEFAULT 0,
+        ADD COLUMN IF NOT EXISTS token_compartir VARCHAR(100),
+        ADD COLUMN IF NOT EXISTS compartir_activo TINYINT(1) DEFAULT 1,
+        ADD COLUMN IF NOT EXISTS expira_compartir DATETIME NULL,
+        ADD COLUMN IF NOT EXISTS tipo_compartir VARCHAR(20) DEFAULT 'completo',
         ADD COLUMN IF NOT EXISTS ganancia_tipo VARCHAR(20) NOT NULL DEFAULT 'ninguna',
         ADD COLUMN IF NOT EXISTS ganancia_valor DECIMAL(12,2) NOT NULL DEFAULT 0,
         ADD COLUMN IF NOT EXISTS estado VARCHAR(20) NOT NULL DEFAULT 'activo',

@@ -41,8 +41,6 @@ export const login = (username, password) =>
     body: JSON.stringify({ username, password }),
   });
 
-export const fetchMe = () => request('/api/auth/me');
-
 export const fetchLogs = (limit) =>
   request(`/api/logs${limit ? `?limit=${limit}` : ''}`);
 
@@ -149,11 +147,6 @@ export const cambiarEstadoViaje = (id, estado) =>
   request(`/api/viajes/${id}/estado`, {
     method: 'PATCH',
     body: JSON.stringify({ estado }),
-  });
-
-export const ensureDefaultViaje = () =>
-  request('/api/viajes/default', {
-    method: 'POST',
   });
 
 export const fetchDashboardStats = () => request('/api/stats/dashboard');
