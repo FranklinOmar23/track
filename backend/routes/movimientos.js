@@ -1,6 +1,6 @@
 import { asyncRouter } from '../utils/asyncRouter.js';
 import pool from '../db.js';
-import { capacidadPorTipo, tipoPorOcupacion } from '../utils/habitacion.js';
+import { capacidadPorTipo, contarAdultos, ajustarTipoPorAdultos } from '../utils/habitacion.js';
 import { movimientoAbierto } from '../utils/viajeCerrado.js';
 import { registrarLog } from '../utils/log.js';
 
@@ -34,12 +34,7 @@ router.post('/', movimientoAbierto, async (req, res) => {
     const destTipoActual = destHabRows[0].tipo;
     const capacidadActual = capacidadPorTipo(destTipoActual);
 
-    const [ocupacionRows] = await connection.query(
-      'SELECT COUNT(*) AS total FROM personas WHERE habitacion_id = ? AND nombre IS NOT NULL AND nombre != ""',
-      [destinoHabitacionId]
-    );
-
-    const ocupadosDestino = ocupacionRows[0].total;
+    const ocupadosDestino = await contarAdultos(connection, destinoHabitacionId);
 
     if (ocupadosDestino > capacidadActual) {
       await connection.rollback();
@@ -63,31 +58,9 @@ router.post('/', movimientoAbierto, async (req, res) => {
       [personaId, habitacionOrigenId, destinoHabitacionId]
     );
 
-    // Auto-actualizar tipo de habitación destino
-    const nuevoOcupadosDestino = ocupadosDestino + 1;
-    const nuevoTipoDestino = tipoPorOcupacion(nuevoOcupadosDestino);
-
-    if (nuevoTipoDestino !== destTipoActual) {
-      await connection.query('UPDATE habitaciones SET tipo = ? WHERE id = ?', [nuevoTipoDestino, destinoHabitacionId]);
-    }
-
-    // Auto-actualizar tipo de habitación origen
-    const [ocupacionOrigenRows] = await connection.query(
-      'SELECT COUNT(*) AS total FROM personas WHERE habitacion_id = ? AND nombre IS NOT NULL AND nombre != ""',
-      [habitacionOrigenId]
-    );
-
-    // El conteo ya excluye a la persona movida (se hace después del UPDATE)
-    const nuevoOcupadosOrigen = ocupacionOrigenRows[0].total;
-
-    if (nuevoOcupadosOrigen > 0) {
-      const nuevoTipoOrigen = tipoPorOcupacion(nuevoOcupadosOrigen);
-      const [habOrigenTipo] = await connection.query('SELECT tipo FROM habitaciones WHERE id = ?', [habitacionOrigenId]);
-
-      if (nuevoTipoOrigen !== habOrigenTipo[0].tipo) {
-        await connection.query('UPDATE habitaciones SET tipo = ? WHERE id = ?', [nuevoTipoOrigen, habitacionOrigenId]);
-      }
-    }
+    // Ajustar el tipo de ambas habitaciones según sus adultos
+    await ajustarTipoPorAdultos(connection, destinoHabitacionId);
+    await ajustarTipoPorAdultos(connection, habitacionOrigenId);
 
     await connection.commit();
     registrarLog(req.usuario, 'mover', 'movimiento', personaId, `${req.usuario} movió a la persona ${personaId} a la habitación ${destinoHabitacionId}`);

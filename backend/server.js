@@ -38,6 +38,8 @@ const corsOptions = {
 };
 
 const app = express();
+// Detrás del proxy de Hostinger: usar la IP real del cliente (para el límite de intentos de login)
+app.set('trust proxy', 1);
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
 app.use(express.json());

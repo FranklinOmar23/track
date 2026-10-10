@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs';
 import pool from '../db.js';
 import { requireAuth } from '../middleware/auth.js';
 import { registrarLog } from '../utils/log.js';
+import { minutosBloqueado, registrarFallo, limpiarFallos } from '../utils/limiteLogin.js';
 
 const router = asyncRouter();
 
@@ -13,6 +14,11 @@ router.post('/login', async (req, res, next) => {
 
     if (!username || !password) {
       return res.status(400).json({ error: 'Usuario y contraseña son requeridos.' });
+    }
+
+    const espera = minutosBloqueado(req, username);
+    if (espera > 0) {
+      return res.status(429).json({ error: `Demasiados intentos fallidos. Intenta de nuevo en ${espera} min.` });
     }
 
     if (!process.env.JWT_SECRET) {
@@ -27,6 +33,7 @@ router.post('/login', async (req, res, next) => {
     );
 
     if (!rows.length) {
+      registrarFallo(req, username);
       return res.status(401).json({ error: 'Usuario o contraseña incorrectos' });
     }
 
@@ -34,8 +41,11 @@ router.post('/login', async (req, res, next) => {
     const passwordValida = await bcrypt.compare(password, usuario.password_hash);
 
     if (!passwordValida) {
+      registrarFallo(req, username);
       return res.status(401).json({ error: 'Usuario o contraseña incorrectos' });
     }
+
+    limpiarFallos(req, username);
 
     const token = jwt.sign(
       { username: usuario.username },

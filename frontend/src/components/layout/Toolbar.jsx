@@ -1,11 +1,14 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useHabitacionesContext } from '../../Context/HabitacionesContext';
+import { rutaViaje } from '../../utils/rutas';
 import ModalAgregarViaje from '../Modals/ModalAgregarViaje';
 import ModalCompartir from '../Modals/ModalCompartir';
 import { Search, Plus, Share2 } from 'lucide-react';
 
 const Toolbar = ({ onOpenAgregar, onOpenDesglose }) => {
-  const { state, setFiltros, crearViaje, seleccionarViaje, soloLectura } = useHabitacionesContext();
+  const { state, setFiltros, crearViaje, soloLectura } = useHabitacionesContext();
+  const navigate = useNavigate();
   const { busqueda, estado } = state.filtros;
   const [isAgregarViajeOpen, setIsAgregarViajeOpen] = useState(false);
   const [isCompartirOpen, setIsCompartirOpen] = useState(false);
@@ -28,12 +31,12 @@ const Toolbar = ({ onOpenAgregar, onOpenDesglose }) => {
         <select
           value={selectedViajeId || ''}
           onChange={(e) => {
-            const id = e.target.value === '' ? null : e.target.value;
-            seleccionarViaje(id);
+            // El value del <select> es texto: buscar el viaje por id numérico y navegar a su URL
+            const destino = viajes.find((v) => String(v.id) === e.target.value);
+            if (destino) navigate(rutaViaje(destino));
           }}
           className="flex-1 min-w-0 border border-white/[0.07] rounded-lg px-3 py-2 bg-[#1a1f2e] text-gray-200 text-sm"
         >
-          <option value="">Seleccionar viaje</option>
           {viajes.map((v) => (
             <option key={v.id} value={v.id}>
               {v.nombre}

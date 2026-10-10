@@ -54,6 +54,16 @@ export const calcularCuotaPersona = (habitacion, persona) => {
   return cantidadAdultos > 0 ? habitacion.total / cantidadAdultos : 0;
 };
 
+/** Total real que se debe cobrar en la habitación (suma de cuotas: adultos + niños que pagan). */
+export const calcularTotalHabitacion = (habitacion) =>
+  habitacion.personas
+    .filter((p) => p.n)
+    .reduce((sum, p) => sum + calcularCuotaPersona(habitacion, p), 0);
+
+/** Adultos de la habitación (los niños no ocupan cupo para el tipo Single/Doble/Triple). */
+export const contarAdultos = (habitacion) =>
+  habitacion.personas.filter((p) => p.n && !p.esNino && !/\(\d+ años?\)/.test(p.n)).length;
+
 /** Pendiente de una persona = cuota − pagado (mínimo 0). */
 export const calcularPendientePersona = (habitacion, persona) => {
   const cuota = calcularCuotaPersona(habitacion, persona);

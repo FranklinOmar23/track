@@ -9,7 +9,7 @@ const TabTendencias = ({ datos, fmt }) => {
         {/* Evolución */}
         <ChartPanel
           title="Evolución de Recaudación"
-          subtitle="Dinero cobrado (verde) vs lo que falta por cobrar (rojo) en cada mes registrado"
+          subtitle="Dinero cobrado en cada mes (verde) y total acumulado (morado)"
           orbColor="#0d9488"
         >
           {tendenciasData.length === 0 ? <EmptyChart /> : (
@@ -32,7 +32,7 @@ const TabTendencias = ({ datos, fmt }) => {
                     tickFormatter={(v) => fmt(v, true)} width={44} />
                   <Tooltip content={<CustomTooltip formatter={(v) => fmt(v)} />} />
                   <Area type="monotone" dataKey="pagado"    stroke="#0d9488" fill="url(#gPagado)"    strokeWidth={2} name="Pagado"    isAnimationActive animationDuration={900} animationEasing="ease-out" />
-                  <Area type="monotone" dataKey="pendiente" stroke="#f43f5e" fill="url(#gPendiente)" strokeWidth={2} name="Pendiente" isAnimationActive animationDuration={900} animationEasing="ease-out" />
+                  <Area type="monotone" dataKey="acumulado" stroke="#6366f1" fill="url(#gPendiente)" strokeWidth={2} name="Acumulado" isAnimationActive animationDuration={900} animationEasing="ease-out" />
                 </AreaChart>
               </ResponsiveContainer>
             </div>

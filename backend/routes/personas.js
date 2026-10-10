@@ -1,8 +1,9 @@
 import { asyncRouter } from '../utils/asyncRouter.js';
 import pool from '../db.js';
-import { tipoPorOcupacion } from '../utils/habitacion.js';
+import { ajustarTipoPorAdultos } from '../utils/habitacion.js';
 import { personaParamAbierta } from '../utils/viajeCerrado.js';
 import { registrarLog } from '../utils/log.js';
+import { normalizarPago } from '../utils/pago.js';
 
 const router = asyncRouter();
 
@@ -39,43 +40,43 @@ router.put('/:id', personaParamAbierta, async (req, res) => {
 
 router.post('/:id/pagos', personaParamAbierta, async (req, res) => {
   const personaId = Number(req.params.id);
-  const { mes, monto } = req.body;
-
-  if (!mes || typeof monto !== 'number') {
-    return res.status(400).json({ error: 'Mes y monto son requeridos.' });
+  const pago = normalizarPago(req.body);
+  if (pago.error) {
+    return res.status(400).json({ error: pago.error });
   }
+  const { mes, monto, anio } = pago;
 
   const [result] = await pool.query(
-    'INSERT INTO pagos (persona_id, mes, monto) VALUES (?, ?, ?)',
-    [personaId, mes, monto]
+    'INSERT INTO pagos (persona_id, mes, monto, anio) VALUES (?, ?, ?, ?)',
+    [personaId, mes, monto, anio]
   );
 
-  registrarLog(req.usuario, 'pago', 'pago', result.insertId, `${req.usuario} registró un pago de ${monto} (${mes}) a la persona ${personaId}`);
+  registrarLog(req.usuario, 'pago', 'pago', result.insertId, `${req.usuario} registró un pago de ${monto} (${mes} ${anio}) a la persona ${personaId}`);
 
-  res.status(201).json({ id: result.insertId, personaId, mes, monto });
+  res.status(201).json({ id: result.insertId, personaId, mes, monto, anio });
 });
 
 router.put('/:id/pagos/:pagoId', personaParamAbierta, async (req, res) => {
   const personaId = Number(req.params.id);
   const pagoId = Number(req.params.pagoId);
-  const { mes, monto } = req.body;
-
-  if (!mes || typeof monto !== 'number') {
-    return res.status(400).json({ error: 'Mes y monto son requeridos.' });
+  const pago = normalizarPago(req.body);
+  if (pago.error) {
+    return res.status(400).json({ error: pago.error });
   }
+  const { mes, monto, anio } = pago;
 
   const [result] = await pool.query(
-    'UPDATE pagos SET mes = ?, monto = ? WHERE id = ? AND persona_id = ?',
-    [mes, monto, pagoId, personaId]
+    'UPDATE pagos SET mes = ?, monto = ?, anio = ? WHERE id = ? AND persona_id = ?',
+    [mes, monto, anio, pagoId, personaId]
   );
 
   if (result.affectedRows === 0) {
     return res.status(404).json({ error: 'Pago no encontrado.' });
   }
 
-  registrarLog(req.usuario, 'editar', 'pago', pagoId, `${req.usuario} editó el pago ${pagoId} de la persona ${personaId} a ${monto} (${mes})`);
+  registrarLog(req.usuario, 'editar', 'pago', pagoId, `${req.usuario} editó el pago ${pagoId} de la persona ${personaId} a ${monto} (${mes} ${anio})`);
 
-  res.json({ id: pagoId, personaId, mes, monto });
+  res.json({ id: pagoId, personaId, mes, monto, anio });
 });
 
 router.delete('/:id/pagos/:pagoId', personaParamAbierta, async (req, res) => {
@@ -116,25 +117,7 @@ router.delete('/:id', personaParamAbierta, async (req, res) => {
     const habitacionId = personaRows[0].habitacion_id;
     await connection.query('DELETE FROM personas WHERE id = ?', [personaId]);
 
-    const [remaining] = await connection.query(
-      'SELECT COUNT(*) as count FROM personas WHERE habitacion_id = ? AND nombre IS NOT NULL AND nombre != ""',
-      [habitacionId]
-    );
-
-    const newOccupancy = remaining[0].count;
-    const newTipo = tipoPorOcupacion(newOccupancy);
-
-    const [habitacion] = await connection.query(
-      'SELECT tipo FROM habitaciones WHERE id = ?',
-      [habitacionId]
-    );
-
-    if (newOccupancy > 0 && habitacion.length && newTipo !== habitacion[0].tipo) {
-      await connection.query(
-        'UPDATE habitaciones SET tipo = ? WHERE id = ?',
-        [newTipo, habitacionId]
-      );
-    }
+    await ajustarTipoPorAdultos(connection, habitacionId);
 
     await connection.commit();
     registrarLog(req.usuario, 'eliminar', 'persona', personaId, `${req.usuario} eliminó a la persona ${personaId}`);

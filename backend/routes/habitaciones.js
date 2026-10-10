@@ -1,6 +1,6 @@
 import { asyncRouter } from '../utils/asyncRouter.js';
 import pool from '../db.js';
-import { capacidadPorTipo } from '../utils/habitacion.js';
+import { capacidadPorTipo, contarAdultos } from '../utils/habitacion.js';
 import { viajeBodyAbierto, habitacionParamAbierta } from '../utils/viajeCerrado.js';
 import { registrarLog } from '../utils/log.js';
 
@@ -48,6 +48,7 @@ const mapHabitaciones = (rows) => {
         persona.pagos.push({
           id: row.pago_id,
           mes: row.mes,
+          anio: row.anio,
           monto: Number(row.monto),
         });
       }
@@ -85,6 +86,7 @@ router.get('/', async (req, res) => {
       p.es_gratis,
       pag.id AS pago_id,
       pag.mes,
+      COALESCE(pag.anio, YEAR(pag.created_at)) AS anio,
       pag.monto
     FROM habitaciones h
     LEFT JOIN viajes v ON h.viaje_id = v.id
@@ -235,16 +237,11 @@ router.patch('/:id/tipo', habitacionParamAbierta, async (req, res) => {
     return res.status(400).json({ error: 'Tipo inválido.' });
   }
 
-  const [hab] = await pool.query(
-    'SELECT COUNT(*) as ocupados FROM personas WHERE habitacion_id = ? AND nombre IS NOT NULL AND nombre != ""',
-    [habitacionId]
-  );
-
-  const ocupados = hab[0].ocupados;
+  const ocupados = await contarAdultos(pool, habitacionId);
   const capacidadRequerida = capacidadPorTipo(nuevoTipo);
 
   if (ocupados > capacidadRequerida) {
-    return res.status(400).json({ error: `No se puede cambiar a ${nuevoTipo} con ${ocupados} personas.` });
+    return res.status(400).json({ error: `No se puede cambiar a ${nuevoTipo} con ${ocupados} adultos.` });
   }
 
   await pool.query('UPDATE habitaciones SET tipo = ? WHERE id = ?', [nuevoTipo, habitacionId]);

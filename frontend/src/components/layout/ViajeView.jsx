@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useHabitacionesContext } from '../../Context/HabitacionesContext';
 import { useAuthContext } from '../../Context/AuthContext';
@@ -20,25 +20,28 @@ const ViajeView = ({ onBack }) => {
   const [isDesgloseOpen, setIsDesgloseOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [viaje, setViaje] = useState(null);
-  const hasLoaded = useRef(false);
-
+  // Recargar cada vez que cambia el slug (p. ej. al elegir otro viaje en el selector).
+  // seleccionarViaje cambia de identidad en cada render del contexto, por eso no va en las dependencias.
   useEffect(() => {
-    if (hasLoaded.current) return;
-    hasLoaded.current = true;
+    let cancelado = false;
     const cargarViaje = async () => {
+      setLoading(true);
       try {
         const viajeData = await fetchViajeBySlug(slug);
+        if (cancelado) return;
         setViaje(viajeData);
         await seleccionarViaje(viajeData.id);
       } catch (err) {
         console.error(err);
-        navigate('/');
+        if (!cancelado) navigate('/');
       } finally {
-        setLoading(false);
+        if (!cancelado) setLoading(false);
       }
     };
     cargarViaje();
-  }, [slug, seleccionarViaje, navigate]);
+    return () => { cancelado = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slug]);
 
   if (loading) return (
     <div className="min-h-screen bg-[#0f1117] flex items-center justify-center">

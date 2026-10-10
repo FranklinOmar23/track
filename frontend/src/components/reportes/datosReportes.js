@@ -1,4 +1,4 @@
-import { formatCurrency } from '../../utils/formatters';
+import { formatCurrency, clavePeriodo, etiquetaPeriodo } from '../../utils/formatters';
 import { calcularTotalPagado, calcularPorcentaje, calcularRankingPersonas } from '../../utils/calculos';
 
 // Estilos compartidos de gráficas
@@ -39,23 +39,34 @@ export const construirDatosReportes = ({ pagosPorMes, porEtiqueta, comparativa, 
     ? Number(((totalRecaudado / totalPorCobrar) * 100).toFixed(1)) : 0;
 
   // ── Tendencias ───────────────────────────────────────────────────────────────
-  const tendenciasData = MESES.map((mes) => {
-    const row = pagosPorMes.find((r) => r.mes === mes);
-    const pagado = row ? Number(row.total) : 0;
-    return { mes, pagado, pendiente: Math.max(0, totalPorCobrar / 12 - pagado) };
-  }).filter((r) => r.pagado > 0 || r.pendiente > 0);
+  // Periodos (mes + año) en orden cronológico; el backend ya los agrupa por año
+  const periodos = [...pagosPorMes]
+    .sort((a, b) => clavePeriodo(a.mes, a.anio) - clavePeriodo(b.mes, b.anio))
+    .map((r) => ({ mes: r.mes, anio: r.anio, total: Number(r.total) || 0 }));
 
-  const proyeccionData = MESES.map((mes, i) => {
-    const actual = pagosPorMes.find((r) => r.mes === mes)?.total || null;
-    const tendencia = actual !== null ? null : (() => {
-      const last = pagosPorMes.slice(-1)[0]?.total || 0;
-      const slope = pagosPorMes.length > 1
-        ? (pagosPorMes[pagosPorMes.length - 1].total - pagosPorMes[0].total) / pagosPorMes.length
-        : 0;
-      return Math.max(0, last + slope * (i - (pagosPorMes.length - 1)));
-    })();
-    return { mes, actual: actual ? Number(actual) : null, tendencia };
+  // Cobrado en cada periodo + acumulado (antes "pendiente" era total/12 − pagado, un valor inventado)
+  let acumulado = 0;
+  const tendenciasData = periodos.map((p) => {
+    acumulado += p.total;
+    return { mes: etiquetaPeriodo(p.mes, p.anio), pagado: p.total, acumulado };
   });
+
+  // Proyección lineal simple de los próximos 3 meses a partir de la serie real
+  const siguientePeriodo = ({ mes, anio }) => {
+    const idx = MESES.indexOf(mes);
+    return idx === 11 ? { mes: MESES[0], anio: anio + 1 } : { mes: MESES[idx + 1], anio };
+  };
+  const proyeccionData = periodos.map((p) => ({ mes: etiquetaPeriodo(p.mes, p.anio), actual: p.total, tendencia: null }));
+  if (periodos.length > 0) {
+    const ultimo = periodos[periodos.length - 1];
+    const pendienteSerie = periodos.length > 1 ? (ultimo.total - periodos[0].total) / (periodos.length - 1) : 0;
+    proyeccionData[proyeccionData.length - 1].tendencia = ultimo.total; // une la línea real con la proyección
+    let p = ultimo;
+    for (let k = 1; k <= 3; k += 1) {
+      p = siguientePeriodo(p);
+      proyeccionData.push({ mes: etiquetaPeriodo(p.mes, p.anio), actual: null, tendencia: Math.max(0, ultimo.total + pendienteSerie * k) });
+    }
+  }
 
   // Comparativa de viajes para barchart
   const comparativaData = comparativa.slice(0, 8).map((v) => ({
@@ -72,13 +83,17 @@ export const construirDatosReportes = ({ pagosPorMes, porEtiqueta, comparativa, 
     ? pagosMesViaje.filter((r) => String(r.viaje_id) === String(viajeId))
     : pagosMesViaje;
   const porViaje = new Map();
+  const etiquetas = new Map(); // clave de periodo → "Ene 2026"
   pagosFiltrados.forEach((r) => {
     if (!porViaje.has(r.viaje_id)) porViaje.set(r.viaje_id, { nombre: r.viaje_nombre, meses: {}, total: 0 });
     const v = porViaje.get(r.viaje_id);
-    v.meses[r.mes] = (v.meses[r.mes] || 0) + Number(r.total);
+    const clave = clavePeriodo(r.mes, r.anio);
+    v.meses[clave] = (v.meses[clave] || 0) + Number(r.total);
+    etiquetas.set(clave, etiquetaPeriodo(r.mes, r.anio));
     v.total += Number(r.total);
   });
-  const heatmapMeses = MESES.filter((m) => [...porViaje.values()].some((v) => v.meses[m]));
+  const clavesPeriodo = [...etiquetas.keys()].sort((a, b) => a - b);
+  const heatmapMeses = clavesPeriodo.map((c) => etiquetas.get(c));
   const maxCelda = Math.max(1, ...[...porViaje.values()].flatMap((v) => Object.values(v.meses)));
   const heatmapRows = [...porViaje.values()]
     .sort((x, y) => y.total - x.total)
@@ -86,9 +101,9 @@ export const construirDatosReportes = ({ pagosPorMes, porEtiqueta, comparativa, 
     .map((v) => ({
       viaje: v.nombre,
       total: v.total,
-      celdas: heatmapMeses.map((mes) => {
-        const total = v.meses[mes] || 0;
-        return { mes, total, val: Math.round((total / maxCelda) * 100) };
+      celdas: clavesPeriodo.map((clave) => {
+        const total = v.meses[clave] || 0;
+        return { mes: etiquetas.get(clave), total, val: Math.round((total / maxCelda) * 100) };
       }),
     }));
 

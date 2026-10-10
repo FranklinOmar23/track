@@ -92,13 +92,6 @@ const ModalEditarHabitacion = ({ habitacion, open, onClose }) => {
     if (!num.trim() || !tipo) return;
     setLoading(true);
     try {
-      await editarHabitacion(habActual.id, {
-        num: num.trim(), tipo,
-        total: stackActivo ? 0 : parseFloat(total) || 0,
-        precioNino: hayNinos ? (parseFloat(precioNino) || 0) : 0,
-        etiqueta: etiquetaFinal, stack: stackActivo,
-      });
-
       const personasOriginales = (habActual.personas || []).filter(
         (p) => !p.esNino && !/\(\d+ años\)/.test(p.n)
       );
@@ -135,6 +128,14 @@ const ModalEditarHabitacion = ({ habitacion, open, onClose }) => {
           await api.agregarPersonaHabitacion(habActual.id, { nombre: label, esNino: true, esGratis: !!nino.gratis });
         }
       }
+
+      // Al final: el backend ajusta el tipo al borrar personas; el tipo elegido aquí debe prevalecer
+      await editarHabitacion(habActual.id, {
+        num: num.trim(), tipo,
+        total: stackActivo ? 0 : parseFloat(total) || 0,
+        precioNino: hayNinos ? (parseFloat(precioNino) || 0) : 0,
+        etiqueta: etiquetaFinal, stack: stackActivo,
+      });
 
       if (state.selectedViajeId) await cargarHabitaciones(state.selectedViajeId);
       onClose();

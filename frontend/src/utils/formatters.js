@@ -1,6 +1,10 @@
 export const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
                       'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 
+/** Clave ordenable y etiqueta de un periodo (mes + año) de pago. */
+export const clavePeriodo = (mes, anio) => (Number(anio) || 0) * 100 + MESES.indexOf(mes);
+export const etiquetaPeriodo = (mes, anio) => (anio ? `${mes} ${anio}` : mes);
+
 const LOCALE_MAP = {
   USD: 'en-US',
   DOP: 'es-DO',

@@ -1,5 +1,6 @@
 import { Plus, ArrowRightLeft, CreditCard, Gift } from 'lucide-react';
 import { calcularCuotaPersona, ninoDebePagar } from '../../utils/calculos';
+import { etiquetaPeriodo } from '../../utils/formatters';
 
 /** Tarjeta de una persona en el detalle de habitación: pagos, cuota y acciones. */
 const PersonaDetalle = ({ persona, habitacion, fmt, soloLectura, onPago, onMover }) => {
@@ -69,7 +70,7 @@ const PersonaDetalle = ({ persona, habitacion, fmt, soloLectura, onPago, onMover
             title={soloLectura ? undefined : 'Click para editar/eliminar pago'}
           >
             <CreditCard className="h-2.5 w-2.5" />
-            {pago.mes} — {fmt(pago.monto)}
+            {etiquetaPeriodo(pago.mes, pago.anio)} — {fmt(pago.monto)}
           </button>
         ))}
         {(!persona.pagos || persona.pagos.length === 0) && (

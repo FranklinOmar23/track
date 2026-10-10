@@ -44,6 +44,14 @@ export const initDb = async () => {
     console.error('No se pudo agregar personas.es_gratis:', error.message);
   }
 
+  // Año de cada pago (antes solo se guardaba el mes). Los existentes toman el año de created_at.
+  try {
+    await pool.query('ALTER TABLE pagos ADD COLUMN IF NOT EXISTS anio SMALLINT NULL');
+    await pool.query('UPDATE pagos SET anio = YEAR(COALESCE(created_at, NOW())) WHERE anio IS NULL');
+  } catch (error) {
+    console.error('No se pudo agregar pagos.anio:', error.message);
+  }
+
   // Edad mínima de pago, compartir, ganancia y estado (abierto/cerrado) por viaje
   try {
     await pool.query(`

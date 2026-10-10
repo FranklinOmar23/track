@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Tag, ChevronRight } from 'lucide-react';
 import { useDivisa } from '../../hooks/useDivisa';
+import { calcularTotalHabitacion } from '../../utils/calculos';
 
 const COLORES_ETIQUETA = [
   { bg: 'bg-teal-900/40',   text: 'text-teal-400',   border: 'border-teal-600/40',   accent: '13,148,136'  },
@@ -38,8 +39,9 @@ export const HabitacionCard = ({ habitacion, onSelect, index = 0 }) => {
     (sum, p) => sum + (p.pagos?.reduce((s, pg) => s + (pg.monto || 0), 0) || 0),
     0
   );
-  const totalHabitacion = habitacion.total || 0;
-  const pendiente  = totalHabitacion - totalPagado;
+  // Total real: cuota de adultos + niños que pagan (igual que el detalle de la habitación)
+  const totalHabitacion = calcularTotalHabitacion(habitacion);
+  const pendiente  = Math.max(0, totalHabitacion - totalPagado);
   const porcentaje = totalHabitacion > 0 ? (totalPagado / totalHabitacion) * 100 : 0;
   const isStack    = habitacion.stack;
   const hasPersonas = habitacion.personas && habitacion.personas.length > 0;

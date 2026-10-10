@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useHabitacionesContext } from '../../Context/HabitacionesContext';
 import { MESES } from '../../utils/formatters';
+import { calcularPendientePersona } from '../../utils/calculos';
 import { X, CreditCard, Trash2, Save } from 'lucide-react';
 
 const ModalRegistrarPago = ({ habId, persona, pago = null, onClose }) => {
   const { state, registrarPago, actualizarPago, eliminarPago } = useHabitacionesContext();
   const [mes, setMes]       = useState('');
   const [monto, setMonto]   = useState('');
+  const [anio, setAnio]     = useState(new Date().getFullYear());
   const [loading, setLoading] = useState(false);
 
   const habitacion = state.habitaciones.find((hab) => hab.id === habId);
@@ -15,23 +17,26 @@ const ModalRegistrarPago = ({ habId, persona, pago = null, onClose }) => {
     if (pago) {
       setMes(pago.mes);
       setMonto(pago.monto);
+      setAnio(pago.anio || new Date().getFullYear());
       return;
     }
     const fechaActual = new Date();
     setMes(MESES[fechaActual.getMonth()]);
-    if (habitacion && !habitacion.stack && habitacion.total > 0) {
-      const cantidadPersonas = habitacion.personas.filter((p) => p.n).length;
-      const cuotaIdeal  = Math.round(habitacion.total / cantidadPersonas);
-      const pagadoPersona = persona.pagos.reduce((sum, pagoItem) => sum + pagoItem.monto, 0);
-      const pendiente   = Math.max(0, cuotaIdeal - pagadoPersona);
-      setMonto(pendiente);
+    setAnio(fechaActual.getFullYear());
+    // Sugerir lo que le falta a esta persona según su cuota real (adulto, niño o gratis)
+    if (habitacion && !habitacion.stack) {
+      setMonto(Math.round(calcularPendientePersona(habitacion, persona)) || '');
     }
-  }, [habitacion, pago, persona.pagos]);
+  }, [habitacion, pago, persona]);
 
   const handleSubmit = async () => {
-    if (!mes || !monto) return;
+    const montoNum = parseFloat(monto);
+    if (!mes || !(montoNum > 0)) {
+      alert('El monto debe ser mayor que 0.');
+      return;
+    }
     setLoading(true);
-    const pagoData = { mes, monto: parseFloat(monto) };
+    const pagoData = { mes, anio: Number(anio), monto: montoNum };
     try {
       if (pago?.id) {
         await actualizarPago(persona.id, pago.id, pagoData);
@@ -87,17 +92,28 @@ const ModalRegistrarPago = ({ habId, persona, pago = null, onClose }) => {
 
         <div className="relative px-5 py-4 space-y-4">
 
-          <div>
-            <label className="modal-section-label">Mes</label>
-            <select className="input-dark" value={mes}
-              onChange={(e) => setMes(e.target.value)} disabled={loading}>
-              {MESES.map((m) => <option key={m} value={m}>{m}</option>)}
-            </select>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="modal-section-label">Mes</label>
+              <select className="input-dark" value={mes}
+                onChange={(e) => setMes(e.target.value)} disabled={loading}>
+                {MESES.map((m) => <option key={m} value={m}>{m}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="modal-section-label">Año</label>
+              <select className="input-dark" value={anio}
+                onChange={(e) => setAnio(Number(e.target.value))} disabled={loading}>
+                {[...new Set([anio, ...[-1, 0, 1].map((d) => new Date().getFullYear() + d)])]
+                  .sort()
+                  .map((a) => <option key={a} value={a}>{a}</option>)}
+              </select>
+            </div>
           </div>
 
           <div>
-            <label className="modal-section-label">Monto ($)</label>
-            <input className="input-dark" type="number" value={monto}
+            <label className="modal-section-label">Monto</label>
+            <input className="input-dark" type="number" min="0.01" step="any" value={monto}
               onChange={(e) => setMonto(e.target.value)} placeholder="0"
               disabled={loading} autoFocus={!pago} />
           </div>

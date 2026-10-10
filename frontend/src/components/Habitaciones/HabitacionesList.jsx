@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useDivisa } from '../../hooks/useDivisa';
+import { calcularTotalHabitacion } from '../../utils/calculos';
 import { useHabitacionesContext } from '../../Context/HabitacionesContext';
 import { HabitacionCard } from './HabitacionCard';
 import ModalDetallesHabitacion from '../Modals/ModalDetallesHabitacion';
@@ -162,7 +163,7 @@ const HabitacionesList = () => {
               ? getColorForEtiqueta(clave, etiquetasUnicas)
               : { bg: 'bg-white/10', text: 'text-gray-400', border: 'border-white/10', header: 'bg-white/[0.03] border-white/[0.07]', dot: '#6b7280' };
 
-            const totalGrupo   = habs.reduce((s, h) => s + (h.total || 0), 0);
+            const totalGrupo   = habs.reduce((s, h) => s + calcularTotalHabitacion(h), 0);
             const pagadoGrupo  = habs.reduce(
               (s, h) => s + h.personas.reduce(
                 (sp, p) => sp + (p.pagos?.reduce((sg, pg) => sg + pg.monto, 0) || 0), 0

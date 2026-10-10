@@ -6,7 +6,7 @@ const TabDistribucion = ({ datos }) => {
   const { tipoData, estadoData } = datos;
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-in">
-      <ChartPanel title="Distribución por Tipo" subtitle="Cuántas habitaciones hay de cada tipo (Single, Doble, Triple) en el viaje seleccionado" orbColor="#0d9488">
+      <ChartPanel title="Distribución por Tipo" subtitle="Cuántas habitaciones hay de cada tipo (Single, Doble, Triple) según el filtro de viaje de arriba" orbColor="#0d9488">
         {tipoData.length === 0 ? <EmptyChart /> : (
           <>
             <div className="h-56">

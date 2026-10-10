@@ -17,6 +17,7 @@ const ModalAgregarHabitacion = ({ open, onClose }) => {
   const [etiquetaPersonalizada, setEtiquetaPersonalizada] = useState('');
   const [hayNinos, setHayNinos]       = useState(false);
   const [ninos, setNinos]             = useState([{ nombre: '', edad: '', gratis: false }]);
+  const [guardando, setGuardando]     = useState(false);
 
   const etiquetasExistentes = [...new Set(
     state.habitaciones.map((h) => h.etiqueta).filter(Boolean)
@@ -34,7 +35,7 @@ const ModalAgregarHabitacion = ({ open, onClose }) => {
 
   const etiquetaFinal = etiqueta === '__nueva__' ? etiquetaPersonalizada.trim() : etiqueta;
 
-  const handleGuardar = () => {
+  const handleGuardar = async () => {
     if (!numero.trim() || !persona1.trim() || (!stackActivo && !total)) {
       alert('Complete los datos obligatorios.');
       return;
@@ -49,13 +50,20 @@ const ModalAgregarHabitacion = ({ open, onClose }) => {
         personas.push({ n: label, pagos: [], esNino: true, esGratis: !!n.gratis });
       });
     }
-    agregarHabitacion({
-      num: numero.trim(), tipo,
-      total: stackActivo ? 0 : parseFloat(total) || 0,
-      precioNino: parseFloat(precioNino) || 0,
-      stack: stackActivo, nota: '', etiqueta: etiquetaFinal, personas,
-    });
-    onClose();
+    setGuardando(true);
+    try {
+      await agregarHabitacion({
+        num: numero.trim(), tipo,
+        total: stackActivo ? 0 : parseFloat(total) || 0,
+        precioNino: parseFloat(precioNino) || 0,
+        stack: stackActivo, nota: '', etiqueta: etiquetaFinal, personas,
+      });
+      onClose();
+    } catch (error) {
+      alert(`No se pudo guardar la habitación: ${error.message}`);
+    } finally {
+      setGuardando(false);
+    }
   };
 
   return (
@@ -143,9 +151,9 @@ const ModalAgregarHabitacion = ({ open, onClose }) => {
           {/* Actions */}
           <div className="flex items-center justify-end gap-2 pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
             <button type="button" className="btn-modal-secondary" onClick={onClose}>Cancelar</button>
-            <button type="button" className="btn-modal-primary" onClick={handleGuardar}>
+            <button type="button" className="btn-modal-primary" onClick={handleGuardar} disabled={guardando}>
               <Plus className="h-4 w-4" />
-              Guardar habitación
+              {guardando ? 'Guardando...' : 'Guardar habitación'}
             </button>
           </div>
         </div>

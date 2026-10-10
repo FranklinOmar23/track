@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useHabitacionesContext } from '../../Context/HabitacionesContext';
 import { X, ArrowRightLeft } from 'lucide-react';
-import { capacidadPorTipo } from '../../utils/calculos';
+import { capacidadPorTipo, contarAdultos } from '../../utils/calculos';
 
 const ModalMoverPersona = ({ habOrigen, persona, onClose }) => {
   const { state, moverPersona } = useHabitacionesContext();
 
   const destinos = state.habitaciones.filter((hab) => {
     if (hab.id === habOrigen) return false;
-    const ocupados  = hab.personas.filter((p) => p.n).length;
+    const ocupados  = contarAdultos(hab);
     const capacidad = capacidadPorTipo(hab.tipo);
     return ocupados <= capacidad;
   });
@@ -74,12 +74,12 @@ const ModalMoverPersona = ({ habOrigen, persona, onClose }) => {
                 <select className="input-dark" value={destinoSeleccionado}
                   onChange={(e) => setDestinoSeleccionado(e.target.value)}>
                   {destinos.map((hab) => {
-                    const ocupados  = hab.personas.filter((p) => p.n).length;
+                    const ocupados  = contarAdultos(hab);
                     const capacidad = capacidadPorTipo(hab.tipo);
                     const llena     = ocupados >= capacidad;
                     const label     = llena
                       ? `Hab ${hab.num} (${hab.tipo} → ${hab.tipo === 'Single' ? 'Doble' : 'Triple'})`
-                      : `Hab ${hab.num} — ${hab.tipo} (${ocupados}/${capacidad} personas)`;
+                      : `Hab ${hab.num} — ${hab.tipo} (${ocupados}/${capacidad} adultos)`;
                     return <option key={hab.id} value={hab.id}>{label}</option>;
                   })}
                 </select>

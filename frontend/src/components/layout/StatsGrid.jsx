@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useHabitacionesContext } from '../../Context/HabitacionesContext';
-import { calcularEstadisticas, calcularTotalPagado, calcularGanancia } from '../../utils/calculos';
+import { calcularEstadisticas, calcularTotalPagado, calcularTotalHabitacion, calcularGanancia } from '../../utils/calculos';
 import { useDivisa } from '../../hooks/useDivisa';
 import ModalNumerosHabitaciones from '../Modals/ModalNumerosHabitaciones';
 import ModalTopPagadores from '../Modals/ModalTopPagadores';
@@ -29,7 +29,7 @@ const StatsGrid = () => {
   const habitaciones = state.habitaciones.length;
   const stackCount = state.habitaciones.filter((hab) => hab.stack).length;
   const completas = state.habitaciones.filter(
-    (hab) => hab.stack || calcularTotalPagado(hab) >= hab.total
+    (hab) => hab.stack || calcularTotalPagado(hab) >= calcularTotalHabitacion(hab)
   ).length;
 
   return (

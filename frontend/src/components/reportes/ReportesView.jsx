@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useHabitacionesContext } from '../../Context/HabitacionesContext';
 import {
   fetchPagosPorMes, fetchReportePorEtiqueta,
-  fetchComparativaViajes, fetchPagosMesViaje,
+  fetchComparativaViajes, fetchPagosMesViaje, fetchHabitaciones,
 } from '../../utils/api';
 import { exportarHabitacionesExcel } from '../../utils/exportExcel';
 import { divisaPrincipal } from '../../utils/formatters';
@@ -28,6 +28,8 @@ const ReportesView = () => {
   const [porEtiqueta, setPorEtiqueta]     = useState([]);
   const [comparativa, setComparativa]     = useState([]);
   const [pagosMesViaje, setPagosMesViaje] = useState([]);
+  // Habitaciones del filtro de Reportes (no las del último viaje abierto en la app)
+  const [habitaciones, setHabitaciones]   = useState([]);
 
   const viajes = state.viajes || [];
   // Divisa del viaje filtrado, o la más usada si se ven todos
@@ -40,16 +42,18 @@ const ReportesView = () => {
     setLoading(true);
     try {
       const vid = viajeId || undefined;
-      const [pxm, pet, comp, pmv] = await Promise.all([
+      const [pxm, pet, comp, pmv, habs] = await Promise.all([
         fetchPagosPorMes(vid),
         fetchReportePorEtiqueta(vid),
         fetchComparativaViajes(),
         fetchPagosMesViaje(),
+        fetchHabitaciones(vid),
       ]);
       setPagosPorMes(pxm);
       setPorEtiqueta(pet);
       setComparativa(comp);
       setPagosMesViaje(pmv);
+      setHabitaciones(habs);
     } catch (e) {
       console.error(e);
     } finally {
@@ -60,7 +64,7 @@ const ReportesView = () => {
   useEffect(() => { cargarDatos(); }, [cargarDatos]);
 
   const datos = construirDatosReportes({
-    pagosPorMes, porEtiqueta, comparativa, pagosMesViaje, habitaciones: state.habitaciones, viajeId,
+    pagosPorMes, porEtiqueta, comparativa, pagosMesViaje, habitaciones, viajeId,
   });
   const { totalRecaudado, totalHabs, totalPax, totalPorCobrar, tasaCobro } = datos;
 
@@ -68,7 +72,7 @@ const ReportesView = () => {
   const handleExportPDF   = () => window.print();
   const handleExportExcel = () => {
     const viajeActual = viajes.find((v) => String(v.id) === String(viajeId));
-    exportarHabitacionesExcel(state.habitaciones, viajeActual);
+    exportarHabitacionesExcel(habitaciones, viajeActual);
   };
 
   const ready = !loading;

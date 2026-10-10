@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useHabitacionesContext } from '../../Context/HabitacionesContext';
 import styles from '../styles/components/modals.module.css';
-import { MESES } from '../../utils/formatters';
+import { clavePeriodo, etiquetaPeriodo } from '../../utils/formatters';
 import { useDivisa } from '../../hooks/useDivisa';
 
 const ModalDesgloseGeneral = ({ onClose }) => {
@@ -9,21 +9,19 @@ const ModalDesgloseGeneral = ({ onClose }) => {
   const { fmt } = useDivisa();
 
   const resumen = useMemo(() => {
+    // Agrupar por mes + año (antes se mezclaban meses de años distintos)
     const map = new Map();
-    MESES.forEach((m) => map.set(m, 0));
-
     state.habitaciones.forEach((hab) => {
       hab.personas.forEach((persona) => {
         (persona.pagos || []).forEach((pago) => {
-          const mes = pago.mes || '';
-          if (!map.has(mes)) map.set(mes, 0);
-          map.set(mes, map.get(mes) + Number(pago.monto || 0));
+          const clave = clavePeriodo(pago.mes, pago.anio);
+          if (!map.has(clave)) map.set(clave, { mes: etiquetaPeriodo(pago.mes, pago.anio), total: 0 });
+          map.get(clave).total += Number(pago.monto || 0);
         });
       });
     });
 
-    // convertir a array y ordenar por meses definidos (MESES)
-    return MESES.map((m) => ({ mes: m, total: map.get(m) || 0 }));
+    return [...map.entries()].sort(([a], [b]) => a - b).map(([, v]) => v);
   }, [state.habitaciones]);
 
   const totalGeneral = resumen.reduce((s, r) => s + r.total, 0);

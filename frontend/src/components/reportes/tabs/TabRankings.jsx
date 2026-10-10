@@ -21,14 +21,14 @@ const TabRankings = ({ datos, fmt }) => {
       <RankingList
         valueFmt={fmt}
         title="Personas que más pagan"
-        subtitle="Suma de pagos por persona, en el viaje activo"
+        subtitle="Suma de pagos por persona, según el filtro de viaje de arriba"
         items={rankingTopPagadores}
         orbColor="#10b981"
       />
       <RankingList
         valueFmt={fmt}
         title="Personas con más deuda pendiente"
-        subtitle="Lo que aún deben, en el viaje activo"
+        subtitle="Lo que aún deben, según el filtro de viaje de arriba"
         items={rankingDeudores}
         orbColor="#f43f5e"
       />

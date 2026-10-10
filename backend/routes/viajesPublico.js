@@ -1,5 +1,6 @@
 import { asyncRouter } from '../utils/asyncRouter.js';
 import pool from '../db.js';
+import { cuotasHabitacion } from '../utils/totales.js';
 
 const router = asyncRouter();
 
@@ -44,7 +45,7 @@ router.get('/:token', async (req, res) => {
       SELECT
         h.id, h.numero, h.tipo, h.total, h.precio_nino, h.es_stack, h.nota, h.etiqueta,
         p.id as persona_id, p.nombre as persona_nombre, p.posicion, p.es_nino, p.es_gratis,
-        pag.id as pago_id, pag.mes, pag.monto
+        pag.id as pago_id, pag.mes, COALESCE(pag.anio, YEAR(pag.created_at)) AS anio, pag.monto
       FROM habitaciones h
       LEFT JOIN personas p ON p.habitacion_id = h.id
       LEFT JOIN pagos pag ON pag.persona_id = p.id
@@ -88,11 +89,39 @@ router.get('/:token', async (req, res) => {
           persona.pagos.push({
             id: row.pago_id,
             mes: row.mes,
+            anio: row.anio,
             monto: Number(row.monto)
           });
         }
       }
     });
+
+    let habitacionesRespuesta = Array.from(habitacionesMap.values());
+
+    // "Solo pendientes": filtrar en el servidor para no exponer a quienes ya pagaron
+    if (viaje.tipo_compartir === 'pendientes') {
+      habitacionesRespuesta = habitacionesRespuesta
+        .map((hab) => {
+          const cuotas = cuotasHabitacion({
+            total: hab.total,
+            precioNino: hab.precioNino,
+            personas: hab.personas.map((p) => ({
+              id: p.id, nombre: p.n, esNino: p.esNino, esGratis: p.esGratis,
+            })),
+          }, viaje.edad_minima_pago);
+          const pendientes = new Set(
+            cuotas
+              .filter((c) => {
+                const persona = hab.personas.find((p) => p.id === c.id);
+                const pagado = persona.pagos.reduce((s, pg) => s + pg.monto, 0);
+                return c.cuota - pagado > 0;
+              })
+              .map((c) => c.id)
+          );
+          return { ...hab, personas: hab.personas.filter((p) => pendientes.has(p.id)) };
+        })
+        .filter((hab) => hab.personas.length > 0);
+    }
 
     res.json({
       viaje: {
@@ -103,7 +132,7 @@ router.get('/:token', async (req, res) => {
         expiraCompartir: viaje.expira_compartir,
         tipoCompartir: viaje.tipo_compartir || 'completo'
       },
-      habitaciones: Array.from(habitacionesMap.values())
+      habitaciones: habitacionesRespuesta
     });
   } catch (error) {
     console.error('Error obteniendo viaje público:', error);

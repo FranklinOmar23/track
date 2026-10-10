@@ -9,6 +9,7 @@ import ReportesView from './components/reportes/ReportesView';
 import ActividadView from './components/logs/ActividadView';
 import LoginView from './components/auth/LoginView';
 import './components/styles/global.css';
+import { rutaViaje } from './utils/rutas';
 
 
 function RequireAuth({ children }) {
@@ -23,8 +24,7 @@ function AppContent() {
   const navigate = useNavigate();
 
   const handleSelectViaje = (viaje) => {
-    const tipoUrl = viaje.tipo === 'tour' ? 'tour' : 'resort';
-    navigate(`/${tipoUrl}/${viaje.slug || viaje.nombre.toLowerCase().replace(/ /g, '-')}`);
+    navigate(rutaViaje(viaje));
   };
 
   const handleBack = () => {

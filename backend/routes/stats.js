@@ -3,86 +3,55 @@ import pool from '../db.js';
 import { registrarLog } from '../utils/log.js';
 import { normalizarGanancia } from '../utils/ganancia.js';
 import { calcularGananciasPorViaje } from '../utils/gananciaReporte.js';
+import { cargarHabitacionesPorViaje, sumarResumenes, redondear } from '../utils/totales.js';
 
 const router = asyncRouter();
 
 // ─── DASHBOARD EXISTENTE ────────────────────────────────────────────────────
 
 router.get('/dashboard', async (req, res) => {
-  try {
-    const [statsViajes] = await pool.query(`
-      SELECT 
-        v.id,
-        v.nombre,
-        COALESCE(v.tipo, 'resort') as tipo,
-        v.slug,
-        v.fecha_inicio,
-        v.fecha_fin,
-        COALESCE(v.estado, 'activo') as estado,
-        COALESCE(v.ganancia_tipo, 'ninguna') as ganancia_tipo,
-        COALESCE(v.ganancia_valor, 0) as ganancia_valor,
-        COALESCE(
-          (SELECT SUM(h.total) FROM habitaciones h WHERE h.viaje_id = v.id), 0
-        ) as total_por_cobrar,
-        COALESCE(
-          (SELECT SUM(p.monto)
-            FROM pagos p
-            JOIN personas pers ON p.persona_id = pers.id
-            JOIN habitaciones h ON pers.habitacion_id = h.id
-            WHERE h.viaje_id = v.id), 0
-        ) as total_pagado,
-        COALESCE(
-          (SELECT COUNT(DISTINCT h.id) FROM habitaciones h WHERE h.viaje_id = v.id), 0
-        ) as total_habitaciones,
-        COALESCE(
-          (SELECT COUNT(DISTINCT pers.id)
-            FROM personas pers
-            JOIN habitaciones h ON pers.habitacion_id = h.id
-            WHERE h.viaje_id = v.id), 0
-        ) as total_personas,
-        COALESCE(
-          (SELECT COUNT(DISTINCT pers.id)
-            FROM personas pers
-            JOIN habitaciones h ON pers.habitacion_id = h.id
-            WHERE h.viaje_id = v.id
-              AND pers.nombre IS NOT NULL AND pers.nombre != ''
-              AND COALESCE(pers.es_gratis, 0) = 0), 0
-        ) as personas_pagan
-      FROM viajes v
-      ORDER BY v.id DESC
-    `);
+  const [viajes] = await pool.query(`
+    SELECT id, nombre, COALESCE(tipo, 'resort') AS tipo, COALESCE(divisa, 'USD') AS divisa, slug,
+           COALESCE(estado, 'activo') AS estado, fecha_inicio, fecha_fin,
+           COALESCE(edad_minima_pago, 0) AS edad_minima_pago,
+           COALESCE(ganancia_tipo, 'ninguna') AS ganancia_tipo,
+           COALESCE(ganancia_valor, 0) AS ganancia_valor
+    FROM viajes
+    ORDER BY id DESC
+  `);
+  const habsPorViaje = await cargarHabitacionesPorViaje(pool);
 
-    const viajesConPendiente = statsViajes.map(v => ({
+  const viajesConTotales = viajes.map((v) => {
+    const r = sumarResumenes(habsPorViaje.get(v.id) || [], v.edad_minima_pago);
+    return {
       ...v,
-      total_por_cobrar: Number(v.total_por_cobrar),
-      total_pagado: Number(v.total_pagado),
-      pendiente: Number(v.total_por_cobrar) - Number(v.total_pagado),
-      total_habitaciones: Number(v.total_habitaciones),
-      total_personas: Number(v.total_personas),
-      personas_pagan: Number(v.personas_pagan),
-      ganancia_valor: Number(v.ganancia_valor),
-    }));
+      ganancia_valor: Number(v.ganancia_valor) || 0,
+      total_por_cobrar: redondear(r.totalPorCobrar),
+      total_pagado: redondear(r.pagado),
+      pendiente: redondear(Math.max(0, r.totalPorCobrar - r.pagado)),
+      total_habitaciones: r.habitaciones,
+      total_personas: r.personas,
+      personas_pagan: r.pax,
+    };
+  });
 
-    const totalGlobalPorCobrar = viajesConPendiente.reduce((s, v) => s + v.total_por_cobrar, 0);
-    const totalGlobalPagado    = viajesConPendiente.reduce((s, v) => s + v.total_pagado,    0);
+  const totalGlobalPorCobrar = viajesConTotales.reduce((s, v) => s + v.total_por_cobrar, 0);
+  const totalGlobalPagado    = viajesConTotales.reduce((s, v) => s + v.total_pagado, 0);
 
-    res.json({
-      resumen: {
-        total_viajes: viajesConPendiente.length,
-        total_resorts: viajesConPendiente.filter(v => v.tipo === 'resort').length,
-        total_tours:   viajesConPendiente.filter(v => v.tipo === 'tour').length,
-        total_por_cobrar: totalGlobalPorCobrar,
-        total_pagado:     totalGlobalPagado,
-        total_pendiente:  totalGlobalPorCobrar - totalGlobalPagado,
-        porcentaje_pagado: totalGlobalPorCobrar > 0
-          ? ((totalGlobalPagado / totalGlobalPorCobrar) * 100).toFixed(1)
-          : 0,
-      },
-      viajes: viajesConPendiente,
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+  res.json({
+    resumen: {
+      total_viajes: viajesConTotales.length,
+      total_resorts: viajesConTotales.filter((v) => v.tipo === 'resort').length,
+      total_tours:   viajesConTotales.filter((v) => v.tipo === 'tour').length,
+      total_por_cobrar: totalGlobalPorCobrar,
+      total_pagado:     totalGlobalPagado,
+      total_pendiente:  Math.max(0, totalGlobalPorCobrar - totalGlobalPagado),
+      porcentaje_pagado: totalGlobalPorCobrar > 0
+        ? ((totalGlobalPagado / totalGlobalPorCobrar) * 100).toFixed(1)
+        : 0,
+    },
+    viajes: viajesConTotales,
+  });
 });
 
 // ─── REPORTE: PAGOS POR MES (global o filtrado por viaje) ───────────────────
@@ -96,6 +65,7 @@ router.get('/reportes/pagos-por-mes', async (req, res) => {
 
     const [rows] = await pool.query(`
       SELECT
+        COALESCE(p.anio, YEAR(p.created_at)) AS anio,
         p.mes,
         SUM(p.monto) as total,
         COUNT(p.id)  as cantidad_pagos
@@ -103,14 +73,15 @@ router.get('/reportes/pagos-por-mes', async (req, res) => {
       JOIN personas pers ON p.persona_id = pers.id
       JOIN habitaciones h ON pers.habitacion_id = h.id
       WHERE 1=1 ${whereViaje}
-      GROUP BY p.mes
-      ORDER BY FIELD(p.mes,
+      GROUP BY anio, p.mes
+      ORDER BY anio, FIELD(p.mes,
         'Ene','Feb','Mar','Abr','May','Jun',
         'Jul','Ago','Sep','Oct','Nov','Dic'
       )
     `, params);
 
     res.json(rows.map(r => ({
+      anio: Number(r.anio),
       mes: r.mes,
       total: Number(r.total),
       cantidad_pagos: Number(r.cantidad_pagos),
@@ -123,106 +94,71 @@ router.get('/reportes/pagos-por-mes', async (req, res) => {
 // ─── REPORTE: RESUMEN POR ETIQUETA (global o por viaje) ─────────────────────
 // GET /api/stats/reportes/por-etiqueta?viajeId=X
 router.get('/reportes/por-etiqueta', async (req, res) => {
-  try {
-    const { viajeId } = req.query;
-    const whereH  = viajeId ? 'WHERE viaje_id = ?' : '';
-    const whereHh = viajeId ? 'WHERE h.viaje_id = ?' : '';
-    const p1 = viajeId ? [Number(viajeId)] : [];
-    const p2 = viajeId ? [Number(viajeId)] : [];
+  const { viajeId } = req.query;
+  const [viajes] = await pool.query(
+    `SELECT id, COALESCE(edad_minima_pago, 0) AS edad_minima_pago FROM viajes${viajeId ? ' WHERE id = ?' : ''}`,
+    viajeId ? [Number(viajeId)] : []
+  );
+  const habsPorViaje = await cargarHabitacionesPorViaje(pool, viajeId || null);
 
-    // Dos subqueries para evitar la multiplicación de SUM(h.total) por el JOIN
-    const [rows] = await pool.query(`
-      SELECT
-        et.etiqueta,
-        et.habitaciones,
-        et.total_por_cobrar,
-        COALESCE(pag.personas,     0) AS personas,
-        COALESCE(pag.total_pagado, 0) AS total_pagado
-      FROM (
-        SELECT
-          COALESCE(NULLIF(etiqueta,''), 'Sin etiqueta') AS etiqueta,
-          COUNT(id)  AS habitaciones,
-          SUM(total) AS total_por_cobrar
-        FROM habitaciones
-        ${whereH}
-        GROUP BY COALESCE(NULLIF(etiqueta,''), 'Sin etiqueta')
-      ) et
-      LEFT JOIN (
-        SELECT
-          COALESCE(NULLIF(h.etiqueta,''), 'Sin etiqueta') AS etiqueta,
-          COUNT(DISTINCT pers.id)          AS personas,
-          COALESCE(SUM(p.monto), 0)        AS total_pagado
-        FROM habitaciones h
-        LEFT JOIN personas pers ON pers.habitacion_id = h.id
-        LEFT JOIN pagos    p    ON p.persona_id       = pers.id
-        ${whereHh}
-        GROUP BY COALESCE(NULLIF(h.etiqueta,''), 'Sin etiqueta')
-      ) pag ON pag.etiqueta = et.etiqueta
-      ORDER BY et.total_por_cobrar DESC
-    `, [...p1, ...p2]);
+  const porEtiqueta = new Map();
+  viajes.forEach((v) => {
+    (habsPorViaje.get(v.id) || []).forEach((h) => {
+      const etiqueta = h.etiqueta || 'Sin etiqueta';
+      if (!porEtiqueta.has(etiqueta)) porEtiqueta.set(etiqueta, { etiqueta, habs: [], edad: v.edad_minima_pago });
+      porEtiqueta.get(etiqueta).habs.push({ h, edad: v.edad_minima_pago });
+    });
+  });
 
-    res.json(rows.map(r => ({
-      etiqueta: r.etiqueta,
-      habitaciones: Number(r.habitaciones),
-      personas:     Number(r.personas),
-      total_por_cobrar: Number(r.total_por_cobrar),
-      total_pagado:     Number(r.total_pagado),
-      pendiente: Number(r.total_por_cobrar) - Number(r.total_pagado),
-      porcentaje: r.total_por_cobrar > 0
-        ? ((Number(r.total_pagado) / Number(r.total_por_cobrar)) * 100).toFixed(1)
-        : 0,
-    })));
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+  const filas = [...porEtiqueta.values()].map(({ etiqueta, habs }) => {
+    const r = habs.reduce((acc, { h, edad }) => {
+      const x = sumarResumenes([h], edad);
+      acc.totalPorCobrar += x.totalPorCobrar; acc.pagado += x.pagado; acc.personas += x.personas;
+      return acc;
+    }, { totalPorCobrar: 0, pagado: 0, personas: 0 });
+    return {
+      etiqueta,
+      habitaciones: habs.length,
+      personas: r.personas,
+      total_por_cobrar: redondear(r.totalPorCobrar),
+      total_pagado: redondear(r.pagado),
+      pendiente: redondear(Math.max(0, r.totalPorCobrar - r.pagado)),
+      porcentaje: r.totalPorCobrar > 0 ? ((r.pagado / r.totalPorCobrar) * 100).toFixed(1) : 0,
+    };
+  });
+
+  res.json(filas.sort((a, b) => b.total_por_cobrar - a.total_por_cobrar));
 });
 
 // ─── REPORTE: COMPARATIVA ENTRE VIAJES ──────────────────────────────────────
 // GET /api/stats/reportes/comparativa-viajes
 router.get('/reportes/comparativa-viajes', async (req, res) => {
-  try {
-    const [rows] = await pool.query(`
-      SELECT
-        v.id,
-        v.nombre,
-        COALESCE(v.tipo,'resort') as tipo,
-        v.fecha_inicio,
-        COALESCE((SELECT SUM(h.total) FROM habitaciones h WHERE h.viaje_id = v.id), 0) as total_por_cobrar,
-        COALESCE((
-          SELECT SUM(p.monto)
-          FROM pagos p
-          JOIN personas pers ON p.persona_id = pers.id
-          JOIN habitaciones h ON pers.habitacion_id = h.id
-          WHERE h.viaje_id = v.id
-        ), 0) as total_pagado,
-        COALESCE((SELECT COUNT(*) FROM habitaciones h WHERE h.viaje_id = v.id), 0) as habitaciones,
-        COALESCE((
-          SELECT COUNT(DISTINCT pers.id)
-          FROM personas pers
-          JOIN habitaciones h ON pers.habitacion_id = h.id
-          WHERE h.viaje_id = v.id
-        ), 0) as personas
-      FROM viajes v
-      ORDER BY v.id DESC
-    `);
+  const [viajes] = await pool.query(`
+    SELECT id, nombre, COALESCE(tipo, 'resort') AS tipo, COALESCE(divisa, 'USD') AS divisa, slug,
+           COALESCE(estado, 'activo') AS estado, fecha_inicio, fecha_fin,
+           COALESCE(edad_minima_pago, 0) AS edad_minima_pago,
+           COALESCE(ganancia_tipo, 'ninguna') AS ganancia_tipo,
+           COALESCE(ganancia_valor, 0) AS ganancia_valor
+    FROM viajes
+    ORDER BY id DESC
+  `);
+  const habsPorViaje = await cargarHabitacionesPorViaje(pool);
 
-    res.json(rows.map(r => ({
-      id: r.id,
-      nombre: r.nombre,
-      tipo: r.tipo,
-      fecha_inicio: r.fecha_inicio,
-      total_por_cobrar: Number(r.total_por_cobrar),
-      total_pagado: Number(r.total_pagado),
-      pendiente: Number(r.total_por_cobrar) - Number(r.total_pagado),
-      habitaciones: Number(r.habitaciones),
-      personas: Number(r.personas),
-      porcentaje: r.total_por_cobrar > 0
-        ? ((Number(r.total_pagado) / Number(r.total_por_cobrar)) * 100).toFixed(1)
-        : 0,
-    })));
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+  res.json(viajes.map((v) => {
+    const r = sumarResumenes(habsPorViaje.get(v.id) || [], v.edad_minima_pago);
+    return {
+      id: v.id,
+      nombre: v.nombre,
+      tipo: v.tipo,
+      fecha_inicio: v.fecha_inicio,
+      total_por_cobrar: redondear(r.totalPorCobrar),
+      total_pagado: redondear(r.pagado),
+      pendiente: redondear(Math.max(0, r.totalPorCobrar - r.pagado)),
+      habitaciones: r.habitaciones,
+      personas: r.personas,
+      porcentaje: r.totalPorCobrar > 0 ? ((r.pagado / r.totalPorCobrar) * 100).toFixed(1) : 0,
+    };
+  }));
 });
 
 // ─── REPORTE: PAGOS POR MES × VIAJE (para heatmap/tabla cruzada) ────────────
@@ -233,20 +169,21 @@ router.get('/reportes/pagos-mes-viaje', async (req, res) => {
       SELECT
         v.id   as viaje_id,
         v.nombre as viaje_nombre,
+        COALESCE(p.anio, YEAR(p.created_at)) AS anio,
         p.mes,
         SUM(p.monto) as total
       FROM pagos p
       JOIN personas pers ON p.persona_id = pers.id
       JOIN habitaciones h ON pers.habitacion_id = h.id
       JOIN viajes v ON h.viaje_id = v.id
-      GROUP BY v.id, v.nombre, p.mes
-      ORDER BY v.id, FIELD(p.mes,
+      GROUP BY v.id, v.nombre, anio, p.mes
+      ORDER BY v.id, anio, FIELD(p.mes,
         'Ene','Feb','Mar','Abr','May','Jun',
         'Jul','Ago','Sep','Oct','Nov','Dic'
       )
     `);
 
-    res.json(rows.map(r => ({ ...r, total: Number(r.total) })));
+    res.json(rows.map(r => ({ ...r, anio: Number(r.anio), total: Number(r.total) })));
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -256,7 +193,7 @@ router.get('/reportes/pagos-mes-viaje', async (req, res) => {
 // GET /api/stats/reportes/ganancias
 router.get('/reportes/ganancias', async (req, res) => {
   const [viajes] = await pool.query(`
-    SELECT id, nombre, COALESCE(tipo, 'resort') AS tipo, COALESCE(divisa, 'USD') AS divisa,
+    SELECT id, nombre, COALESCE(tipo, 'resort') AS tipo, COALESCE(divisa, 'USD') AS divisa, slug,
            COALESCE(estado, 'activo') AS estado, fecha_inicio, fecha_fin,
            COALESCE(edad_minima_pago, 0) AS edad_minima_pago,
            COALESCE(ganancia_tipo, 'ninguna') AS ganancia_tipo,
@@ -264,21 +201,8 @@ router.get('/reportes/ganancias', async (req, res) => {
     FROM viajes
     ORDER BY id DESC
   `);
-
-  const [filas] = await pool.query(`
-    SELECT h.viaje_id, h.id AS habitacion_id, h.total, h.precio_nino,
-           p.id AS persona_id, p.nombre, p.es_nino, COALESCE(p.es_gratis, 0) AS es_gratis
-    FROM habitaciones h
-    LEFT JOIN personas p ON p.habitacion_id = h.id
-    WHERE h.viaje_id IS NOT NULL
-  `);
-
-  const [pagos] = await pool.query(
-    'SELECT persona_id, SUM(monto) AS total FROM pagos GROUP BY persona_id'
-  );
-  const pagosPorPersona = new Map(pagos.map((p) => [p.persona_id, Number(p.total) || 0]));
-
-  res.json(calcularGananciasPorViaje(viajes, filas, pagosPorPersona));
+  const habsPorViaje = await cargarHabitacionesPorViaje(pool);
+  res.json(calcularGananciasPorViaje(viajes, habsPorViaje));
 });
 
 // ─── RUTAS EXISTENTES ────────────────────────────────────────────────────────

@@ -200,6 +200,7 @@ export const HabitacionesProvider = ({ children }) => {
       dispatch({ type: 'ELIMINAR_HABITACION', payload: id });
     } catch (error) {
       console.error('Error eliminando habitación:', error);
+      throw error;
     }
   };
 
@@ -263,6 +264,7 @@ export const HabitacionesProvider = ({ children }) => {
       dispatch({ type: 'ACTUALIZAR_NOTA', payload: { habId, nota } });
     } catch (error) {
       console.error('Error actualizando nota:', error);
+      throw error;
     }
   };
 
@@ -273,6 +275,7 @@ export const HabitacionesProvider = ({ children }) => {
     } catch (error) {
       console.error('Error actualizando etiqueta:', error);
       await cargarHabitaciones(state.selectedViajeId);
+      throw error;
     }
   };
 

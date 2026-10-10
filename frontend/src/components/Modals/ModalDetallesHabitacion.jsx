@@ -26,19 +26,27 @@ const ModalDetallesHabitacion = ({ habitacion: habitacionProp, onClose }) => {
     state.habitaciones.map((h) => h.etiqueta).filter(Boolean)
   )].sort();
 
-  const handleSaveNota = () => actualizarNota(habitacion.id, nota);
+  const handleSaveNota = () => {
+    if (nota === (habitacion.nota || '')) return;
+    actualizarNota(habitacion.id, nota).catch((error) => alert(`No se pudo guardar la nota: ${error.message}`));
+  };
 
   const handleSaveEtiqueta = (valor) => {
     const nueva = valor === '__nueva__' ? etiquetaPersonalizada.trim() : valor;
-    actualizarEtiqueta(habitacion.id, nueva);
+    actualizarEtiqueta(habitacion.id, nueva).catch((error) => alert(`No se pudo cambiar la etiqueta: ${error.message}`));
     setEtiqueta(nueva);
     if (valor !== '__nueva__') setEtiquetaPersonalizada('');
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!confirmDelete) { setConfirmDelete(true); return; }
-    eliminarHabitacion(habitacion.id);
-    onClose();
+    try {
+      await eliminarHabitacion(habitacion.id);
+      onClose();
+    } catch (error) {
+      alert(`No se pudo eliminar la habitación: ${error.message}`);
+      setConfirmDelete(false);
+    }
   };
 
   const totalPagado = calcularTotalPagado(habitacion);
