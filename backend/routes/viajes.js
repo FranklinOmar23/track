@@ -5,6 +5,9 @@ import crypto from 'crypto';
 import { registrarLog } from '../utils/log.js';
 import { normalizarGanancia } from '../utils/ganancia.js';
 
+const CAMPOS_VIAJE = 'SELECT nombre, fecha_inicio, fecha_fin, nota, tipo, divisa, edad_minima_pago, ganancia_tipo, ganancia_valor FROM viajes WHERE id = ?';
+const normalizarViaje = (r) => ({ ...r, ganancia_valor: Number(r.ganancia_valor) || 0 });
+
 const router = asyncRouter();
 
 router.get('/', async (req, res) => {
@@ -48,6 +51,9 @@ router.put('/:id', viajeParamAbierto, async (req, res) => {
     return res.status(400).json({ error: 'Nombre es requerido.' });
   }
 
+  const [antesRows] = await pool.query(CAMPOS_VIAJE, [viajeId]);
+  if (!antesRows[0]) return res.status(404).json({ error: 'Viaje no encontrado.' });
+
   await pool.query(
     `UPDATE viajes SET
       nombre = ?,
@@ -63,7 +69,21 @@ router.put('/:id', viajeParamAbierto, async (req, res) => {
     [nombre, fechaInicio || null, fechaFin || null, nota || null, tipo || 'resort', divisa || 'USD', Number(edadMinimaPago) || 0, gananciaTipo, gananciaValor, viajeId]
   );
 
-  registrarLog(req.usuario, 'editar', 'viaje', viajeId, `${req.usuario} editó el viaje "${nombre}"`);
+  const [despuesRows] = await pool.query(CAMPOS_VIAJE, [viajeId]);
+  const antes = normalizarViaje(antesRows[0]);
+  const despues = normalizarViaje(despuesRows[0]);
+  const ETIQUETAS = {
+    nombre: 'nombre', fecha_inicio: 'inicio', fecha_fin: 'fin', nota: 'nota', tipo: 'tipo', divisa: 'divisa',
+    edad_minima_pago: 'edad mínima', ganancia_tipo: 'ganancia', ganancia_valor: 'valor ganancia',
+  };
+  const cambios = Object.keys(ETIQUETAS)
+    .filter((k) => String(antes[k] ?? '') !== String(despues[k] ?? ''))
+    .map((k) => (k === 'nota' ? 'nota' : `${ETIQUETAS[k]}: ${antes[k] ?? '—'} → ${despues[k] ?? '—'}`));
+  if (cambios.length) {
+    registrarLog(req.usuario, 'editar', 'viaje', viajeId,
+      `${req.usuario} editó el viaje "${antes.nombre}" (${cambios.join(', ')})`,
+      { op: 'viaje.editar', viajeId, antes, despues });
+  }
 
   res.json({ id: viajeId, nombre, fechaInicio, fechaFin, nota, tipo, divisa, edadMinimaPago: Number(edadMinimaPago) || 0, gananciaTipo, gananciaValor });
 });
@@ -74,6 +94,9 @@ router.patch('/:id/estado', async (req, res) => {
   const estado = req.body.estado === 'cerrado' ? 'cerrado' : 'activo';
   const cerradoAt = estado === 'cerrado' ? new Date() : null;
 
+  const [antesRows] = await pool.query("SELECT nombre, COALESCE(estado, 'activo') AS estado, cerrado_at FROM viajes WHERE id = ?", [viajeId]);
+  if (!antesRows[0]) return res.status(404).json({ error: 'Viaje no encontrado.' });
+
   const [result] = await pool.query(
     'UPDATE viajes SET estado = ?, cerrado_at = ? WHERE id = ?',
     [estado, cerradoAt, viajeId]
@@ -83,7 +106,11 @@ router.patch('/:id/estado', async (req, res) => {
     return res.status(404).json({ error: 'Viaje no encontrado.' });
   }
 
-  registrarLog(req.usuario, 'editar', 'viaje', viajeId, `${req.usuario} ${estado === 'cerrado' ? 'cerró' : 'reabrió'} el viaje ${viajeId}`);
+  if (antesRows[0].estado !== estado) {
+    registrarLog(req.usuario, 'editar', 'viaje', viajeId,
+      `${req.usuario} ${estado === 'cerrado' ? 'cerró' : 'reabrió'} el viaje "${antesRows[0].nombre}"`,
+      { op: 'viaje.estado', viajeId, antes: antesRows[0].estado, despues: estado, cerradoAtAntes: antesRows[0].cerrado_at });
+  }
 
   res.json({ id: viajeId, estado, cerradoAt: cerradoAt?.toISOString() ?? null });
 });

@@ -3,6 +3,7 @@ import pool from '../db.js';
 import { capacidadPorTipo, contarAdultos, ajustarTipoPorAdultos } from '../utils/habitacion.js';
 import { movimientoAbierto } from '../utils/viajeCerrado.js';
 import { registrarLog } from '../utils/log.js';
+import { contextoHabitacion } from '../utils/auditoria.js';
 
 const router = asyncRouter();
 
@@ -18,7 +19,7 @@ router.post('/', movimientoAbierto, async (req, res) => {
   try {
     await connection.beginTransaction();
 
-    const [personaRows] = await connection.query('SELECT habitacion_id FROM personas WHERE id = ?', [personaId]);
+    const [personaRows] = await connection.query('SELECT habitacion_id, nombre, posicion FROM personas WHERE id = ?', [personaId]);
     if (!personaRows.length) {
       await connection.rollback();
       return res.status(404).json({ error: 'Persona no encontrada.' });
@@ -32,6 +33,10 @@ router.post('/', movimientoAbierto, async (req, res) => {
     }
 
     const destTipoActual = destHabRows[0].tipo;
+    const [origenRows] = await connection.query('SELECT tipo FROM habitaciones WHERE id = ?', [habitacionOrigenId]);
+    const origenTipoAntes = origenRows[0]?.tipo;
+    const textoOrigen = await contextoHabitacion(connection, habitacionOrigenId);
+    const textoDestino = await contextoHabitacion(connection, destinoHabitacionId);
     const capacidadActual = capacidadPorTipo(destTipoActual);
 
     const ocupadosDestino = await contarAdultos(connection, destinoHabitacionId);
@@ -63,7 +68,17 @@ router.post('/', movimientoAbierto, async (req, res) => {
     await ajustarTipoPorAdultos(connection, habitacionOrigenId);
 
     await connection.commit();
-    registrarLog(req.usuario, 'mover', 'movimiento', personaId, `${req.usuario} movió a la persona ${personaId} a la habitación ${destinoHabitacionId}`);
+    registrarLog(req.usuario, 'mover', 'movimiento', personaId,
+      `${req.usuario} movió a ${personaRows[0].nombre} de la ${textoOrigen} a la ${textoDestino}`,
+      {
+        op: 'persona.mover',
+        personaId,
+        origenId: habitacionOrigenId,
+        destinoId: Number(destinoHabitacionId),
+        posicionAntes: personaRows[0].posicion,
+        tipoOrigenAntes: origenTipoAntes,
+        tipoDestinoAntes: destTipoActual,
+      });
     res.json({ ok: true });
   } catch (error) {
     await connection.rollback();

@@ -6,6 +6,7 @@ import { requireAuth } from './middleware/auth.js';
 import authRoutes from './routes/auth.js';
 import logsRoutes from './routes/logs.js';
 import { registrarError, registrarLog } from './utils/log.js';
+import { programarLimpiezaLogs } from './utils/logRetencion.js';
 import habitacionesRoutes from './routes/habitaciones.js';
 import personasRoutes from './routes/personas.js';
 import movimientosRoutes from './routes/movimientos.js';
@@ -51,7 +52,9 @@ const port = process.env.PORT || 4000;
 
 app.use((req, res, next) => {
   res.on('finish', () => {
-    if (res.statusCode >= 400) {
+    // Solo errores reales del servidor. Los 4xx (sesión vencida, enlace viejo, datos inválidos)
+    // son respuestas esperadas y llenaban el registro de ruido. Los logins fallidos se registran en auth.
+    if (res.statusCode >= 500 && !res.locals.errorRegistrado) {
       registrarError(new Error(`HTTP ${res.statusCode}`), {
         usuario: req.usuario || 'sistema',
         descripcion: `${req.method} ${req.originalUrl} -> ${res.statusCode}`,
@@ -165,6 +168,7 @@ app.use('/api/stats', requireAuth, statsRoutes); // 👈 NUEVA
 app.use('/api/logs', requireAuth, logsRoutes);
 
 app.use((err, req, res, next) => {
+  res.locals.errorRegistrado = true;
   registrarError(err, {
     usuario: req.usuario || 'sistema',
     descripcion: `${req.method} ${req.originalUrl}`,
@@ -197,6 +201,7 @@ process.on('uncaughtException', (error) => {
 initDb()
   .then(() => {
     registrarLog('sistema', 'info', 'server', null, 'Backend iniciado correctamente').catch(() => {});
+    programarLimpiezaLogs();
     console.log('Base de datos lista');
     app.listen(port, () => {
       console.log(`Backend listo en http://localhost:${port}`);

@@ -4,18 +4,27 @@ import { ajustarTipoPorAdultos } from '../utils/habitacion.js';
 import { personaParamAbierta } from '../utils/viajeCerrado.js';
 import { registrarLog } from '../utils/log.js';
 import { normalizarPago } from '../utils/pago.js';
+import { contextoPersona, fotoPago, fotoPersona, fmtMonto } from '../utils/auditoria.js';
 
 const router = asyncRouter();
 
+const periodo = (p) => `${p.mes} ${p.anio}`;
+
 router.patch('/:id/gratis', personaParamAbierta, async (req, res) => {
   const personaId = Number(req.params.id);
-  const { esGratis } = req.body;
-  await pool.query('UPDATE personas SET es_gratis = ? WHERE id = ?', [esGratis ? 1 : 0, personaId]);
-  registrarLog(req.usuario, 'editar', 'persona', personaId, `${req.usuario} marcó a la persona ${personaId} como ${esGratis ? 'gratis' : 'no gratis'}`);
+  const esGratis = req.body.esGratis ? 1 : 0;
+  const antes = await fotoPersona(pool, personaId);
+  if (!antes) return res.status(404).json({ error: 'Persona no encontrada.' });
+
+  await pool.query('UPDATE personas SET es_gratis = ? WHERE id = ?', [esGratis, personaId]);
+
+  const ctx = await contextoPersona(pool, personaId);
+  registrarLog(req.usuario, 'editar', 'persona', personaId,
+    `${req.usuario} marcó a ${ctx.texto} como ${esGratis ? 'gratis' : 'que paga'}`,
+    { op: 'persona.gratis', personaId, antes: Number(antes.persona.es_gratis), despues: esGratis });
   res.json({ id: personaId, esGratis: !!esGratis });
 });
 
-// ← NUEVO: editar nombre de persona
 router.put('/:id', personaParamAbierta, async (req, res) => {
   const personaId = Number(req.params.id);
   const { nombre } = req.body;
@@ -24,16 +33,15 @@ router.put('/:id', personaParamAbierta, async (req, res) => {
     return res.status(400).json({ error: 'Nombre es requerido.' });
   }
 
-  const [result] = await pool.query(
-    'UPDATE personas SET nombre = ? WHERE id = ?',
-    [nombre.trim(), personaId]
-  );
+  const antes = await fotoPersona(pool, personaId);
+  if (!antes) return res.status(404).json({ error: 'Persona no encontrada.' });
 
-  if (result.affectedRows === 0) {
-    return res.status(404).json({ error: 'Persona no encontrada.' });
-  }
+  await pool.query('UPDATE personas SET nombre = ? WHERE id = ?', [nombre.trim(), personaId]);
 
-  registrarLog(req.usuario, 'editar', 'persona', personaId, `${req.usuario} renombró a la persona ${personaId} a "${nombre.trim()}"`);
+  const ctx = await contextoPersona(pool, personaId);
+  registrarLog(req.usuario, 'editar', 'persona', personaId,
+    `${req.usuario} renombró a "${antes.persona.nombre}" → "${nombre.trim()}" (${ctx.texto})`,
+    { op: 'persona.renombrar', personaId, antes: antes.persona.nombre, despues: nombre.trim() });
 
   res.json({ id: personaId, nombre: nombre.trim() });
 });
@@ -51,7 +59,10 @@ router.post('/:id/pagos', personaParamAbierta, async (req, res) => {
     [personaId, mes, monto, anio]
   );
 
-  registrarLog(req.usuario, 'pago', 'pago', result.insertId, `${req.usuario} registró un pago de ${monto} (${mes} ${anio}) a la persona ${personaId}`);
+  const ctx = await contextoPersona(pool, personaId);
+  registrarLog(req.usuario, 'pago', 'pago', result.insertId,
+    `${req.usuario} registró un pago de ${fmtMonto(monto, ctx.divisa)} (${mes} ${anio}) a ${ctx.texto}`,
+    { op: 'pago.crear', pagoId: result.insertId, despues: { mes, anio, monto } });
 
   res.status(201).json({ id: result.insertId, personaId, mes, monto, anio });
 });
@@ -65,16 +76,22 @@ router.put('/:id/pagos/:pagoId', personaParamAbierta, async (req, res) => {
   }
   const { mes, monto, anio } = pago;
 
-  const [result] = await pool.query(
-    'UPDATE pagos SET mes = ?, monto = ?, anio = ? WHERE id = ? AND persona_id = ?',
-    [mes, monto, anio, pagoId, personaId]
-  );
-
-  if (result.affectedRows === 0) {
+  const antes = await fotoPago(pool, pagoId);
+  if (!antes || antes.persona_id !== personaId) {
     return res.status(404).json({ error: 'Pago no encontrado.' });
   }
 
-  registrarLog(req.usuario, 'editar', 'pago', pagoId, `${req.usuario} editó el pago ${pagoId} de la persona ${personaId} a ${monto} (${mes} ${anio})`);
+  await pool.query('UPDATE pagos SET mes = ?, monto = ?, anio = ? WHERE id = ?', [mes, monto, anio, pagoId]);
+
+  const ctx = await contextoPersona(pool, personaId);
+  registrarLog(req.usuario, 'editar', 'pago', pagoId,
+    `${req.usuario} editó un pago de ${ctx.texto}: ${fmtMonto(antes.monto, ctx.divisa)} ${periodo(antes)} → ${fmtMonto(monto, ctx.divisa)} ${mes} ${anio}`,
+    {
+      op: 'pago.editar',
+      pagoId,
+      antes: { mes: antes.mes, anio: antes.anio, monto: antes.monto },
+      despues: { mes, anio, monto },
+    });
 
   res.json({ id: pagoId, personaId, mes, monto, anio });
 });
@@ -83,16 +100,17 @@ router.delete('/:id/pagos/:pagoId', personaParamAbierta, async (req, res) => {
   const personaId = Number(req.params.id);
   const pagoId = Number(req.params.pagoId);
 
-  const [result] = await pool.query(
-    'DELETE FROM pagos WHERE id = ? AND persona_id = ?',
-    [pagoId, personaId]
-  );
-
-  if (result.affectedRows === 0) {
+  const antes = await fotoPago(pool, pagoId);
+  if (!antes || antes.persona_id !== personaId) {
     return res.status(404).json({ error: 'Pago no encontrado.' });
   }
 
-  registrarLog(req.usuario, 'eliminar', 'pago', pagoId, `${req.usuario} eliminó el pago ${pagoId} de la persona ${personaId}`);
+  await pool.query('DELETE FROM pagos WHERE id = ?', [pagoId]);
+
+  const ctx = await contextoPersona(pool, personaId);
+  registrarLog(req.usuario, 'eliminar', 'pago', pagoId,
+    `${req.usuario} eliminó un pago de ${fmtMonto(antes.monto, ctx.divisa)} (${periodo(antes)}) de ${ctx.texto}`,
+    { op: 'pago.eliminar', pago: antes });
 
   res.json({ ok: true });
 });
@@ -104,23 +122,25 @@ router.delete('/:id', personaParamAbierta, async (req, res) => {
   try {
     await connection.beginTransaction();
 
-    const [personaRows] = await connection.query(
-      'SELECT habitacion_id FROM personas WHERE id = ?',
-      [personaId]
-    );
-
-    if (!personaRows.length) {
+    const foto = await fotoPersona(connection, personaId);
+    if (!foto) {
       await connection.rollback();
       return res.status(404).json({ error: 'Persona no encontrada.' });
     }
 
-    const habitacionId = personaRows[0].habitacion_id;
-    await connection.query('DELETE FROM personas WHERE id = ?', [personaId]);
+    const habitacionId = foto.persona.habitacion_id;
+    const ctx = await contextoPersona(connection, personaId);
+    const [habRows] = await connection.query('SELECT tipo FROM habitaciones WHERE id = ?', [habitacionId]);
 
+    await connection.query('DELETE FROM personas WHERE id = ?', [personaId]);
     await ajustarTipoPorAdultos(connection, habitacionId);
 
     await connection.commit();
-    registrarLog(req.usuario, 'eliminar', 'persona', personaId, `${req.usuario} eliminó a la persona ${personaId}`);
+
+    const totalPagos = foto.pagos.reduce((s, p) => s + p.monto, 0);
+    registrarLog(req.usuario, 'eliminar', 'persona', personaId,
+      `${req.usuario} eliminó a ${ctx.texto}${foto.pagos.length ? ` junto con ${foto.pagos.length} pago(s) por ${fmtMonto(totalPagos, ctx.divisa)}` : ''}`,
+      { op: 'persona.eliminar', foto, tipoHabitacionAntes: habRows[0]?.tipo || null });
     res.json({ ok: true });
   } catch (error) {
     await connection.rollback();

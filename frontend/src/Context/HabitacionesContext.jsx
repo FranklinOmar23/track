@@ -289,6 +289,7 @@ export const HabitacionesProvider = ({ children }) => {
   const value = {
     state,
     soloLectura,
+    recargarViajes: cargarViajes,
     cargarHabitaciones,
     crearViaje,
     editarViaje,

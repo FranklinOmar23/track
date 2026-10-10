@@ -37,6 +37,39 @@ export const initDb = async () => {
     )
   `);
 
+  // habitaciones.tipo era enum('Doble','Triple') sin 'Single': MySQL (sin modo estricto) guardaba ''.
+  // Se agrega 'Single' y se reparan las vacías con la misma regla de la app (adultos: 0-1 Single, 2 Doble, 3+ Triple).
+  try {
+    await pool.query("ALTER TABLE habitaciones MODIFY tipo ENUM('Single', 'Doble', 'Triple') NOT NULL DEFAULT 'Doble'");
+    const [reparadas] = await pool.query(`
+      UPDATE habitaciones h
+      SET h.tipo = CASE
+        WHEN (SELECT COUNT(*) FROM personas p WHERE p.habitacion_id = h.id AND p.nombre <> ''
+                AND COALESCE(p.es_nino, 0) = 0 AND p.nombre NOT LIKE '%(%año)%' AND p.nombre NOT LIKE '%(%años)%') >= 3 THEN 'Triple'
+        WHEN (SELECT COUNT(*) FROM personas p WHERE p.habitacion_id = h.id AND p.nombre <> ''
+                AND COALESCE(p.es_nino, 0) = 0 AND p.nombre NOT LIKE '%(%año)%' AND p.nombre NOT LIKE '%(%años)%') = 2 THEN 'Doble'
+        ELSE 'Single'
+      END
+      WHERE h.tipo = ''`);
+    if (reparadas.affectedRows > 0) console.log(`Habitaciones con tipo vacío reparadas: ${reparadas.affectedRows}`);
+  } catch (error) {
+    console.error('No se pudo reparar habitaciones.tipo:', error.message);
+  }
+
+  // Registro de actividad: descripciones más largas, filtro por acción y soporte de "deshacer"
+  try {
+    await pool.query(`
+      ALTER TABLE logs_actividad
+        MODIFY descripcion VARCHAR(500),
+        ADD COLUMN IF NOT EXISTS deshacer LONGTEXT NULL,
+        ADD COLUMN IF NOT EXISTS deshecho_at DATETIME NULL,
+        ADD COLUMN IF NOT EXISTS deshecho_por VARCHAR(50) NULL,
+        ADD INDEX IF NOT EXISTS idx_accion (accion)
+    `);
+  } catch (error) {
+    console.error('No se pudo actualizar logs_actividad:', error.message);
+  }
+
   // Columnas agregadas con el tiempo (idempotente). Antes se ejecutaban en cada request.
   try {
     await pool.query('ALTER TABLE personas ADD COLUMN IF NOT EXISTS es_gratis TINYINT(1) NOT NULL DEFAULT 0');

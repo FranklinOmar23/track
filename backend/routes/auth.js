@@ -18,6 +18,7 @@ router.post('/login', async (req, res, next) => {
 
     const espera = minutosBloqueado(req, username);
     if (espera > 0) {
+      registrarLog(String(username).trim().toUpperCase(), 'login_fallido', 'auth', null, `Login bloqueado por demasiados intentos (${espera} min restantes)`);
       return res.status(429).json({ error: `Demasiados intentos fallidos. Intenta de nuevo en ${espera} min.` });
     }
 
@@ -34,6 +35,7 @@ router.post('/login', async (req, res, next) => {
 
     if (!rows.length) {
       registrarFallo(req, username);
+      registrarLog(usernameNormalizado, 'login_fallido', 'auth', null, `Intento de inicio de sesión fallido para "${usernameNormalizado}"`);
       return res.status(401).json({ error: 'Usuario o contraseña incorrectos' });
     }
 
@@ -42,6 +44,7 @@ router.post('/login', async (req, res, next) => {
 
     if (!passwordValida) {
       registrarFallo(req, username);
+      registrarLog(usernameNormalizado, 'login_fallido', 'auth', null, `Intento de inicio de sesión fallido para "${usernameNormalizado}"`);
       return res.status(401).json({ error: 'Usuario o contraseña incorrectos' });
     }
 

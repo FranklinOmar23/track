@@ -41,8 +41,17 @@ export const login = (username, password) =>
     body: JSON.stringify({ username, password }),
   });
 
-export const fetchLogs = (limit) =>
-  request(`/api/logs${limit ? `?limit=${limit}` : ''}`);
+/** Registro de actividad con filtros: { tipo, usuario, q, limit, offset } → { logs, total, usuarios } */
+export const fetchLogs = (filtros = {}) => {
+  const params = new URLSearchParams(
+    Object.entries(filtros).filter(([, v]) => v !== undefined && v !== null && v !== '')
+  );
+  const query = params.toString();
+  return request(`/api/logs${query ? `?${query}` : ''}`);
+};
+
+export const deshacerAccion = (logId) =>
+  request(`/api/logs/${logId}/deshacer`, { method: 'POST' });
 
 export const fetchHabitaciones = (viajeId) => {
   const query = viajeId ? `?viajeId=${viajeId}` : '';
