@@ -3,13 +3,13 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useHabitacionesContext } from '../../Context/HabitacionesContext';
 import { useAuthContext } from '../../Context/AuthContext';
 import { fetchViajeBySlug } from '../../utils/api';
-import { exportarHabitacionesExcel } from '../../utils/exportExcel';
+import MenuExportarExcel from './MenuExportarExcel';
 import StatsGrid from './StatsGrid';
 import Toolbar from './Toolbar';
 import HabitacionesList from '../Habitaciones/HabitacionesList';
 import ModalAgregarHabitacion from '../Modals/ModalAgregarHabitacion';
 import ModalDesgloseGeneral from '../Modals/ModalDesgloseGeneral';
-import { FileDown, LogOut, Lock } from 'lucide-react';
+import { LogOut, Lock } from 'lucide-react';
 
 const ViajeView = ({ onBack }) => {
   const { slug } = useParams();
@@ -85,14 +85,10 @@ const ViajeView = ({ onBack }) => {
                 </button>
               </span>
             )}
-            <button
-              onClick={() => exportarHabitacionesExcel(state.habitaciones, viaje)}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30 transition-colors"
-              title="Exportar lista a Excel"
-            >
-              <FileDown className="h-4 w-4" />
-              <span className="hidden sm:inline">Exportar Excel</span>
-            </button>
+            <MenuExportarExcel
+              habitaciones={state.habitaciones}
+              viaje={state.viajes.find((v) => v.id === viaje.id) || viaje}
+            />
           </div>
         </div>
         {state.viajes.find((v) => v.id === viaje.id)?.estado === 'cerrado' && (

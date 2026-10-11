@@ -196,7 +196,7 @@ const GananciasReporte = ({ viajeId }) => {
         title="Detalle por viaje"
         subtitle={`${filtrados.length} viaje${filtrados.length !== 1 ? 's' : ''} · ${viajeId ? 'viaje seleccionado' : divisa}`}
         action={
-          <button type="button" onClick={() => exportarGananciasExcel(filtrados)}
+          <button type="button" onClick={() => exportarGananciasExcel(filtrados).catch((error) => alert(`No se pudo generar el Excel: ${error.message}`))}
             className="no-print flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25 transition-colors">
             <FileDown className="h-3.5 w-3.5" /> Excel
           </button>

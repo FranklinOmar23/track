@@ -72,7 +72,8 @@ const ReportesView = () => {
   const handleExportPDF   = () => window.print();
   const handleExportExcel = () => {
     const viajeActual = viajes.find((v) => String(v.id) === String(viajeId));
-    exportarHabitacionesExcel(habitaciones, viajeActual);
+    exportarHabitacionesExcel(habitaciones, viajeActual)
+      .catch((error) => alert(`No se pudo generar el Excel: ${error.message}`));
   };
 
   const ready = !loading;
