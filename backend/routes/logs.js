@@ -16,7 +16,7 @@ const GRUPOS = {
 
 // GET /api/logs?tipo=usuarios&usuario=ODISLA&q=juan&limit=50&offset=0
 router.get('/', async (req, res) => {
-  const limit = Math.min(Math.max(Number(req.query.limit) || 50, 1), 200);
+  const limit = Math.min(Math.max(Number(req.query.limit) || 50, 1), 1000);
   const offset = Math.max(Number(req.query.offset) || 0, 0);
   const where = [];
   const params = [];
@@ -24,20 +24,29 @@ router.get('/', async (req, res) => {
   if (GRUPOS[req.query.tipo]) where.push(GRUPOS[req.query.tipo]);
   if (req.query.usuario) { where.push('usuario = ?'); params.push(req.query.usuario); }
   if (req.query.q) { where.push('descripcion LIKE ?'); params.push(`%${req.query.q}%`); }
+  if (req.query.desde) { where.push('fecha >= ?'); params.push(`${req.query.desde} 00:00:00`); }
+  if (req.query.hasta) { where.push('fecha <= ?'); params.push(`${req.query.hasta} 23:59:59`); }
+  if (req.query.acciones) {
+    const acciones = String(req.query.acciones).split(',').map((a) => a.trim()).filter(Boolean);
+    if (acciones.length) { where.push(`accion IN (${acciones.map(() => '?').join(',')})`); params.push(...acciones); }
+  }
   const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
 
-  const [rows] = await pool.query(
-    `SELECT id, usuario, accion, entidad, entidad_id AS entidadId, descripcion, fecha,
-            deshacer IS NOT NULL AS tieneDeshacer, deshecho_at AS deshechoAt, deshecho_por AS deshechoPor
-     FROM logs_actividad ${whereSql}
-     ORDER BY fecha DESC, id DESC
-     LIMIT ? OFFSET ?`,
-    [...params, limit, offset]
-  );
-  const [[{ total }]] = await pool.query(`SELECT COUNT(*) AS total FROM logs_actividad ${whereSql}`, params);
-  const [usuarios] = await pool.query(
-    "SELECT DISTINCT usuario FROM logs_actividad WHERE usuario IS NOT NULL AND usuario <> 'sistema' ORDER BY usuario"
-  );
+  // Página, total y lista de usuarios son independientes: en paralelo
+  const [[rows], [[{ total }]], [usuarios]] = await Promise.all([
+    pool.query(
+      `SELECT id, usuario, accion, entidad, entidad_id AS entidadId, descripcion, fecha,
+              deshacer IS NOT NULL AS tieneDeshacer, deshecho_at AS deshechoAt, deshecho_por AS deshechoPor
+       FROM logs_actividad ${whereSql}
+       ORDER BY fecha DESC, id DESC
+       LIMIT ? OFFSET ?`,
+      [...params, limit, offset]
+    ),
+    pool.query(`SELECT COUNT(*) AS total FROM logs_actividad ${whereSql}`, params),
+    pool.query(
+      "SELECT DISTINCT usuario FROM logs_actividad WHERE usuario IS NOT NULL AND usuario <> 'sistema' ORDER BY usuario"
+    ),
+  ]);
 
   res.json({
     logs: rows.map(({ tieneDeshacer, ...r }) => ({ ...r, puedeDeshacer: !!tieneDeshacer && !r.deshechoAt })),

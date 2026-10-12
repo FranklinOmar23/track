@@ -1,4 +1,4 @@
-import { Plus, ArrowRightLeft, CreditCard, Gift } from 'lucide-react';
+import { Plus, ArrowRightLeft, CreditCard, Gift, Layers } from 'lucide-react';
 import { calcularCuotaPersona, ninoDebePagar } from '../../utils/calculos';
 import { etiquetaPeriodo } from '../../utils/formatters';
 
@@ -27,6 +27,11 @@ const PersonaDetalle = ({ persona, habitacion, fmt, soloLectura, onPago, onMover
             <span className="text-sm font-semibold text-white">{persona.n}</span>
             {esNino && (
               <span className="ml-1.5 text-[9px] text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-full border border-amber-500/20">niño</span>
+            )}
+          {persona.esStack && (
+              <span className="ml-1 inline-flex items-center gap-0.5 text-[9px] font-bold tracking-wide text-emerald-300 bg-emerald-500/10 px-1.5 py-0.5 rounded-full border border-emerald-500/25">
+                <Layers className="h-2.5 w-2.5" /> STACK
+              </span>
             )}
           {esGratis && (
               <span className="ml-1 flex items-center gap-0.5 text-[9px] text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-full border border-emerald-500/20">
@@ -80,7 +85,12 @@ const PersonaDetalle = ({ persona, habitacion, fmt, soloLectura, onPago, onMover
 
       {/* Person totals */}
       <div className="flex items-center gap-4 pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-        {esGratis ? (
+        {persona.esStack ? (
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-300">
+            <Layers className="h-3 w-3" />
+            Stack · no paga su parte
+          </div>
+        ) : esGratis ? (
           <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-400">
             <Gift className="h-3 w-3" />
             Sin costo · entra gratis

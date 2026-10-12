@@ -3,9 +3,12 @@ import { useHabitacionesContext } from '../../Context/HabitacionesContext';
 import { MESES } from '../../utils/formatters';
 import { calcularPendientePersona } from '../../utils/calculos';
 import { X, CreditCard, Trash2, Save } from 'lucide-react';
+import InputMonto from '../common/InputMonto';
+import { useDivisa } from '../../hooks/useDivisa';
 
 const ModalRegistrarPago = ({ habId, persona, pago = null, onClose }) => {
   const { state, registrarPago, actualizarPago, eliminarPago } = useHabitacionesContext();
+  const { divisa } = useDivisa();
   const [mes, setMes]       = useState('');
   const [monto, setMonto]   = useState('');
   const [anio, setAnio]     = useState(new Date().getFullYear());
@@ -90,7 +93,7 @@ const ModalRegistrarPago = ({ habId, persona, pago = null, onClose }) => {
           </button>
         </div>
 
-        <div className="relative px-5 py-4 space-y-4">
+        <div className="relative px-5 py-4 space-y-4 modal-stagger">
 
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -113,9 +116,7 @@ const ModalRegistrarPago = ({ habId, persona, pago = null, onClose }) => {
 
           <div>
             <label className="modal-section-label">Monto</label>
-            <input className="input-dark" type="number" min="0.01" step="any" value={monto}
-              onChange={(e) => setMonto(e.target.value)} placeholder="0"
-              disabled={loading} autoFocus={!pago} />
+            <InputMonto divisa={divisa} value={monto} onChange={setMonto} min="0.01" disabled={loading} autoFocus={!pago} />
           </div>
 
           <div className="flex items-center gap-2 pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>

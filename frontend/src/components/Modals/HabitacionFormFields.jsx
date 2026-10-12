@@ -1,5 +1,6 @@
 // Campos compartidos por los modales de crear y editar habitación
 import { Plus, Minus, Gift } from 'lucide-react';
+import InputMonto from '../common/InputMonto';
 
 const NINO_VACIO = { nombre: '', edad: '', gratis: false };
 
@@ -36,7 +37,7 @@ export const EtiquetaFields = ({ etiqueta, onEtiquetaChange, nueva, onNuevaChang
 
 /** Niños de la habitación: activar, lista (nombre, edad, gratis) y precio por niño. */
 export const NinosFields = ({
-  hayNinos, onHayNinosChange, ninos, onNinosChange, precioNino, onPrecioNinoChange, stackActivo, disabled,
+  hayNinos, onHayNinosChange, ninos, onNinosChange, precioNino, onPrecioNinoChange, stackActivo, disabled, divisa,
 }) => {
   const actualizar = (idx, campo, valor) =>
     onNinosChange(ninos.map((n, i) => (i === idx ? { ...n, [campo]: valor } : n)));
@@ -66,7 +67,7 @@ export const NinosFields = ({
       </div>
 
       {hayNinos && (
-        <div className="space-y-2 pl-1">
+        <div className="space-y-2 pl-1 animate-fade-in-up">
           {ninos.map((nino, idx) => (
             <div key={nino.id ?? idx} className="rounded-xl p-3 space-y-2"
               style={{ background: nino.gratis ? 'rgba(16,185,129,0.05)' : 'rgba(255,255,255,0.03)', border: `1px solid ${nino.gratis ? 'rgba(16,185,129,0.2)' : 'rgba(255,255,255,0.06)'}`, transition: 'all 200ms' }}>
@@ -104,15 +105,26 @@ export const NinosFields = ({
           </button>
           <div className="mt-2">
             <label className="modal-section-label">Precio por niño</label>
-            <input className="input-dark" type="number" value={precioNino}
-              onChange={(e) => onPrecioNinoChange(e.target.value)} placeholder="0"
-              disabled={stackActivo || disabled} />
+            <InputMonto divisa={divisa} value={precioNino} onChange={onPrecioNinoChange} disabled={stackActivo || disabled} />
           </div>
         </div>
       )}
     </>
   );
 };
+
+/** Chip para marcar a una persona como stack (no paga su parte). */
+export const ChipStack = ({ activo, onClick, disabled }) => (
+  <button type="button" onClick={onClick} disabled={disabled} aria-pressed={activo}
+    title={activo ? 'Stack: esta persona no paga. Clic para quitar.' : 'Marcar como stack (no paga su parte)'}
+    className={`shrink-0 h-10 px-2.5 rounded-lg text-[11px] font-bold tracking-wide border transition-all duration-150 ${
+      activo
+        ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40'
+        : 'bg-white/[0.03] text-gray-500 border-white/[0.08] hover:text-gray-300 hover:border-white/20'
+    }`}>
+    STACK
+  </button>
+);
 
 /** Interruptor de habitación STACK (no paga). */
 export const StackToggle = ({ activo, onChange, disabled }) => (

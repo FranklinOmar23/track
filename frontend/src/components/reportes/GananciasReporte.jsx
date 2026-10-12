@@ -9,6 +9,7 @@ import { formatCurrency } from '../../utils/formatters';
 import { exportarGananciasExcel } from '../../utils/exportExcel';
 import { ChartPanel } from './ui';
 import { DARK_TOOLTIP } from './datosReportes';
+import { useGeneracionExcel } from '../../hooks/useGeneracionExcel';
 
 const COLOR_ESTIMADA = '#10b981';
 const COLOR_COBRADA  = '#0d9488';
@@ -36,6 +37,7 @@ const recortar = (s, n = 14) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
 
 /** Reporte de ganancias por viaje. Agrupa por divisa porque no se pueden sumar USD con DOP. */
 const GananciasReporte = ({ viajeId }) => {
+  const { generar, pantalla } = useGeneracionExcel();
   const [datos, setDatos]       = useState([]);
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState(null);
@@ -94,6 +96,7 @@ const GananciasReporte = ({ viajeId }) => {
 
   return (
     <div className="space-y-6 animate-fade-in">
+      {pantalla}
       {/* Filtros */}
       <div className="flex flex-wrap items-center gap-2 no-print">
         {[['todos', 'Todos'], ['activo', 'Activos'], ['cerrado', 'Cerrados']].map(([valor, label]) => (
@@ -196,7 +199,7 @@ const GananciasReporte = ({ viajeId }) => {
         title="Detalle por viaje"
         subtitle={`${filtrados.length} viaje${filtrados.length !== 1 ? 's' : ''} · ${viajeId ? 'viaje seleccionado' : divisa}`}
         action={
-          <button type="button" onClick={() => exportarGananciasExcel(filtrados).catch((error) => alert(`No se pudo generar el Excel: ${error.message}`))}
+          <button type="button" onClick={() => generar(() => exportarGananciasExcel(filtrados), { titulo: 'reporte de ganancias', archivo: 'reporte-ganancias.xlsx' })}
             className="no-print flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25 transition-colors">
             <FileDown className="h-3.5 w-3.5" /> Excel
           </button>

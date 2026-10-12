@@ -61,7 +61,7 @@ const escribirEncabezado = (ws, numFila, titulos) => {
 const esNino = (p) => p.esNino || /\(\d+ años?\)/.test(p.n || '');
 const esGratis = (hab, p) => esNino(p) && (p.esGratis || !ninoDebePagar(p, hab.edadMinimaPago));
 const pagadoPersona = (p) => (p.pagos || []).reduce((s, pg) => s + Number(pg.monto || 0), 0);
-const nombreHuesped = (hab, p) => `${p.n}${esGratis(hab, p) ? ' — gratis' : ''}`;
+const nombreHuesped = (hab, p) => `${p.n}${p.esStack ? ' — stack' : esGratis(hab, p) ? ' — gratis' : ''}`;
 
 /** Habitaciones ordenadas como en la app (etiqueta, luego número) y agrupadas por etiqueta. */
 const agruparPorEtiqueta = (habitaciones) => {
@@ -322,4 +322,46 @@ export const exportarGananciasExcel = async (filas, nombre = 'reporte-ganancias'
     fila.getCell(12).numFmt = '0.0%';
   });
   await descargar(wb, nombre);
+};
+
+// ═══ Tabla genérica (reportes en tabla) ════════════════════════════════════
+/**
+ * columnas: [{ titulo, tipo: 'texto'|'monto'|'numero'|'fecha'|'fechaHora'|'porcentaje'|'firma', ancho }]
+ * filas: [{ tipoFila: 'dato'|'grupo'|'subtotal'|'total', valores: [...] }]  (valores ya calculados, sin formato)
+ */
+export const exportarTablaExcel = async ({ titulo, subtitulo, columnas, filas, nombre }) => {
+  const ExcelJS = await cargarExcelJS();
+  const wb = new ExcelJS.Workbook();
+  // Excel no admite : * ? [ ] \ / en el nombre de la hoja
+  const nombreHoja = titulo.slice(0, 30).replace(/[:*?[\]\\/]/g, '-');
+  const ws = wb.addWorksheet(nombreHoja, { views: [{ state: 'frozen', ySplit: 4 }] });
+  const COLS = columnas.length;
+  ws.columns = columnas.map((c) => ({ width: c.ancho || (c.tipo === 'texto' ? 26 : c.tipo === 'firma' ? 22 : 15) }));
+  escribirTitulo(ws, titulo, subtitulo, COLS);
+  escribirEncabezado(ws, 4, columnas.map((c) => c.titulo));
+
+  filas.forEach((f, i) => {
+    const fila = ws.getRow(5 + i);
+    if (f.tipoFila === 'grupo') {
+      filaGrupo(ws, 5 + i, f.valores[0], COLS);
+      return;
+    }
+    f.valores.forEach((v, c) => {
+      const celda = fila.getCell(c + 1);
+      const tipo = columnas[c].tipo;
+      // 'varias': total de montos en distintas divisas (no se suman)
+      if (v === 'varias') { celda.value = 'Varias divisas'; return; }
+      celda.value = (tipo === 'fecha' || tipo === 'fechaHora') && v ? new Date(v) : v ?? '';
+      if (tipo === 'monto') celda.numFmt = FORMATO_MONTO;
+      if (tipo === 'porcentaje') celda.numFmt = '0.0%';
+      if (tipo === 'fecha') celda.numFmt = 'dd/mm/yyyy';
+      if (tipo === 'fechaHora') celda.numFmt = 'dd/mm/yyyy hh:mm';
+      if (tipo === 'texto' || tipo === 'firma') celda.alignment = { wrapText: true, vertical: 'top' };
+    });
+    if (f.tipoFila === 'subtotal') estilarFila(fila, 1, COLS, { fill: COLOR_SUBTOTAL, bold: true });
+    else if (f.tipoFila === 'total') estilarFila(fila, 1, COLS, { fill: COLOR_ENCABEZADO, bold: true });
+    else estilarFila(fila, 1, COLS, {});
+  });
+
+  await descargar(wb, nombre || titulo);
 };

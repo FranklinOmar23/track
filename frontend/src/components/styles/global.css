@@ -85,11 +85,13 @@ select option { background-color: #1a1f2e; color: #e2e8f0; }
 /* ===== ANIMATION UTILITIES ===== */
 
 .animate-fade-in-up {
-  animation: fadeInUp 0.55s cubic-bezier(0.23, 1, 0.32, 1) both;
+  /* backwards (no both): al terminar no queda transform aplicado. Un transform persistente hace que
+     los position:fixed internos (modales) queden encerrados en este elemento. */
+  animation: fadeInUp 0.55s cubic-bezier(0.23, 1, 0.32, 1) backwards;
 }
 
 .animate-fade-in-scale {
-  animation: fadeInScale 0.4s cubic-bezier(0.23, 1, 0.32, 1) both;
+  animation: fadeInScale 0.4s cubic-bezier(0.23, 1, 0.32, 1) backwards;
 }
 
 .animate-fade-in {
@@ -224,7 +226,7 @@ select option { background-color: #1a1f2e; color: #e2e8f0; }
   border: 1px solid rgba(255,255,255,0.08);
   border-radius: 1rem;
   box-shadow: 0 24px 64px -12px rgba(0,0,0,0.7);
-  animation: modalSlideIn 0.3s cubic-bezier(0.23,1,0.32,1) both;
+  animation: modalSlideIn 0.3s cubic-bezier(0.23,1,0.32,1) backwards;
   position: relative;
   overflow: hidden;  /* recorta orbs y border-radius; el scroll va en un .modal-scroll-body interno */
   margin: auto;
@@ -296,3 +298,135 @@ select option { background-color: #1a1f2e; color: #e2e8f0; }
 .btn-modal-danger:hover  { background: rgba(244,63,94,0.15); border-color: rgba(244,63,94,0.35); }
 .btn-modal-danger:active { transform: scale(0.97); }
 .btn-modal-danger:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ===================================================================
+   FLUIDEZ: modales, formularios y microinteracciones
+   =================================================================== */
+
+/* Fondo del modal: aparece suave en lugar de golpe */
+@keyframes overlayFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.modal-overlay-dark { animation: overlayFadeIn 0.22s ease-out both; }
+
+/* Tarjeta del modal: entrada con leve rebote */
+@keyframes modalSpringIn {
+  0%   { opacity: 0; transform: translateY(18px) scale(0.965); }
+  60%  { opacity: 1; transform: translateY(-2px) scale(1.004); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.modal-card-dark { animation: modalSpringIn 0.42s cubic-bezier(0.16, 1, 0.3, 1) backwards; }
+
+/* Campos del formulario entrando en cascada */
+.modal-stagger > * { animation: fadeInUp 0.38s cubic-bezier(0.23, 1, 0.32, 1) backwards; }
+.modal-stagger > *:nth-child(1)  { animation-delay: 60ms; }
+.modal-stagger > *:nth-child(2)  { animation-delay: 95ms; }
+.modal-stagger > *:nth-child(3)  { animation-delay: 130ms; }
+.modal-stagger > *:nth-child(4)  { animation-delay: 165ms; }
+.modal-stagger > *:nth-child(5)  { animation-delay: 200ms; }
+.modal-stagger > *:nth-child(6)  { animation-delay: 235ms; }
+.modal-stagger > *:nth-child(7)  { animation-delay: 270ms; }
+.modal-stagger > *:nth-child(n+8) { animation-delay: 300ms; }
+
+/* Barra de botones fija abajo: Guardar/Cancelar siempre visibles aunque el formulario sea largo */
+.modal-acciones {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  margin: 0.5rem -1.5rem -1.25rem;
+  padding: 0.9rem 1.5rem 1.1rem;
+  background: linear-gradient(to top, #1a1f2e 78%, rgba(26, 31, 46, 0.85));
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(6px);
+}
+.modal-stagger > .modal-acciones { animation-delay: 0ms; }
+
+/* Campos: transiciones suaves al enfocar */
+.input-dark { transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease; }
+
+/* Input de monto con símbolo de divisa a la izquierda */
+.input-monto { position: relative; }
+.input-monto > span {
+  position: absolute; left: 0.85rem; top: 50%; transform: translateY(-50%);
+  font-size: 0.8rem; font-weight: 600; color: rgba(255, 255, 255, 0.35); pointer-events: none;
+}
+.input-monto > input { padding-left: 2.9rem; }
+
+/* ── Animación de "Generando Excel" ── */
+@keyframes excelFila {
+  0%   { transform: scaleX(0); opacity: 0.4; }
+  50%  { transform: scaleX(1); opacity: 1; }
+  100% { transform: scaleX(1); opacity: 0.4; }
+}
+.excel-fila { transform-origin: left; animation: excelFila 1.4s ease-in-out infinite; }
+@keyframes barraIndeterminada {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(250%); }
+}
+.barra-indeterminada { animation: barraIndeterminada 1.15s cubic-bezier(0.65, 0, 0.35, 1) infinite; }
+@keyframes popIn {
+  0%   { opacity: 0; transform: scale(0.4); }
+  70%  { opacity: 1; transform: scale(1.12); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.animate-pop-in { animation: popIn 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+@keyframes dibujarCheck {
+  from { stroke-dashoffset: 24; }
+  to   { stroke-dashoffset: 0; }
+}
+.check-dibujado { stroke-dasharray: 24; animation: dibujarCheck 0.4s 0.25s ease-out both; }
+
+/* Respetar "reducir movimiento" del sistema */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Scroll fino y discreto para listas desplegables */
+.scroll-fino { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.15) transparent; }
+.scroll-fino::-webkit-scrollbar { width: 8px; }
+.scroll-fino::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 8px; border: 2px solid transparent; background-clip: padding-box; }
+.scroll-fino::-webkit-scrollbar-thumb:hover { background-color: rgba(255,255,255,0.22); }
+
+/* Dona del dashboard: el arco verde crece desde 0 */
+@keyframes donaLlenado {
+  from { stroke-dasharray: 0 100; }
+}
+
+/* ===================================================================
+   IMPRESIÓN DE REPORTES EN TABLA
+   Solo se imprime .reporte-imprimible, en blanco y negro, con bordes y
+   el encabezado de la tabla repetido en cada página.
+   =================================================================== */
+@media print {
+  @page { size: auto; margin: 12mm 10mm; }
+  html, body { background: #fff !important; }
+  body * { visibility: hidden !important; }
+  .reporte-imprimible, .reporte-imprimible * { visibility: visible !important; }
+  .reporte-imprimible {
+    position: absolute; left: 0; top: 0; width: 100%;
+    color: #000 !important; font-size: 10.5pt;
+  }
+  .reporte-imprimible .sin-imprimir { display: none !important; }
+  .reporte-imprimible * { animation: none !important; transition: none !important; box-shadow: none !important; }
+  .titulo-reporte { color: #000 !important; font-size: 15pt !important; }
+  .subtitulo-reporte { color: #444 !important; }
+  .tabla-reporte-contenedor { overflow: visible !important; border: none !important; border-radius: 0 !important; }
+  .tabla-reporte { border-collapse: collapse; width: 100%; color: #000 !important; }
+  .tabla-reporte thead { display: table-header-group; }
+  .tabla-reporte tr { page-break-inside: avoid; break-inside: avoid; }
+  .tabla-reporte th, .tabla-reporte td {
+    border: 1px solid #999 !important; color: #000 !important; background: transparent !important;
+    padding: 3pt 5pt !important;
+  }
+  .tabla-reporte th { background: #dce6f1 !important; font-weight: 700; }
+  .tabla-reporte th button { color: #000 !important; }
+  .tabla-reporte .fila-grupo td { background: #eef3f8 !important; font-weight: 700; }
+  .tabla-reporte .fila-subtotal td { background: #f4f4f4 !important; font-weight: 700; }
+  .tabla-reporte .fila-total td { background: #dce6f1 !important; font-weight: 700; border-top: 2px solid #000 !important; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}

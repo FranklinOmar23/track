@@ -6,6 +6,7 @@ import ModalRegistrarPago from './ModalRegistrarPago';
 import ModalMoverPersona from './ModalMoverPersona';
 import ModalEditarHabitacion from './ModalEditarHabitacion';
 import PersonaDetalle from './PersonaDetalle';
+import RevisionHabitacion from './RevisionHabitacion';
 import { X, Pencil, Trash2, Tag } from 'lucide-react';
 
 const ModalDetallesHabitacion = ({ habitacion: habitacionProp, onClose }) => {
@@ -144,10 +145,13 @@ const ModalDetallesHabitacion = ({ habitacion: habitacionProp, onClose }) => {
               </div>
             )}
 
+            {/* ── Revisión ── */}
+            <RevisionHabitacion habitacion={habitacion} soloLectura={soloLectura} />
+
             {/* ── Etiqueta ── */}
             <div>
-              <label className="modal-section-label flex items-center gap-1.5">
-                <Tag className="h-3 w-3" /> Centro / Etiqueta
+              <label className="modal-section-label">
+                <span className="inline-flex items-center gap-1.5"><Tag className="h-3 w-3" /> Centro / Etiqueta</span>
               </label>
               <div className="flex gap-2">
                 <select

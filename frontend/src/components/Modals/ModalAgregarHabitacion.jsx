@@ -1,15 +1,19 @@
 import { useEffect, useState } from 'react';
 import { useHabitacionesContext } from '../../Context/HabitacionesContext';
 import { X, Plus } from 'lucide-react';
-import { EtiquetaFields, NinosFields, StackToggle } from './HabitacionFormFields';
+import { EtiquetaFields, NinosFields, StackToggle, ChipStack } from './HabitacionFormFields';
+import InputMonto from '../common/InputMonto';
+import { useDivisa } from '../../hooks/useDivisa';
 
 const ModalAgregarHabitacion = ({ open, onClose }) => {
   const { agregarHabitacion, state } = useHabitacionesContext();
+  const { divisa } = useDivisa();
   const [numero, setNumero]           = useState('');
   const [tipo, setTipo]               = useState('Single');
   const [persona1, setPersona1]       = useState('');
   const [persona2, setPersona2]       = useState('');
   const [persona3, setPersona3]       = useState('');
+  const [stackPersonas, setStackPersonas] = useState([false, false, false]);
   const [total, setTotal]             = useState('');
   const [precioNino, setPrecioNino]   = useState('');
   const [stackActivo, setStackActivo] = useState(false);
@@ -25,7 +29,7 @@ const ModalAgregarHabitacion = ({ open, onClose }) => {
 
   useEffect(() => {
     if (!open) {
-      setNumero(''); setTipo('Single'); setPersona1(''); setPersona2(''); setPersona3('');
+      setNumero(''); setTipo('Single'); setPersona1(''); setPersona2(''); setPersona3(''); setStackPersonas([false, false, false]);
       setTotal(''); setPrecioNino(''); setStackActivo(false); setEtiqueta('');
       setEtiquetaPersonalizada(''); setHayNinos(false); setNinos([{ nombre: '', edad: '', gratis: false }]);
     }
@@ -41,9 +45,9 @@ const ModalAgregarHabitacion = ({ open, onClose }) => {
       return;
     }
     const personas = [];
-    if (persona1.trim()) personas.push({ n: persona1.trim(), pagos: [] });
-    if (persona2.trim()) personas.push({ n: persona2.trim(), pagos: [] });
-    if (tipo === 'Triple' && persona3.trim()) personas.push({ n: persona3.trim(), pagos: [] });
+    if (persona1.trim()) personas.push({ n: persona1.trim(), pagos: [], esStack: stackPersonas[0] });
+    if (persona2.trim()) personas.push({ n: persona2.trim(), pagos: [], esStack: stackPersonas[1] });
+    if (tipo === 'Triple' && persona3.trim()) personas.push({ n: persona3.trim(), pagos: [], esStack: stackPersonas[2] });
     if (hayNinos) {
       ninos.filter((n) => n.nombre.trim()).forEach((n) => {
         const label = n.edad ? `${n.nombre.trim()} (${n.edad} años)` : n.nombre.trim();
@@ -87,7 +91,7 @@ const ModalAgregarHabitacion = ({ open, onClose }) => {
           </button>
         </div>
 
-        <div className="relative px-6 py-5 space-y-4">
+        <div className="relative px-6 py-5 space-y-4 modal-stagger">
 
           {/* Número */}
           <div>
@@ -118,13 +122,20 @@ const ModalAgregarHabitacion = ({ open, onClose }) => {
           <div>
             <label className="modal-section-label">Personas</label>
             <div className="space-y-2">
-              <input className="input-dark" type="text" value={persona1}
-                onChange={(e) => setPersona1(e.target.value)} placeholder="Persona 1 (obligatorio)" />
-              <input className="input-dark" type="text" value={persona2}
-                onChange={(e) => setPersona2(e.target.value)} placeholder="Persona 2 (opcional)" />
-              {tipo === 'Triple' && (
-                <input className="input-dark" type="text" value={persona3}
-                  onChange={(e) => setPersona3(e.target.value)} placeholder="Persona 3 (opcional)" />
+              {[
+                [persona1, setPersona1, 'Persona 1 (obligatorio)'],
+                [persona2, setPersona2, 'Persona 2 (opcional)'],
+                ...(tipo === 'Triple' ? [[persona3, setPersona3, 'Persona 3 (opcional)']] : []),
+              ].map(([valor, setValor, placeholder], idx) => (
+                <div key={idx} className="flex items-center gap-2">
+                  <input className="input-dark flex-1" type="text" value={valor}
+                    onChange={(e) => setValor(e.target.value)} placeholder={placeholder} />
+                  <ChipStack activo={stackPersonas[idx]} disabled={stackActivo}
+                    onClick={() => setStackPersonas((prev) => prev.map((v, i) => (i === idx ? !v : v)))} />
+                </div>
+              ))}
+              {stackPersonas.some(Boolean) && !stackActivo && (
+                <p className="text-[11px] text-emerald-400/80 pl-1">Las personas stack no pagan: el total de la habitación lo pagan las demás.</p>
               )}
             </div>
           </div>
@@ -137,6 +148,7 @@ const ModalAgregarHabitacion = ({ open, onClose }) => {
             precioNino={precioNino}
             onPrecioNinoChange={setPrecioNino}
             stackActivo={stackActivo}
+            divisa={divisa}
           />
 
           <StackToggle activo={stackActivo} onChange={setStackActivo} />
@@ -144,12 +156,11 @@ const ModalAgregarHabitacion = ({ open, onClose }) => {
           {/* Total */}
           <div>
             <label className="modal-section-label">Total habitación *</label>
-            <input className="input-dark" type="number" value={total}
-              onChange={(e) => setTotal(e.target.value)} placeholder="27700" disabled={stackActivo} />
+            <InputMonto divisa={divisa} value={total} onChange={setTotal} placeholder="Ej: 27700" disabled={stackActivo} />
           </div>
 
           {/* Actions */}
-          <div className="flex items-center justify-end gap-2 pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+          <div className="modal-acciones flex items-center justify-end gap-2">
             <button type="button" className="btn-modal-secondary" onClick={onClose}>Cancelar</button>
             <button type="button" className="btn-modal-primary" onClick={handleGuardar} disabled={guardando}>
               <Plus className="h-4 w-4" />

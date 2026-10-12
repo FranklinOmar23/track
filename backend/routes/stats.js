@@ -2,24 +2,31 @@ import { asyncRouter } from '../utils/asyncRouter.js';
 import pool from '../db.js';
 import { registrarLog } from '../utils/log.js';
 import { normalizarGanancia } from '../utils/ganancia.js';
+import { consultarHabitaciones } from './habitaciones.js';
 import { calcularGananciasPorViaje } from '../utils/gananciaReporte.js';
 import { cargarHabitacionesPorViaje, sumarResumenes, redondear } from '../utils/totales.js';
 
 const router = asyncRouter();
 
+const SQL_VIAJES = `
+  SELECT id, nombre, COALESCE(tipo, 'resort') AS tipo, COALESCE(divisa, 'USD') AS divisa, slug,
+         COALESCE(estado, 'activo') AS estado, fecha_inicio, fecha_fin,
+         COALESCE(edad_minima_pago, 0) AS edad_minima_pago,
+         COALESCE(ganancia_tipo, 'ninguna') AS ganancia_tipo,
+         COALESCE(ganancia_valor, 0) AS ganancia_valor
+  FROM viajes
+  ORDER BY id DESC`;
+
+/** Viajes y habitaciones (con lo pagado) en paralelo: una sola espera en lugar de dos. */
+const cargarViajesYHabitaciones = async () => {
+  const [[viajes], habsPorViaje] = await Promise.all([pool.query(SQL_VIAJES), cargarHabitacionesPorViaje(pool)]);
+  return [viajes, habsPorViaje];
+};
+
 // ─── DASHBOARD EXISTENTE ────────────────────────────────────────────────────
 
 router.get('/dashboard', async (req, res) => {
-  const [viajes] = await pool.query(`
-    SELECT id, nombre, COALESCE(tipo, 'resort') AS tipo, COALESCE(divisa, 'USD') AS divisa, slug,
-           COALESCE(estado, 'activo') AS estado, fecha_inicio, fecha_fin,
-           COALESCE(edad_minima_pago, 0) AS edad_minima_pago,
-           COALESCE(ganancia_tipo, 'ninguna') AS ganancia_tipo,
-           COALESCE(ganancia_valor, 0) AS ganancia_valor
-    FROM viajes
-    ORDER BY id DESC
-  `);
-  const habsPorViaje = await cargarHabitacionesPorViaje(pool);
+  const [viajes, habsPorViaje] = await cargarViajesYHabitaciones();
 
   const viajesConTotales = viajes.map((v) => {
     const r = sumarResumenes(habsPorViaje.get(v.id) || [], v.edad_minima_pago);
@@ -95,11 +102,14 @@ router.get('/reportes/pagos-por-mes', async (req, res) => {
 // GET /api/stats/reportes/por-etiqueta?viajeId=X
 router.get('/reportes/por-etiqueta', async (req, res) => {
   const { viajeId } = req.query;
-  const [viajes] = await pool.query(
-    `SELECT id, COALESCE(edad_minima_pago, 0) AS edad_minima_pago FROM viajes${viajeId ? ' WHERE id = ?' : ''}`,
-    viajeId ? [Number(viajeId)] : []
-  );
-  const habsPorViaje = await cargarHabitacionesPorViaje(pool, viajeId || null);
+  // Las dos consultas son independientes: en paralelo
+  const [[viajes], habsPorViaje] = await Promise.all([
+    pool.query(
+      `SELECT id, COALESCE(edad_minima_pago, 0) AS edad_minima_pago FROM viajes${viajeId ? ' WHERE id = ?' : ''}`,
+      viajeId ? [Number(viajeId)] : []
+    ),
+    cargarHabitacionesPorViaje(pool, viajeId || null),
+  ]);
 
   const porEtiqueta = new Map();
   viajes.forEach((v) => {
@@ -133,16 +143,7 @@ router.get('/reportes/por-etiqueta', async (req, res) => {
 // ─── REPORTE: COMPARATIVA ENTRE VIAJES ──────────────────────────────────────
 // GET /api/stats/reportes/comparativa-viajes
 router.get('/reportes/comparativa-viajes', async (req, res) => {
-  const [viajes] = await pool.query(`
-    SELECT id, nombre, COALESCE(tipo, 'resort') AS tipo, COALESCE(divisa, 'USD') AS divisa, slug,
-           COALESCE(estado, 'activo') AS estado, fecha_inicio, fecha_fin,
-           COALESCE(edad_minima_pago, 0) AS edad_minima_pago,
-           COALESCE(ganancia_tipo, 'ninguna') AS ganancia_tipo,
-           COALESCE(ganancia_valor, 0) AS ganancia_valor
-    FROM viajes
-    ORDER BY id DESC
-  `);
-  const habsPorViaje = await cargarHabitacionesPorViaje(pool);
+  const [viajes, habsPorViaje] = await cargarViajesYHabitaciones();
 
   res.json(viajes.map((v) => {
     const r = sumarResumenes(habsPorViaje.get(v.id) || [], v.edad_minima_pago);
@@ -192,17 +193,60 @@ router.get('/reportes/pagos-mes-viaje', async (req, res) => {
 // ─── REPORTE: GANANCIAS POR VIAJE ────────────────────────────────────────────
 // GET /api/stats/reportes/ganancias
 router.get('/reportes/ganancias', async (req, res) => {
-  const [viajes] = await pool.query(`
-    SELECT id, nombre, COALESCE(tipo, 'resort') AS tipo, COALESCE(divisa, 'USD') AS divisa, slug,
-           COALESCE(estado, 'activo') AS estado, fecha_inicio, fecha_fin,
-           COALESCE(edad_minima_pago, 0) AS edad_minima_pago,
-           COALESCE(ganancia_tipo, 'ninguna') AS ganancia_tipo,
-           COALESCE(ganancia_valor, 0) AS ganancia_valor
-    FROM viajes
-    ORDER BY id DESC
-  `);
-  const habsPorViaje = await cargarHabitacionesPorViaje(pool);
+  const [viajes, habsPorViaje] = await cargarViajesYHabitaciones();
   res.json(calcularGananciasPorViaje(viajes, habsPorViaje));
+});
+
+// ─── REPORTE: PAGOS DETALLADOS (libro de caja, último pago por persona) ─────
+// GET /api/stats/reportes/pagos?viajeId=&desde=YYYY-MM-DD&hasta=YYYY-MM-DD
+router.get('/reportes/pagos', async (req, res) => {
+  const where = [];
+  const params = [];
+  if (req.query.viajeId) { where.push('h.viaje_id = ?'); params.push(Number(req.query.viajeId)); }
+  if (req.query.desde) { where.push('pg.created_at >= ?'); params.push(`${req.query.desde} 00:00:00`); }
+  if (req.query.hasta) { where.push('pg.created_at <= ?'); params.push(`${req.query.hasta} 23:59:59`); }
+
+  const [rows] = await pool.query(`
+    SELECT pg.id, pg.monto, pg.mes, COALESCE(pg.anio, YEAR(pg.created_at)) AS anio, pg.created_at AS fecha,
+           p.id AS persona_id, p.nombre AS persona, h.id AS habitacion_id, h.numero AS habitacion,
+           COALESCE(NULLIF(h.etiqueta, ''), 'Sin etiqueta') AS etiqueta,
+           v.id AS viaje_id, v.nombre AS viaje, COALESCE(v.divisa, 'USD') AS divisa,
+           (SELECT l.usuario FROM logs_actividad l
+             WHERE l.entidad = 'pago' AND l.accion = 'pago' AND l.entidad_id = pg.id
+             ORDER BY l.id LIMIT 1) AS registrado_por
+    FROM pagos pg
+    JOIN personas p ON p.id = pg.persona_id
+    JOIN habitaciones h ON h.id = p.habitacion_id
+    JOIN viajes v ON v.id = h.viaje_id
+    ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
+    ORDER BY pg.created_at DESC, pg.id DESC
+  `, params);
+
+  res.json(rows.map((r) => ({ ...r, monto: Number(r.monto), anio: Number(r.anio) })));
+});
+
+// ─── REPORTE: MOVIMIENTOS ENTRE HABITACIONES ───────────────────────────────
+// GET /api/stats/reportes/movimientos?viajeId=
+router.get('/reportes/movimientos', async (req, res) => {
+  const params = [];
+  let where = '';
+  if (req.query.viajeId) { where = 'WHERE (ho.viaje_id = ? OR hd.viaje_id = ?)'; params.push(Number(req.query.viajeId), Number(req.query.viajeId)); }
+  const [rows] = await pool.query(`
+    SELECT m.id, m.fecha_movimiento AS fecha, p.nombre AS persona,
+           ho.numero AS origen, hd.numero AS destino, v.nombre AS viaje,
+           (SELECT l.usuario FROM logs_actividad l
+             WHERE l.accion = 'mover' AND l.entidad_id = m.persona_id
+               AND l.fecha BETWEEN m.fecha_movimiento - INTERVAL 1 MINUTE AND m.fecha_movimiento + INTERVAL 1 MINUTE
+             ORDER BY l.id LIMIT 1) AS usuario
+    FROM historial_movimientos m
+    JOIN personas p ON p.id = m.persona_id
+    LEFT JOIN habitaciones ho ON ho.id = m.habitacion_origen_id
+    LEFT JOIN habitaciones hd ON hd.id = m.habitacion_destino_id
+    LEFT JOIN viajes v ON v.id = COALESCE(hd.viaje_id, ho.viaje_id)
+    ${where}
+    ORDER BY m.fecha_movimiento DESC
+  `, params);
+  res.json(rows);
 });
 
 // ─── RUTAS EXISTENTES ────────────────────────────────────────────────────────
@@ -210,12 +254,17 @@ router.get('/reportes/ganancias', async (req, res) => {
 router.get('/viaje/slug/:slug', async (req, res) => {
   const { slug } = req.params;
   try {
-    const [rows] = await pool.query(
-      `SELECT id, nombre, tipo, fecha_inicio, fecha_fin, nota, slug, COALESCE(estado, 'activo') AS estado FROM viajes WHERE slug = ?`,
-      [slug]
-    );
+    // Con ?habitaciones=1 devuelve también las habitaciones, en paralelo: abrir un viaje = una sola petición
+    const incluirHabitaciones = req.query.habitaciones === '1';
+    const [[rows], habitaciones] = await Promise.all([
+      pool.query(
+        `SELECT id, nombre, tipo, fecha_inicio, fecha_fin, nota, slug, COALESCE(estado, 'activo') AS estado FROM viajes WHERE slug = ?`,
+        [slug]
+      ),
+      incluirHabitaciones ? consultarHabitaciones({ slug }) : null,
+    ]);
     if (rows.length === 0) return res.status(404).json({ error: 'Viaje no encontrado' });
-    res.json(rows[0]);
+    res.json(incluirHabitaciones ? { ...rows[0], habitaciones } : rows[0]);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

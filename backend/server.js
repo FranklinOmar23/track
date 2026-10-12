@@ -1,5 +1,7 @@
 import express from 'express';
 import cors from 'cors';
+import compression from 'compression';
+import { medirPeticion } from './utils/tiempos.js';
 import dotenv from 'dotenv';
 import { initDb } from './db-init.js';
 import { requireAuth } from './middleware/auth.js';
@@ -41,6 +43,9 @@ const corsOptions = {
 const app = express();
 // Detrás del proxy de Hostinger: usar la IP real del cliente (para el límite de intentos de login)
 app.set('trust proxy', 1);
+app.use(medirPeticion);
+// Comprime las respuestas (las habitaciones de un viaje pasan de ~20-100 KB a una fracción)
+app.use(compression());
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
 app.use(express.json());

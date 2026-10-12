@@ -44,7 +44,7 @@ router.get('/:token', async (req, res) => {
     const [habitaciones] = await pool.query(`
       SELECT
         h.id, h.numero, h.tipo, h.total, h.precio_nino, h.es_stack, h.nota, h.etiqueta,
-        p.id as persona_id, p.nombre as persona_nombre, p.posicion, p.es_nino, p.es_gratis,
+        p.id as persona_id, p.nombre as persona_nombre, p.posicion, p.es_nino, p.es_gratis, COALESCE(p.es_stack, 0) AS persona_es_stack,
         pag.id as pago_id, pag.mes, COALESCE(pag.anio, YEAR(pag.created_at)) AS anio, pag.monto
       FROM habitaciones h
       LEFT JOIN personas p ON p.habitacion_id = h.id
@@ -81,6 +81,7 @@ router.get('/:token', async (req, res) => {
             posicion: row.posicion,
             esNino: !!row.es_nino,
             esGratis: !!row.es_gratis,
+            esStack: !!row.persona_es_stack,
             pagos: []
           };
           hab.personas.push(persona);
@@ -104,9 +105,10 @@ router.get('/:token', async (req, res) => {
         .map((hab) => {
           const cuotas = cuotasHabitacion({
             total: hab.total,
+            stack: hab.stack,
             precioNino: hab.precioNino,
             personas: hab.personas.map((p) => ({
-              id: p.id, nombre: p.n, esNino: p.esNino, esGratis: p.esGratis,
+              id: p.id, nombre: p.n, esNino: p.esNino, esGratis: p.esGratis, esStack: p.esStack,
             })),
           }, viaje.edad_minima_pago);
           const pendientes = new Set(

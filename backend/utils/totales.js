@@ -19,8 +19,11 @@ export const ninoPaga = (persona, edadMinimaPago) => {
 /** Personas con nombre de la habitación, cada una con su `cuota` y si `paga`. */
 export const cuotasHabitacion = (habitacion, edadMinimaPago) => {
   const personas = habitacion.personas.filter((p) => p.nombre && String(p.nombre).trim());
-  const adultos = personas.filter((p) => !esNino(p)).length;
+  // El total se reparte solo entre los adultos que pagan (los stack no pagan)
+  const adultos = personas.filter((p) => !esNino(p) && !p.esStack).length;
   return personas.map((p) => {
+    // Habitación stack: nadie paga. Persona stack: no paga y su parte la cubren los demás adultos.
+    if (habitacion.stack || p.esStack) return { ...p, paga: false, cuota: 0 };
     if (esNino(p)) {
       const paga = ninoPaga(p, edadMinimaPago);
       return { ...p, paga, cuota: paga ? Number(habitacion.precioNino) || 0 : 0 };
@@ -64,11 +67,12 @@ export const cargarHabitacionesPorViaje = async (pool, viajeId = null) => {
   const params = viajeId ? [Number(viajeId)] : [];
 
   const [filas] = await pool.query(`
-    SELECT h.viaje_id, h.id AS habitacion_id, h.etiqueta, h.total, h.precio_nino,
-           p.id AS persona_id, p.nombre, p.es_nino, COALESCE(p.es_gratis, 0) AS es_gratis,
-           (SELECT COALESCE(SUM(pg.monto), 0) FROM pagos pg WHERE pg.persona_id = p.id) AS pagado
+    SELECT h.viaje_id, h.id AS habitacion_id, h.etiqueta, h.total, h.precio_nino, h.es_stack AS hab_stack,
+           p.id AS persona_id, p.nombre, p.es_nino, COALESCE(p.es_gratis, 0) AS es_gratis, COALESCE(p.es_stack, 0) AS es_stack,
+           COALESCE(pg.pagado, 0) AS pagado
     FROM habitaciones h
     LEFT JOIN personas p ON p.habitacion_id = h.id
+    LEFT JOIN (SELECT persona_id, SUM(monto) AS pagado FROM pagos GROUP BY persona_id) pg ON pg.persona_id = p.id
     ${where}
   `, params);
 
@@ -81,6 +85,7 @@ export const cargarHabitacionesPorViaje = async (pool, viajeId = null) => {
         etiqueta: f.etiqueta || '',
         total: Number(f.total) || 0,
         precioNino: Number(f.precio_nino) || 0,
+        stack: !!f.hab_stack,
         personas: [],
       };
       porHabitacion.set(f.habitacion_id, hab);
@@ -93,6 +98,7 @@ export const cargarHabitacionesPorViaje = async (pool, viajeId = null) => {
         nombre: f.nombre,
         esNino: !!f.es_nino,
         esGratis: !!f.es_gratis,
+        esStack: !!f.es_stack,
         pagado: Number(f.pagado) || 0,
       });
     }

@@ -1,4 +1,5 @@
 import { Users } from 'lucide-react';
+import { calcularTotalHabitacion } from '../../utils/calculos';
 
 /** Tarjeta de habitación de solo lectura para la vista pública compartida. */
 const HabitacionPublicaCard = ({ habitacion, fmt }) => {
@@ -6,8 +7,9 @@ const HabitacionPublicaCard = ({ habitacion, fmt }) => {
     (sum, p) => sum + (p.pagos?.reduce((s, pg) => s + (pg.monto || 0), 0) || 0),
     0
   );
-  const totalHab = habitacion.total || 0;
-  const pendiente = totalHab - totalPagado;
+  // Total real: cuota de adultos + niños que pagan, sin personas stack (igual que en la app)
+  const totalHab = calcularTotalHabitacion(habitacion);
+  const pendiente = Math.max(0, totalHab - totalPagado);
   const porcentaje = totalHab > 0 ? (totalPagado / totalHab) * 100 : 0;
   const isStack = habitacion.stack;
   const isComplete = !isStack && pendiente <= 0 && totalPagado > 0;
@@ -51,6 +53,7 @@ const HabitacionPublicaCard = ({ habitacion, fmt }) => {
               <span className="text-sm text-gray-200">
                 {persona.n}
                 {persona.esNino && <span className="text-xs text-amber-400 ml-1">(niño)</span>}
+                {persona.esStack && <span className="text-xs text-emerald-400 ml-1">(stack)</span>}
               </span>
             </div>
           ))}

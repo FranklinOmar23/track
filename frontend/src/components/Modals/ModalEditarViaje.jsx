@@ -106,7 +106,7 @@ const ModalEditarViaje = ({ viaje, open, onClose }) => {
           </button>
         </div>
 
-        <div className="relative px-6 py-5 space-y-4">
+        <div className="relative px-6 py-5 space-y-4 modal-stagger">
 
           <div>
             <label className="modal-section-label">Nombre del viaje *</label>
@@ -167,7 +167,7 @@ const ModalEditarViaje = ({ viaje, open, onClose }) => {
           />
 
           {/* Actions */}
-          <div className="pt-2 space-y-2" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+          <div className="modal-acciones space-y-2">
             <button type="button" onClick={handleCambiarEstado} disabled={loading}
               className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold transition-colors"
               style={cerrado

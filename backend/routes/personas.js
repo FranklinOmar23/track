@@ -1,7 +1,7 @@
 import { asyncRouter } from '../utils/asyncRouter.js';
 import pool from '../db.js';
 import { ajustarTipoPorAdultos } from '../utils/habitacion.js';
-import { personaParamAbierta } from '../utils/viajeCerrado.js';
+import { personaParamAbierta, MENSAJE_VIAJE_CERRADO } from '../utils/viajeCerrado.js';
 import { registrarLog } from '../utils/log.js';
 import { normalizarPago } from '../utils/pago.js';
 import { contextoPersona, fotoPago, fotoPersona, fmtMonto } from '../utils/auditoria.js';
@@ -9,6 +9,13 @@ import { contextoPersona, fotoPago, fotoPersona, fmtMonto } from '../utils/audit
 const router = asyncRouter();
 
 const periodo = (p) => `${p.mes} ${p.anio}`;
+
+/** Responde 404/409 si la persona no existe o su viaje está cerrado. Devuelve true si ya respondió. */
+const rechazarSiNoEditable = (res, ctx) => {
+  if (!ctx.existe) { res.status(404).json({ error: 'Persona no encontrada.' }); return true; }
+  if (ctx.cerrado) { res.status(409).json({ error: MENSAJE_VIAJE_CERRADO }); return true; }
+  return false;
+};
 
 router.patch('/:id/gratis', personaParamAbierta, async (req, res) => {
   const personaId = Number(req.params.id);
@@ -23,6 +30,21 @@ router.patch('/:id/gratis', personaParamAbierta, async (req, res) => {
     `${req.usuario} marcó a ${ctx.texto} como ${esGratis ? 'gratis' : 'que paga'}`,
     { op: 'persona.gratis', personaId, antes: Number(antes.persona.es_gratis), despues: esGratis });
   res.json({ id: personaId, esGratis: !!esGratis });
+});
+
+router.patch('/:id/stack', personaParamAbierta, async (req, res) => {
+  const personaId = Number(req.params.id);
+  const esStack = req.body.esStack ? 1 : 0;
+  const antes = await fotoPersona(pool, personaId);
+  if (!antes) return res.status(404).json({ error: 'Persona no encontrada.' });
+
+  await pool.query('UPDATE personas SET es_stack = ? WHERE id = ?', [esStack, personaId]);
+
+  const ctx = await contextoPersona(pool, personaId);
+  registrarLog(req.usuario, 'editar', 'persona', personaId,
+    `${req.usuario} ${esStack ? 'marcó como stack (no paga)' : 'quitó el stack de'} ${ctx.texto}`,
+    { op: 'persona.stack', personaId, antes: Number(antes.persona.es_stack), despues: esStack });
+  res.json({ id: personaId, esStack: !!esStack });
 });
 
 router.put('/:id', personaParamAbierta, async (req, res) => {
@@ -46,7 +68,7 @@ router.put('/:id', personaParamAbierta, async (req, res) => {
   res.json({ id: personaId, nombre: nombre.trim() });
 });
 
-router.post('/:id/pagos', personaParamAbierta, async (req, res) => {
+router.post('/:id/pagos', async (req, res) => {
   const personaId = Number(req.params.id);
   const pago = normalizarPago(req.body);
   if (pago.error) {
@@ -54,12 +76,14 @@ router.post('/:id/pagos', personaParamAbierta, async (req, res) => {
   }
   const { mes, monto, anio } = pago;
 
+  const ctx = await contextoPersona(pool, personaId);
+  if (rechazarSiNoEditable(res, ctx)) return;
+
   const [result] = await pool.query(
     'INSERT INTO pagos (persona_id, mes, monto, anio) VALUES (?, ?, ?, ?)',
     [personaId, mes, monto, anio]
   );
 
-  const ctx = await contextoPersona(pool, personaId);
   registrarLog(req.usuario, 'pago', 'pago', result.insertId,
     `${req.usuario} registró un pago de ${fmtMonto(monto, ctx.divisa)} (${mes} ${anio}) a ${ctx.texto}`,
     { op: 'pago.crear', pagoId: result.insertId, despues: { mes, anio, monto } });
@@ -67,7 +91,7 @@ router.post('/:id/pagos', personaParamAbierta, async (req, res) => {
   res.status(201).json({ id: result.insertId, personaId, mes, monto, anio });
 });
 
-router.put('/:id/pagos/:pagoId', personaParamAbierta, async (req, res) => {
+router.put('/:id/pagos/:pagoId', async (req, res) => {
   const personaId = Number(req.params.id);
   const pagoId = Number(req.params.pagoId);
   const pago = normalizarPago(req.body);
@@ -76,14 +100,14 @@ router.put('/:id/pagos/:pagoId', personaParamAbierta, async (req, res) => {
   }
   const { mes, monto, anio } = pago;
 
-  const antes = await fotoPago(pool, pagoId);
+  const [antes, ctx] = await Promise.all([fotoPago(pool, pagoId), contextoPersona(pool, personaId)]);
+  if (rechazarSiNoEditable(res, ctx)) return;
   if (!antes || antes.persona_id !== personaId) {
     return res.status(404).json({ error: 'Pago no encontrado.' });
   }
 
   await pool.query('UPDATE pagos SET mes = ?, monto = ?, anio = ? WHERE id = ?', [mes, monto, anio, pagoId]);
 
-  const ctx = await contextoPersona(pool, personaId);
   registrarLog(req.usuario, 'editar', 'pago', pagoId,
     `${req.usuario} editó un pago de ${ctx.texto}: ${fmtMonto(antes.monto, ctx.divisa)} ${periodo(antes)} → ${fmtMonto(monto, ctx.divisa)} ${mes} ${anio}`,
     {
@@ -96,18 +120,18 @@ router.put('/:id/pagos/:pagoId', personaParamAbierta, async (req, res) => {
   res.json({ id: pagoId, personaId, mes, monto, anio });
 });
 
-router.delete('/:id/pagos/:pagoId', personaParamAbierta, async (req, res) => {
+router.delete('/:id/pagos/:pagoId', async (req, res) => {
   const personaId = Number(req.params.id);
   const pagoId = Number(req.params.pagoId);
 
-  const antes = await fotoPago(pool, pagoId);
+  const [antes, ctx] = await Promise.all([fotoPago(pool, pagoId), contextoPersona(pool, personaId)]);
+  if (rechazarSiNoEditable(res, ctx)) return;
   if (!antes || antes.persona_id !== personaId) {
     return res.status(404).json({ error: 'Pago no encontrado.' });
   }
 
   await pool.query('DELETE FROM pagos WHERE id = ?', [pagoId]);
 
-  const ctx = await contextoPersona(pool, personaId);
   registrarLog(req.usuario, 'eliminar', 'pago', pagoId,
     `${req.usuario} eliminó un pago de ${fmtMonto(antes.monto, ctx.divisa)} (${periodo(antes)}) de ${ctx.texto}`,
     { op: 'pago.eliminar', pago: antes });

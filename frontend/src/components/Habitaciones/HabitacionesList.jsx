@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useDivisa } from '../../hooks/useDivisa';
-import { calcularTotalHabitacion } from '../../utils/calculos';
+import { calcularTotalHabitacion, filtrarHabitaciones } from '../../utils/calculos';
 import { useHabitacionesContext } from '../../Context/HabitacionesContext';
 import { HabitacionCard } from './HabitacionCard';
 import ModalDetallesHabitacion from '../Modals/ModalDetallesHabitacion';
@@ -31,46 +31,10 @@ const HabitacionesList = () => {
     habitaciones.map((h) => h.etiqueta || '').filter(Boolean)
   )].sort();
 
-  const filtrarHabitaciones = () => {
-    let resultado = [...habitaciones];
-
-    if (etiquetaFiltro !== 'todas') {
-      resultado = resultado.filter((hab) =>
-        etiquetaFiltro === '__sin__' ? !hab.etiqueta : hab.etiqueta === etiquetaFiltro
-      );
-    }
-
-    if (filtros.busqueda) {
-      const term = filtros.busqueda.toLowerCase();
-      resultado = resultado.filter(
-        (hab) =>
-          hab.num.toLowerCase().includes(term) ||
-          hab.personas.some((p) => p.n.toLowerCase().includes(term))
-      );
-    }
-
-    if (filtros.estado === 'pendiente') {
-      resultado = resultado.filter((hab) => {
-        const pagado = hab.personas.reduce(
-          (sum, p) => sum + (p.pagos?.reduce((s, pg) => s + pg.monto, 0) || 0), 0
-        );
-        return pagado < hab.total;
-      });
-    }
-
-    if (filtros.estado === 'completo') {
-      resultado = resultado.filter((hab) => {
-        const pagado = hab.personas.reduce(
-          (sum, p) => sum + (p.pagos?.reduce((s, pg) => s + pg.monto, 0) || 0), 0
-        );
-        return pagado >= hab.total;
-      });
-    }
-
-    return resultado;
-  };
-
-  const habitacionesFiltradas = filtrarHabitaciones();
+  // Búsqueda y estado (pendiente / completo / en revisión) con la misma lógica de totales que el resto de la app
+  const habitacionesFiltradas = filtrarHabitaciones(habitaciones, filtros).filter((hab) =>
+    etiquetaFiltro === 'todas' ? true : etiquetaFiltro === '__sin__' ? !hab.etiqueta : hab.etiqueta === etiquetaFiltro
+  );
 
   const grupos = {};
   habitacionesFiltradas.forEach((hab) => {

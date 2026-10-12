@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { FileDown, ChevronDown, Zap, TableProperties } from 'lucide-react';
 import { exportarExcelRapido, exportarExcelDetallado } from '../../utils/exportExcel';
+import { useGeneracionExcel } from '../../hooks/useGeneracionExcel';
 
 const OPCIONES = [
   {
@@ -22,7 +23,7 @@ const OPCIONES = [
 /** Botón "Exportar Excel" con dos formatos: rápido y detallado. */
 const MenuExportarExcel = ({ habitaciones, viaje }) => {
   const [abierto, setAbierto] = useState(false);
-  const [generando, setGenerando] = useState(null);
+  const { generar, generando, pantalla } = useGeneracionExcel();
   const ref = useRef(null);
 
   // Cerrar al hacer clic fuera o con Escape
@@ -38,17 +39,12 @@ const MenuExportarExcel = ({ habitaciones, viaje }) => {
     };
   }, [abierto]);
 
-  const exportar = async (opcion) => {
+  const exportar = (opcion) => {
     setAbierto(false);
-    setGenerando(opcion.id);
-    try {
-      await opcion.exportar(habitaciones, viaje);
-    } catch (error) {
-      console.error('Error exportando Excel:', error);
-      alert(`No se pudo generar el Excel: ${error.message}`);
-    } finally {
-      setGenerando(null);
-    }
+    generar(() => opcion.exportar(habitaciones, viaje), {
+      titulo: opcion.titulo,
+      archivo: `${viaje?.nombre || 'viaje'} - ${opcion.titulo}.xlsx`,
+    });
   };
 
   return (
@@ -56,20 +52,22 @@ const MenuExportarExcel = ({ habitaciones, viaje }) => {
       <button
         type="button"
         onClick={() => setAbierto((v) => !v)}
-        disabled={!!generando}
+        disabled={generando}
         aria-haspopup="menu"
         aria-expanded={abierto}
         className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30 transition-colors disabled:opacity-60"
         title="Exportar a Excel"
       >
         <FileDown className="h-4 w-4" />
-        <span className="hidden sm:inline">{generando ? 'Generando...' : 'Exportar Excel'}</span>
+        <span className="hidden sm:inline">Exportar Excel</span>
         <ChevronDown className={`h-3.5 w-3.5 transition-transform ${abierto ? 'rotate-180' : ''}`} />
       </button>
 
+      {pantalla}
+
       {abierto && (
         <div role="menu"
-          className="absolute right-0 mt-2 w-72 rounded-xl overflow-hidden z-30 animate-fade-in"
+          className="absolute right-0 mt-2 w-72 rounded-xl overflow-hidden z-30 animate-fade-in-scale origin-top-right"
           style={{ background: '#1a1f2e', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 12px 32px rgba(0,0,0,0.45)' }}>
           {OPCIONES.map((op) => (
             <button key={op.id} type="button" role="menuitem" onClick={() => exportar(op)}

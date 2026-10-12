@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useHabitacionesContext } from '../../Context/HabitacionesContext';
 import { useAuthContext } from '../../Context/AuthContext';
-import { fetchViajeBySlug } from '../../utils/api';
 import MenuExportarExcel from './MenuExportarExcel';
 import StatsGrid from './StatsGrid';
 import Toolbar from './Toolbar';
@@ -14,23 +13,22 @@ import { LogOut, Lock } from 'lucide-react';
 const ViajeView = ({ onBack }) => {
   const { slug } = useParams();
   const navigate = useNavigate();
-  const { seleccionarViaje, state } = useHabitacionesContext();
+  const { abrirViaje, state } = useHabitacionesContext();
   const { user, logout } = useAuthContext();
   const [isAgregarOpen, setIsAgregarOpen] = useState(false);
   const [isDesgloseOpen, setIsDesgloseOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [viaje, setViaje] = useState(null);
   // Recargar cada vez que cambia el slug (p. ej. al elegir otro viaje en el selector).
-  // seleccionarViaje cambia de identidad en cada render del contexto, por eso no va en las dependencias.
+  // abrirViaje cambia de identidad en cada render del contexto, por eso no va en las dependencias.
   useEffect(() => {
     let cancelado = false;
     const cargarViaje = async () => {
       setLoading(true);
       try {
-        const viajeData = await fetchViajeBySlug(slug);
+        const viajeData = await abrirViaje(slug);
         if (cancelado) return;
         setViaje(viajeData);
-        await seleccionarViaje(viajeData.id);
       } catch (err) {
         console.error(err);
         if (!cancelado) navigate('/');

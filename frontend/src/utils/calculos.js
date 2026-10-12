@@ -40,6 +40,8 @@ export const calcularTotalPagado = (habitacion) =>
  *  - Niño gratis (por edadMinimaPago): 0
  */
 export const calcularCuotaPersona = (habitacion, persona) => {
+  // Habitación stack: nadie paga. Persona stack: no paga y su parte la cubren los demás adultos.
+  if (habitacion.stack || persona.esStack) return 0;
   const esNino = persona.esNino || /\(\d+ años?\)/.test(persona.n || '');
 
   if (esNino) {
@@ -47,11 +49,12 @@ export const calcularCuotaPersona = (habitacion, persona) => {
     return Number(habitacion.precioNino) || 0;
   }
 
-  const cantidadAdultos = habitacion.personas.filter(
-    (p) => p.n && !p.esNino && !/\(\d+ años?\)/.test(p.n)
+  // El total de la habitación se reparte solo entre los adultos que pagan (no stack)
+  const adultosQuePagan = habitacion.personas.filter(
+    (p) => p.n && !p.esStack && !p.esNino && !/\(\d+ años?\)/.test(p.n)
   ).length;
 
-  return cantidadAdultos > 0 ? habitacion.total / cantidadAdultos : 0;
+  return adultosQuePagan > 0 ? habitacion.total / adultosQuePagan : 0;
 };
 
 /** Total real que se debe cobrar en la habitación (suma de cuotas: adultos + niños que pagan). */
@@ -121,8 +124,9 @@ export const calcularRankingPersonas = (habitaciones) => {
 /** Filtra habitaciones por búsqueda de texto y estado de pago. */
 export const filtrarHabitaciones = (habitaciones, { busqueda, estado }) =>
   habitaciones.filter((hab) => {
-    const texto = `${hab.num} ${hab.tipo} ${hab.personas.map((p) => p.n).join(' ')}`.toLowerCase();
-    if (busqueda && !texto.includes(busqueda.toLowerCase())) return false;
+    const normalizar = (t) => (t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const texto = normalizar(`${hab.num} ${hab.tipo} ${hab.etiqueta || ''} ${hab.personas.map((p) => p.n).join(' ')}`);
+    if (busqueda && !texto.includes(normalizar(busqueda))) return false;
 
     const pagado   = calcularTotalPagado(hab);
     const totalReal = hab.personas.filter((p) => p.n)
@@ -132,13 +136,14 @@ export const filtrarHabitaciones = (habitaciones, { busqueda, estado }) =>
 
     if (estado === 'pendiente' && pendiente <= 0) return false;
     if (estado === 'completo'  && !completa)       return false;
+    if (estado === 'revision'  && !hab.enRevision)  return false;
 
     return true;
   });
 
 /** Personas que cuentan para la ganancia por persona: con nombre y que no entran gratis. */
 const personaCuentaParaGanancia = (habitacion, persona) => {
-  if (!persona.n) return false;
+  if (!persona.n || persona.esStack) return false;
   const esNino = persona.esNino || /\(\d+ años?\)/.test(persona.n);
   if (!esNino) return true;
   return !persona.esGratis && ninoDebePagar(persona, habitacion.edadMinimaPago);

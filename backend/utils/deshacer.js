@@ -5,6 +5,7 @@
 // salvo deshacer el propio cierre.
 
 import { ajustarTipoPorAdultos } from './habitacion.js';
+import { fotoHabitacion, firmaHabitacion } from './auditoria.js';
 
 export class ErrorDeshacer extends Error {}
 
@@ -30,8 +31,8 @@ const viajeAbiertoPorViaje = (conn, viajeId) => viajeAbierto(conn,
   'SELECT estado FROM viajes WHERE id = ?', [viajeId]);
 
 const insertarPersona = (conn, p) => conn.query(
-  'INSERT INTO personas (id, habitacion_id, nombre, posicion, es_nino, es_gratis) VALUES (?, ?, ?, ?, ?, ?)',
-  [p.id, p.habitacion_id, p.nombre, p.posicion, p.es_nino, p.es_gratis]);
+  'INSERT INTO personas (id, habitacion_id, nombre, posicion, es_nino, es_gratis, es_stack) VALUES (?, ?, ?, ?, ?, ?, ?)',
+  [p.id, p.habitacion_id, p.nombre, p.posicion, p.es_nino, p.es_gratis, p.es_stack || 0]);
 const insertarPago = (conn, p) => conn.query(
   'INSERT INTO pagos (id, persona_id, mes, anio, monto, created_at) VALUES (?, ?, ?, ?, ?, ?)',
   [p.id, p.persona_id, p.mes, p.anio, p.monto, fecha(p.created_at)]);
@@ -50,7 +51,7 @@ const pagoActual = async (conn, pagoId) => {
 
 const personaActual = async (conn, personaId) => {
   const [rows] = await conn.query(
-    'SELECT id, habitacion_id, nombre, posicion, COALESCE(es_gratis, 0) AS es_gratis FROM personas WHERE id = ?',
+    'SELECT id, habitacion_id, nombre, posicion, COALESCE(es_gratis, 0) AS es_gratis, COALESCE(es_stack, 0) AS es_stack FROM personas WHERE id = ?',
     [personaId]);
   return rows[0] || null;
 };
@@ -97,6 +98,14 @@ export const OPERACIONES = {
     if (!igual(actual.es_gratis, d.despues)) throw new ErrorDeshacer(CAMBIO_POSTERIOR);
     await viajeAbiertoPorHabitacion(conn, actual.habitacion_id);
     await conn.query('UPDATE personas SET es_gratis = ? WHERE id = ?', [d.antes, d.personaId]);
+  },
+
+  'persona.stack': async (conn, d) => {
+    const actual = await personaActual(conn, d.personaId);
+    if (!actual) throw new ErrorDeshacer('La persona ya no existe.');
+    if (!igual(actual.es_stack, d.despues)) throw new ErrorDeshacer(CAMBIO_POSTERIOR);
+    await viajeAbiertoPorHabitacion(conn, actual.habitacion_id);
+    await conn.query('UPDATE personas SET es_stack = ? WHERE id = ?', [d.antes, d.personaId]);
   },
 
   'persona.crear': async (conn, d) => {
@@ -149,14 +158,43 @@ export const OPERACIONES = {
 
   'habitacion.editar': async (conn, d) => {
     const [rows] = await conn.query(
-      'SELECT numero, tipo, total, precio_nino, etiqueta, es_stack, nota FROM habitaciones WHERE id = ?', [d.habitacionId]);
+      `SELECT numero, tipo, total, precio_nino, etiqueta, es_stack, nota, en_revision, revision_nota
+       FROM habitaciones WHERE id = ?`, [d.habitacionId]);
     if (!rows[0]) throw new ErrorDeshacer('La habitación ya no existe.');
     if (!mismosCampos(rows[0], d.despues)) throw new ErrorDeshacer(CAMBIO_POSTERIOR);
     await viajeAbiertoPorHabitacion(conn, d.habitacionId);
     const campos = Object.keys(d.antes);
     await conn.query(
       `UPDATE habitaciones SET ${campos.map((c) => `${c} = ?`).join(', ')} WHERE id = ?`,
-      [...campos.map((c) => d.antes[c]), d.habitacionId]);
+      [...campos.map((c) => (c.endsWith('_at') ? fecha(d.antes[c]) : d.antes[c])), d.habitacionId]);
+  },
+
+  'habitacion.restaurar': async (conn, d) => {
+    const actual = await fotoHabitacion(conn, d.habitacionId);
+    if (!actual) throw new ErrorDeshacer('La habitación ya no existe.');
+    if (firmaHabitacion(actual) !== d.firmaDespues) throw new ErrorDeshacer(CAMBIO_POSTERIOR);
+    await viajeAbiertoPorHabitacion(conn, d.habitacionId);
+
+    const { habitacion, personas, pagos } = d.antes;
+    const idsAntes = new Set(personas.map((p) => p.id));
+    const idsActuales = new Set(actual.personas.map((p) => p.id));
+
+    // Quitar las agregadas en la edición (no tienen pagos: la firma lo garantiza)
+    const agregadas = actual.personas.filter((p) => !idsAntes.has(p.id)).map((p) => p.id);
+    if (agregadas.length) await conn.query('DELETE FROM personas WHERE id IN (?)', [agregadas]);
+    // Volver a crear las quitadas, con sus pagos
+    for (const p of personas.filter((x) => !idsActuales.has(x.id))) {
+      await insertarPersona(conn, p);
+      for (const pago of pagos.filter((g) => g.persona_id === p.id)) await insertarPago(conn, pago);
+    }
+    // Restaurar nombre y marcas de las que siguen
+    for (const p of personas.filter((x) => idsActuales.has(x.id))) {
+      await conn.query('UPDATE personas SET nombre = ?, es_nino = ?, es_gratis = ?, es_stack = ? WHERE id = ?',
+        [p.nombre, p.es_nino, p.es_gratis, p.es_stack || 0, p.id]);
+    }
+    await conn.query(
+      'UPDATE habitaciones SET numero = ?, tipo = ?, total = ?, precio_nino = ?, etiqueta = ?, es_stack = ? WHERE id = ?',
+      [habitacion.numero, habitacion.tipo, habitacion.total, habitacion.precio_nino, habitacion.etiqueta, habitacion.es_stack, d.habitacionId]);
   },
 
   'habitacion.eliminar': async (conn, d) => {
@@ -167,10 +205,13 @@ export const OPERACIONES = {
       await viajeAbiertoPorViaje(conn, habitacion.viaje_id);
     }
     await conn.query(
-      `INSERT INTO habitaciones (id, numero, tipo, total, precio_nino, es_stack, nota, etiqueta, viaje_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO habitaciones (id, numero, tipo, total, precio_nino, es_stack, nota, etiqueta, viaje_id,
+         en_revision, revision_nota, revision_por, revision_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [habitacion.id, habitacion.numero, habitacion.tipo, habitacion.total, habitacion.precio_nino,
-        habitacion.es_stack, habitacion.nota, habitacion.etiqueta, habitacion.viaje_id]);
+        habitacion.es_stack, habitacion.nota, habitacion.etiqueta, habitacion.viaje_id,
+        habitacion.en_revision || 0, habitacion.revision_nota || null, habitacion.revision_por || null,
+        fecha(habitacion.revision_at)]);
     for (const p of personas) await insertarPersona(conn, p);
     for (const p of pagos) await insertarPago(conn, p);
   },

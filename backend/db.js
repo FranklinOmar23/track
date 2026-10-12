@@ -1,5 +1,6 @@
 import mysql from 'mysql2/promise';
 import dotenv from 'dotenv';
+import { instrumentarPool } from './utils/tiempos.js';
 
 dotenv.config();
 
@@ -15,11 +16,13 @@ const pool = mysql.createPool({
   // Hostinger cierra conexiones inactivas: sin esto, la primera consulta tras un rato falla con ECONNRESET
   enableKeepAlive: true,
   keepAliveInitialDelay: 10000,
-  maxIdle: 2,
+  maxIdle: 5,
   idleTimeout: 60000,
   timezone: '+00:00',
   // DATE como 'YYYY-MM-DD' (evita '...T00:00:00.000Z' que rompe <input type="date">)
   dateStrings: ['DATE'],
 });
+
+instrumentarPool(pool);
 
 export default pool;

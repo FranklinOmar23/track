@@ -87,6 +87,12 @@ export const actualizarEtiqueta = (habId, etiqueta) =>
     body: JSON.stringify({ etiqueta }),
   });
 
+export const marcarRevision = (habId, enRevision, nota) =>
+  request(`/api/habitaciones/${habId}/revision`, {
+    method: 'PUT',
+    body: JSON.stringify({ enRevision, nota }),
+  });
+
 export const registrarPago = (personaId, pago) =>
   request(`/api/personas/${personaId}/pagos`, {
     method: 'POST',
@@ -128,6 +134,12 @@ export const actualizarGratisPersona = (personaId, esGratis) =>
     body: JSON.stringify({ esGratis }),
   });
 
+export const actualizarStackPersona = (personaId, esStack) =>
+  request(`/api/personas/${personaId}/stack`, {
+    method: 'PATCH',
+    body: JSON.stringify({ esStack }),
+  });
+
 export const eliminarPersona = (personaId) =>
   request(`/api/personas/${personaId}`, {
     method: 'DELETE',
@@ -160,7 +172,15 @@ export const cambiarEstadoViaje = (id, estado) =>
 
 export const fetchDashboardStats = () => request('/api/stats/dashboard');
 
-export const fetchViajeBySlug = (slug) => request(`/api/stats/viaje/slug/${slug}`);
+export const fetchViajeBySlug = (slug, { conHabitaciones = false } = {}) =>
+  request(`/api/stats/viaje/slug/${slug}${conHabitaciones ? '?habitaciones=1' : ''}`);
+
+/** Guarda la habitación y todas sus personas en una sola petición (transacción en el servidor). */
+export const guardarHabitacionCompleta = (id, datos) =>
+  request(`/api/habitaciones/${id}/completa`, {
+    method: 'PUT',
+    body: JSON.stringify(datos),
+  });
 
 export const crearViajeConSlug = (viaje) =>
   request('/api/stats/viajes/with-slug', {
@@ -202,3 +222,15 @@ export const fetchPagosMesViaje = () =>
   request('/api/stats/reportes/pagos-mes-viaje');
 export const fetchReporteGanancias = () =>
   request('/api/stats/reportes/ganancias');
+
+// ─── REPORTES EN TABLA ───────────────────────────────────────────────────────
+const query = (params) => {
+  const q = new URLSearchParams(Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== ''));
+  return q.toString() ? `?${q}` : '';
+};
+
+/** Pagos con fecha de registro y quién lo registró. { viajeId, desde, hasta } */
+export const fetchReportePagos = (params = {}) => request(`/api/stats/reportes/pagos${query(params)}`);
+
+/** Movimientos de personas entre habitaciones. { viajeId } */
+export const fetchReporteMovimientos = (params = {}) => request(`/api/stats/reportes/movimientos${query(params)}`);

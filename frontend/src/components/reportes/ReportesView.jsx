@@ -9,18 +9,21 @@ import { exportarHabitacionesExcel } from '../../utils/exportExcel';
 import { divisaPrincipal } from '../../utils/formatters';
 import { construirDatosReportes, crearFmt } from './datosReportes';
 import GananciasReporte from './GananciasReporte';
+import TabTablas from './tablas/TabTablas';
 import { StatCard, Tab } from './ui';
 import TabTendencias from './tabs/TabTendencias';
 import TabMapaCalor from './tabs/TabMapaCalor';
 import TabDistribucion from './tabs/TabDistribucion';
 import TabRendimiento from './tabs/TabRendimiento';
 import TabRankings from './tabs/TabRankings';
-import { ArrowLeft, DollarSign, Building2, Users, TrendingUp, Printer, Flame, PieChart as PieIcon, Award, Trophy, Coins } from 'lucide-react';
+import { ArrowLeft, DollarSign, Building2, Users, TrendingUp, Printer, Flame, PieChart as PieIcon, Award, Trophy, Coins, Table2 } from 'lucide-react';
+import { useGeneracionExcel } from '../../hooks/useGeneracionExcel';
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 const ReportesView = () => {
   const navigate = useNavigate();
   const { state } = useHabitacionesContext();
+  const { generar, pantalla } = useGeneracionExcel();
   const [tab, setTab]                     = useState('tendencias');
   const [viajeId, setViajeId]             = useState('');
   const [loading, setLoading]             = useState(true);
@@ -72,8 +75,10 @@ const ReportesView = () => {
   const handleExportPDF   = () => window.print();
   const handleExportExcel = () => {
     const viajeActual = viajes.find((v) => String(v.id) === String(viajeId));
-    exportarHabitacionesExcel(habitaciones, viajeActual)
-      .catch((error) => alert(`No se pudo generar el Excel: ${error.message}`));
+    generar(() => exportarHabitacionesExcel(habitaciones, viajeActual), {
+      titulo: 'lista de pasajeros',
+      archivo: `${viajeActual?.nombre ? `${viajeActual.nombre} - ` : ''}pasajeros.xlsx`,
+    });
   };
 
   const ready = !loading;
@@ -81,6 +86,7 @@ const ReportesView = () => {
   // ────────────────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen" style={{ background: '#0f1117' }}>
+      {pantalla}
 
       {/* Background decoration */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 0 }}>
@@ -194,6 +200,7 @@ const ReportesView = () => {
           <Tab id="rendimiento"  label="Rendimiento"   icon={Award}      active={tab === 'rendimiento'}  onClick={setTab} />
           <Tab id="rankings"     label="Rankings"      icon={Trophy}     active={tab === 'rankings'}     onClick={setTab} />
           <Tab id="ganancias"    label="Ganancias"     icon={Coins}      active={tab === 'ganancias'}    onClick={setTab} />
+          <Tab id="tablas"       label="Tablas"        icon={Table2}     active={tab === 'tablas'}       onClick={setTab} />
         </div>
 
         {/* ── Content ───────────────────────────────────────────────────────── */}
@@ -220,6 +227,8 @@ const ReportesView = () => {
 
             {/* ── RANKINGS ──────────────────────────────────────────────────── */}
             {tab === 'ganancias' && <GananciasReporte viajeId={viajeId} />}
+
+            {tab === 'tablas' && <TabTablas viajes={viajes} viajeIdInicial={viajeId} />}
 
             {tab === 'rankings' && <TabRankings datos={datos} fmt={fmt} />}
           </>

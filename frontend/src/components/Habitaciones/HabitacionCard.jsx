@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Tag, ChevronRight } from 'lucide-react';
+import { memo, useState } from 'react';
+import { Tag, ChevronRight, Flag } from 'lucide-react';
 import { useDivisa } from '../../hooks/useDivisa';
 import { calcularTotalHabitacion } from '../../utils/calculos';
 
@@ -31,7 +31,8 @@ const getPaymentColor = (porcentaje, isStack) => {
 
 const STAGGER = ['stagger-0','stagger-1','stagger-2','stagger-3','stagger-4','stagger-5'];
 
-export const HabitacionCard = ({ habitacion, onSelect, index = 0 }) => {
+// memo: al registrar un pago solo se vuelve a dibujar la tarjeta de esa habitación
+export const HabitacionCard = memo(function HabitacionCard({ habitacion, onSelect, index = 0 }) {
   const { fmt } = useDivisa();
   const [hovered, setHovered] = useState(false);
 
@@ -55,7 +56,7 @@ export const HabitacionCard = ({ habitacion, onSelect, index = 0 }) => {
       className={`relative rounded-xl overflow-hidden cursor-pointer animate-fade-in-up ${stagger}`}
       style={{
         backgroundColor: '#1a1f2e',
-        border: `1px solid ${hovered ? `rgba(${payColor.rgb},0.38)` : 'rgba(255,255,255,0.07)'}`,
+        border: `1px solid ${habitacion.enRevision ? 'rgba(251,191,36,0.45)' : hovered ? `rgba(${payColor.rgb},0.38)` : 'rgba(255,255,255,0.07)'}`,
         transition: 'border-color 220ms ease, transform 220ms cubic-bezier(0.23,1,0.32,1), box-shadow 220ms ease',
         transform: hovered ? 'translateY(-3px)' : 'translateY(0)',
         boxShadow: hovered
@@ -76,8 +77,8 @@ export const HabitacionCard = ({ habitacion, onSelect, index = 0 }) => {
       <div
         className="absolute -top-8 -right-8 w-24 h-24 rounded-full pointer-events-none"
         style={{
-          background: `radial-gradient(circle, rgba(${payColor.rgb},0.5), transparent 70%)`,
-          filter: 'blur(20px)',
+          // Degradado amplio en lugar de filter: blur (el blur en 50 tarjetas es muy pesado para la GPU)
+          background: `radial-gradient(circle, rgba(${payColor.rgb},0.35), transparent 65%)`,
           opacity: hovered ? 0.5 : 0.1,
           transition: 'opacity 300ms ease',
         }}
@@ -97,6 +98,12 @@ export const HabitacionCard = ({ habitacion, onSelect, index = 0 }) => {
             {isStack && (
               <span className="bg-emerald-500/15 text-emerald-400 text-[10px] px-2 py-0.5 rounded-full border border-emerald-500/25 font-bold tracking-wide">
                 STACK
+              </span>
+            )}
+            {habitacion.enRevision && (
+              <span title={habitacion.revisionNota || 'En revisión'}
+                className="flex items-center gap-1 bg-amber-400/15 text-amber-300 text-[10px] px-2 py-0.5 rounded-full border border-amber-400/30 font-bold">
+                <Flag className="h-2.5 w-2.5" /> En revisión
               </span>
             )}
           </div>
@@ -132,6 +139,9 @@ export const HabitacionCard = ({ habitacion, onSelect, index = 0 }) => {
                 <span className="text-sm text-gray-300 truncate">{persona.n}</span>
                 {(persona.esNino || /\(\d+ años\)/.test(persona.n || '')) && (
                   <span className="text-[9px] text-amber-400 bg-amber-500/10 px-1.5 rounded-full shrink-0 border border-amber-500/20">niño</span>
+                )}
+                {persona.esStack && (
+                  <span className="text-[9px] font-bold tracking-wide text-emerald-300 bg-emerald-500/10 px-1.5 rounded-full shrink-0 border border-emerald-500/25">stack</span>
                 )}
               </div>
             ))}
@@ -190,4 +200,4 @@ export const HabitacionCard = ({ habitacion, onSelect, index = 0 }) => {
       </div>
     </div>
   );
-};
+});

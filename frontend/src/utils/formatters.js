@@ -29,3 +29,7 @@ export const formatCurrency = (valor, divisa = 'USD') => {
     maximumFractionDigits: 0,
   }).format(valor || 0);
 };
+
+/** Símbolo de la divisa (RD$, US$, €…) según el formato de la app. */
+export const simboloDivisa = (divisa = 'USD') =>
+  formatCurrency(0, divisa).replace(/[\d.,\s\u00a0]/g, '') || divisa;

@@ -1,4 +1,5 @@
 import { TrendingUp } from 'lucide-react';
+import InputMonto from '../common/InputMonto';
 
 const OPCIONES = [
   { value: 'porcentaje',  label: '% del total',       hint: 'Ej. comisión del hotel' },
@@ -9,8 +10,10 @@ const OPCIONES = [
 /** Selector de margen de ganancia del viaje (compartido por crear y editar). */
 const GananciaFields = ({ tipo, valor, divisa, onTipoChange, onValorChange, disabled }) => (
   <div>
-    <label className="modal-section-label flex items-center gap-1.5">
-      <TrendingUp className="h-3 w-3" /> Margen de ganancia
+    <label className="modal-section-label">
+      <span className="inline-flex items-center gap-1.5">
+        <TrendingUp className="h-3 w-3" /> Margen de ganancia
+      </span>
     </label>
     <div className="grid grid-cols-3 gap-2">
       {OPCIONES.map((op) => {
@@ -31,20 +34,20 @@ const GananciaFields = ({ tipo, valor, divisa, onTipoChange, onValorChange, disa
       })}
     </div>
     {tipo !== 'ninguna' && (
-      <div className="mt-2 flex items-center gap-2 animate-fade-in">
-        <input
-          className="input-dark flex-1"
-          type="number"
-          min="0"
-          max={tipo === 'porcentaje' ? 100 : undefined}
-          step="any"
-          value={valor}
-          onChange={(e) => onValorChange(e.target.value)}
-          placeholder={tipo === 'porcentaje' ? 'Ej. 10' : 'Ej. 1500'}
-          disabled={disabled}
-        />
-        <span className="text-sm text-gray-500 shrink-0 w-24">
-          {tipo === 'porcentaje' ? '% del total' : `${divisa} / persona`}
+      <div className="mt-2 flex items-center gap-2 animate-fade-in-up">
+        <div className="flex-1">
+          {tipo === 'porcentaje' ? (
+            <div className="input-monto">
+              <span>%</span>
+              <input className="input-dark tabular-nums" type="number" inputMode="decimal" min="0" max="100" step="any"
+                value={valor} onChange={(e) => onValorChange(e.target.value)} placeholder="Ej. 10" disabled={disabled} />
+            </div>
+          ) : (
+            <InputMonto divisa={divisa} value={valor} onChange={onValorChange} placeholder="Ej. 1500" disabled={disabled} />
+          )}
+        </div>
+        <span className="text-xs text-gray-500 shrink-0">
+          {tipo === 'porcentaje' ? 'del total vendido' : 'por persona que paga'}
         </span>
       </div>
     )}

@@ -70,7 +70,7 @@ const ModalAgregarViaje = ({ open, onClose, onCreate }) => {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="relative px-6 py-5 space-y-4">
+        <form onSubmit={handleSubmit} className="relative px-6 py-5 space-y-4 modal-stagger">
 
           {/* Nombre */}
           <div>
@@ -150,7 +150,7 @@ const ModalAgregarViaje = ({ open, onClose, onCreate }) => {
           />
 
           {/* Actions */}
-          <div className="flex items-center justify-end gap-2 pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+          <div className="modal-acciones flex items-center justify-end gap-2">
             <button type="button" className="btn-modal-secondary" onClick={onClose}>
               Cancelar
             </button>

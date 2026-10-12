@@ -4,7 +4,7 @@ import { Progress } from '../ui/progress';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '../ui/table';
-import { FileText, Building2, Bus, Eye, Pencil, Lock } from 'lucide-react';
+import { FileText, Building2, Bus, Eye, Pencil, Lock, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import { calcularGananciaResumen } from '../../utils/calculos';
 import { formatCurrency } from '../../utils/formatters';
 import ModalEditarViaje from '../Modals/ModalEditarViaje';
@@ -12,8 +12,52 @@ import ModalEditarViaje from '../Modals/ModalEditarViaje';
 
 const STAGGER_DELAYS = [0, 40, 80, 120, 160, 200, 240];
 
+// Valor por el que se ordena cada columna
+const VALOR_ORDEN = {
+  nombre: (v) => v.nombre.toLowerCase(),
+  habitaciones: (v) => v.total_habitaciones || 0,
+  personas: (v) => v.total_personas || 0,
+  total: (v) => v.total_por_cobrar || 0,
+  pagado: (v) => v.total_pagado || 0,
+  pendiente: (v) => v.pendiente || 0,
+  ganancia: (v) => calcularGananciaResumen(v),
+  progreso: (v) => (v.total_por_cobrar > 0 ? v.total_pagado / v.total_por_cobrar : 0),
+};
+
+/** Encabezado que ordena al hacer clic (1er clic: mayor a menor; 2º: menor a mayor; 3º: orden original). */
+const Encabezado = ({ campo, orden, onOrdenar, className = '', children }) => {
+  const activo = orden.campo === campo;
+  const Icono = !activo ? ArrowUpDown : orden.dir === 'desc' ? ArrowDown : ArrowUp;
+  return (
+    <TableHead className={`font-semibold text-xs tracking-wider uppercase ${className}`}>
+      <button type="button" onClick={() => onOrdenar(campo)}
+        className={`inline-flex items-center gap-1 uppercase tracking-wider transition-colors ${activo ? 'text-teal-300' : 'text-gray-500 hover:text-gray-300'}`}>
+        {children}
+        <Icono className={`h-3 w-3 ${activo ? '' : 'opacity-40'}`} />
+      </button>
+    </TableHead>
+  );
+};
+
 export const ViajesTable = ({ viajes, onSelectViaje }) => {
   const [viajeEditando, setViajeEditando] = useState(null);
+  const [orden, setOrden] = useState({ campo: null, dir: 'desc' });
+
+  const onOrdenar = (campo) => setOrden((o) => {
+    if (o.campo !== campo) return { campo, dir: campo === 'nombre' ? 'asc' : 'desc' };
+    if (o.dir === (campo === 'nombre' ? 'asc' : 'desc')) return { campo, dir: campo === 'nombre' ? 'desc' : 'asc' };
+    return { campo: null, dir: 'desc' };
+  });
+
+  const viajesOrdenados = orden.campo
+    ? [...viajes].sort((a, b) => {
+      const va = VALOR_ORDEN[orden.campo](a);
+      const vb = VALOR_ORDEN[orden.campo](b);
+      const cmp = va < vb ? -1 : va > vb ? 1 : 0;
+      return orden.dir === 'asc' ? cmp : -cmp;
+    })
+    : viajes;
+  const props = { orden, onOrdenar };
 
   return (
     <>
@@ -44,20 +88,20 @@ export const ViajesTable = ({ viajes, onSelectViaje }) => {
           <Table>
             <TableHeader>
               <TableRow className="bg-white/[0.025] hover:bg-white/[0.025] border-b border-white/[0.05]">
-                <TableHead className="font-semibold text-gray-500 text-xs tracking-wider uppercase">Viaje</TableHead>
+                <Encabezado campo="nombre" {...props}>Viaje</Encabezado>
                 <TableHead className="font-semibold text-gray-500 text-xs tracking-wider uppercase hidden sm:table-cell">Tipo</TableHead>
-                <TableHead className="font-semibold text-gray-500 text-xs tracking-wider uppercase text-center hidden md:table-cell">Hab.</TableHead>
-                <TableHead className="font-semibold text-gray-500 text-xs tracking-wider uppercase text-center hidden md:table-cell">Pax</TableHead>
-                <TableHead className="font-semibold text-gray-500 text-xs tracking-wider uppercase text-right">Total</TableHead>
-                <TableHead className="font-semibold text-gray-500 text-xs tracking-wider uppercase text-right hidden sm:table-cell">Pagado</TableHead>
-                <TableHead className="font-semibold text-gray-500 text-xs tracking-wider uppercase text-right">Pendiente</TableHead>
-                <TableHead className="font-semibold text-gray-500 text-xs tracking-wider uppercase text-right hidden lg:table-cell">Ganancia</TableHead>
-                <TableHead className="font-semibold text-gray-500 text-xs tracking-wider uppercase text-center hidden sm:table-cell">Progreso</TableHead>
+                <Encabezado campo="habitaciones" className="text-center hidden md:table-cell" {...props}>Hab.</Encabezado>
+                <Encabezado campo="personas" className="text-center hidden md:table-cell" {...props}>Pax</Encabezado>
+                <Encabezado campo="total" className="text-right" {...props}>Total</Encabezado>
+                <Encabezado campo="pagado" className="text-right hidden sm:table-cell" {...props}>Pagado</Encabezado>
+                <Encabezado campo="pendiente" className="text-right" {...props}>Pendiente</Encabezado>
+                <Encabezado campo="ganancia" className="text-right hidden lg:table-cell" {...props}>Ganancia</Encabezado>
+                <Encabezado campo="progreso" className="text-center hidden sm:table-cell" {...props}>Progreso</Encabezado>
                 <TableHead className="font-semibold text-gray-500 text-xs tracking-wider uppercase text-center">Acción</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {viajes.map((viaje, rowIdx) => {
+              {viajesOrdenados.map((viaje, rowIdx) => {
                 const total      = viaje.total_por_cobrar || 0;
                 const pagado     = viaje.total_pagado     || 0;
                 const pendiente  = viaje.pendiente        || 0;
@@ -70,9 +114,10 @@ export const ViajesTable = ({ viajes, onSelectViaje }) => {
                 return (
                   <TableRow
                     key={viaje.id}
-                    className={`border-b border-white/[0.04] hover:bg-white/[0.025] transition-colors ${cerrado ? 'opacity-60' : ''}`}
+                    onClick={() => onSelectViaje(viaje)}
+                    className={`border-b border-white/[0.04] hover:bg-white/[0.025] transition-colors ${cerrado ? 'opacity-60' : ''} cursor-pointer`}
                     style={{
-                      animation: `fadeInUp 0.45s cubic-bezier(0.23,1,0.32,1) both`,
+                      animation: `fadeInUp 0.45s cubic-bezier(0.23,1,0.32,1) backwards`,
                       animationDelay: `${250 + delay}ms`,
                     }}
                   >
@@ -144,14 +189,14 @@ export const ViajesTable = ({ viajes, onSelectViaje }) => {
                     <TableCell className="text-center py-3.5">
                       <div className="flex items-center justify-center gap-1">
                         <button
-                          onClick={() => setViajeEditando(viaje)}
+                          onClick={(e) => { e.stopPropagation(); setViajeEditando(viaje); }}
                           className="text-gray-600 hover:text-gray-200 hover:bg-white/[0.06] p-1.5 rounded-lg transition-all duration-150"
                           title="Editar viaje"
                         >
                           <Pencil className="h-3.5 w-3.5" />
                         </button>
                         <button
-                          onClick={() => onSelectViaje(viaje)}
+                          onClick={(e) => { e.stopPropagation(); onSelectViaje(viaje); }}
                           className="text-teal-400 hover:text-teal-300 hover:bg-teal-500/10 px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all duration-150 border border-transparent hover:border-teal-500/20"
                           title="Ver viaje"
                         >

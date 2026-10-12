@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuthContext } from './Context/AuthContext';
 import { HabitacionesProvider } from './Context/HabitacionesContext';
@@ -5,8 +6,15 @@ import HomeViajes from './components/layout/HomeViajes';
 import ViajeView from './components/layout/ViajeView';
 import ViajePublico from './components/Dashboard/ViajePublico';
 import ViajeExpirado from './components/Dashboard/ViajeExpirado';
-import ReportesView from './components/reportes/ReportesView';
-import ActividadView from './components/logs/ActividadView';
+// Páginas pesadas (gráficas) se descargan solo al entrar: la app abre más rápido
+const ReportesView = lazy(() => import('./components/reportes/ReportesView'));
+const ActividadView = lazy(() => import('./components/logs/ActividadView'));
+
+const CargandoPagina = () => (
+  <div className="min-h-screen flex items-center justify-center" style={{ background: '#0f1117' }}>
+    <div className="h-8 w-8 rounded-full border-2 border-teal-500/30 border-t-teal-400 animate-spin" />
+  </div>
+);
 import LoginView from './components/auth/LoginView';
 import './components/styles/global.css';
 import { rutaViaje } from './utils/rutas';
@@ -34,8 +42,8 @@ function AppContent() {
   return (
     <Routes>
       <Route path="/" element={<HomeViajes onSelectViaje={handleSelectViaje} />} />
-      <Route path="/reportes" element={<ReportesView />} />
-      <Route path="/actividad" element={<ActividadView />} />
+      <Route path="/reportes" element={<Suspense fallback={<CargandoPagina />}><ReportesView /></Suspense>} />
+      <Route path="/actividad" element={<Suspense fallback={<CargandoPagina />}><ActividadView /></Suspense>} />
       <Route path="/:tipo/:slug" element={<ViajeView onBack={handleBack} />} />
       <Route path="/viaje/:tipo/:slug" element={<ViajeView />} />
     </Routes>

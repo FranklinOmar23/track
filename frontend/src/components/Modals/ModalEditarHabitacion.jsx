@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useHabitacionesContext } from '../../Context/HabitacionesContext';
 import { X, Save, Minus } from 'lucide-react';
-import { EtiquetaFields, NinosFields, StackToggle } from './HabitacionFormFields';
-import * as api from '../../utils/api';
+import { EtiquetaFields, NinosFields, StackToggle, ChipStack } from './HabitacionFormFields';
 import { capacidadPorTipo } from '../../utils/calculos';
+import InputMonto from '../common/InputMonto';
+import { useDivisa } from '../../hooks/useDivisa';
 
 const ModalEditarHabitacion = ({ habitacion, open, onClose }) => {
-  const { editarHabitacion, cargarHabitaciones, state } = useHabitacionesContext();
+  const { guardarHabitacionCompleta, state } = useHabitacionesContext();
+  const { divisa } = useDivisa();
 
   const [num, setNum]               = useState('');
   const [tipo, setTipo]             = useState('Single');
@@ -40,7 +42,7 @@ const ModalEditarHabitacion = ({ habitacion, open, onClose }) => {
       const adultos = todasPersonas.filter((p) => !p.esNino && !/\(\d+ años\)/.test(p.n));
 
       const slots = capacidadPorTipo(habActual.tipo);
-      const loaded = adultos.map((p) => ({ id: p.id, nombre: p.n }));
+      const loaded = adultos.map((p) => ({ id: p.id, nombre: p.n, esStack: !!p.esStack }));
       while (loaded.length < slots) loaded.push({ nombre: '' });
       setPersonas(loaded);
 
@@ -92,56 +94,31 @@ const ModalEditarHabitacion = ({ habitacion, open, onClose }) => {
     if (!num.trim() || !tipo) return;
     setLoading(true);
     try {
-      const personasOriginales = (habActual.personas || []).filter(
-        (p) => !p.esNino && !/\(\d+ años\)/.test(p.n)
-      );
-      for (const original of personasOriginales) {
-        const editada = personas.find((p) => p.id === original.id);
-        const nombre  = editada?.nombre.trim() || '';
-        if (!nombre) {
-          await api.eliminarPersona(original.id);
-        } else if (nombre !== original.n) {
-          await api.actualizarNombrePersona(original.id, nombre);
-        }
-      }
-      for (const editada of personas) {
-        if (!editada.id && editada.nombre.trim()) {
-          await api.agregarPersonaHabitacion(habActual.id, { nombre: editada.nombre.trim(), esNino: false });
-        }
-      }
+      // Lista completa de personas deseadas: adultos (con stack) + niños (nombre con edad, gratis)
+      const adultos = personas
+        .filter((p) => p.nombre.trim())
+        .map((p) => ({ id: p.id, nombre: p.nombre.trim(), esNino: false, esStack: !!p.esStack }));
+      const ninosLista = (hayNinos ? ninos.filter((n) => n.nombre.trim()) : []).map((n) => ({
+        id: n.id,
+        nombre: n.edad ? `${n.nombre.trim()} (${n.edad} años)` : n.nombre.trim(),
+        esNino: true,
+        esGratis: !!n.gratis,
+      }));
 
-      const ninosOriginales = (habActual.personas || []).filter((p) => p.esNino || /\(\d+ años\)/.test(p.n));
-      const ninosValidos = hayNinos ? ninos.filter((n) => n.nombre.trim()) : [];
-
-      for (const original of ninosOriginales) {
-        const sigue = ninosValidos.find((n) => n.id === original.id);
-        if (!sigue) await api.eliminarPersona(original.id);
-      }
-
-      for (const nino of ninosValidos) {
-        const label = nino.edad ? `${nino.nombre.trim()} (${nino.edad} años)` : nino.nombre.trim();
-        if (nino.id) {
-          const original = ninosOriginales.find((n) => n.id === nino.id);
-          if (original && label !== original.n) await api.actualizarNombrePersona(nino.id, label);
-          if (original && !!nino.gratis !== !!original.esGratis) await api.actualizarGratisPersona(nino.id, !!nino.gratis);
-        } else {
-          await api.agregarPersonaHabitacion(habActual.id, { nombre: label, esNino: true, esGratis: !!nino.gratis });
-        }
-      }
-
-      // Al final: el backend ajusta el tipo al borrar personas; el tipo elegido aquí debe prevalecer
-      await editarHabitacion(habActual.id, {
+      // Una sola petición: el servidor aplica todo en una transacción (si algo falla, no se guarda nada)
+      await guardarHabitacionCompleta(habActual.id, {
         num: num.trim(), tipo,
-        total: stackActivo ? 0 : parseFloat(total) || 0,
+        // El total se conserva aunque sea stack: al quitar el stack vuelve a contar
+        total: parseFloat(total) || 0,
         precioNino: hayNinos ? (parseFloat(precioNino) || 0) : 0,
         etiqueta: etiquetaFinal, stack: stackActivo,
+        personas: [...adultos, ...ninosLista],
       });
 
-      if (state.selectedViajeId) await cargarHabitaciones(state.selectedViajeId);
       onClose();
     } catch (err) {
       console.error(err);
-      alert('Error al guardar la habitación');
+      alert(`No se pudo guardar la habitación: ${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -168,7 +145,7 @@ const ModalEditarHabitacion = ({ habitacion, open, onClose }) => {
           </button>
         </div>
 
-        <div className="relative px-6 py-5 space-y-4">
+        <div className="relative px-6 py-5 space-y-4 modal-stagger">
 
           <div>
             <label className="modal-section-label">Número / ID</label>
@@ -208,6 +185,12 @@ const ModalEditarHabitacion = ({ habitacion, open, onClose }) => {
                     placeholder={`Persona ${idx + 1}${idx === 0 ? ' (obligatorio)' : ' (opcional)'}`}
                     disabled={loading}
                   />
+                  <ChipStack activo={!!personas[idx]?.esStack} disabled={loading || stackActivo}
+                    onClick={() => setPersonas((prev) => {
+                      const copia = [...prev];
+                      copia[idx] = { ...(copia[idx] || { nombre: '' }), esStack: !copia[idx]?.esStack };
+                      return copia;
+                    })} />
                   {personas[idx]?.nombre && (
                     <button type="button" onClick={() => quitarPersona(idx)} disabled={loading}
                       title="Quitar persona"
@@ -228,6 +211,7 @@ const ModalEditarHabitacion = ({ habitacion, open, onClose }) => {
             precioNino={precioNino}
             onPrecioNinoChange={setPrecioNino}
             stackActivo={stackActivo}
+            divisa={divisa}
             disabled={loading}
           />
 
@@ -235,12 +219,10 @@ const ModalEditarHabitacion = ({ habitacion, open, onClose }) => {
 
           <div>
             <label className="modal-section-label">Total habitación</label>
-            <input className="input-dark" type="number" value={total}
-              onChange={(e) => setTotal(e.target.value)} placeholder="0"
-              disabled={stackActivo || loading} />
+            <InputMonto divisa={divisa} value={total} onChange={setTotal} disabled={stackActivo || loading} />
           </div>
 
-          <div className="flex items-center justify-end gap-2 pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+          <div className="modal-acciones flex items-center justify-end gap-2">
             <button type="button" className="btn-modal-secondary" onClick={onClose} disabled={loading}>
               Cancelar
             </button>

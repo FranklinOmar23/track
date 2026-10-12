@@ -5,6 +5,8 @@ import { ViajesTable } from './ViajesTable';
 import { fetchDashboardStats } from '../../utils/api';
 import { useHabitacionesContext } from '../../Context/HabitacionesContext';
 import { divisaPrincipal } from '../../utils/formatters';
+import { calcularGananciaResumen } from '../../utils/calculos';
+import { FechasViajes } from './FechasViajes';
 
 export const DashboardFull = ({ onSelectViaje }) => {
   const { state } = useHabitacionesContext();
@@ -89,27 +91,48 @@ export const DashboardFull = ({ onSelectViaje }) => {
     };
   });
 
-  const totalPagado    = viajesProcesados.reduce((s, v) => s + v.total_pagado, 0);
-  const totalPorCobrar = viajesProcesados.reduce((s, v) => s + v.total_por_cobrar, 0);
-  const porcentajeGlobal = totalPorCobrar > 0
-    ? ((totalPagado / totalPorCobrar) * 100).toFixed(1)
-    : 0;
-
+  // Totales globales (los viajes se suman en la divisa más usada)
   const divisa = divisaPrincipal(viajes);
+  const totales = viajesProcesados.reduce((acc, v) => {
+    const ganancia = calcularGananciaResumen(v);
+    const avance = v.total_por_cobrar > 0 ? Math.min(1, v.total_pagado / v.total_por_cobrar) : 0;
+    acc.porCobrar += v.total_por_cobrar;
+    acc.pagado += v.total_pagado;
+    acc.pendiente += v.pendiente;
+    acc.habitaciones += v.total_habitaciones;
+    acc.personas += v.total_personas;
+    acc.ganancia += ganancia;
+    acc.gananciaCobrada += v.ganancia_tipo === 'porcentaje'
+      ? (v.total_pagado * v.ganancia_valor) / 100
+      : ganancia * avance;
+    if (v.pendiente > 0) acc.viajesConSaldo += 1;
+    if (v.ganancia_tipo !== 'ninguna') acc.conGanancia = true;
+    return acc;
+  }, { porCobrar: 0, pagado: 0, pendiente: 0, habitaciones: 0, personas: 0, ganancia: 0, gananciaCobrada: 0, viajesConSaldo: 0, conGanancia: false });
+
+  const resorts = viajes.filter((v) => v.tipo !== 'tour').length;
+  const tours = viajes.length - resorts;
+  const cerrados = state.viajes.length - viajes.length;
 
   return (
-    <div className="space-y-6">
-      <DashboardStats
-        totalViajes={viajes.length}
-        resorts={viajes.filter((v) => v.tipo === 'resort').length}
-        tours={viajes.filter((v) => v.tipo === 'tour').length}
-        divisa={divisa}
-        totalPagadoRaw={totalPagado}
-        porcentaje={porcentajeGlobal}
-        porcentajeRaw={parseFloat(porcentajeGlobal)}
-      />
+    <div className="space-y-5">
+      {/* Resumen en una línea */}
+      <div className="flex flex-wrap items-center gap-2 text-xs animate-fade-in">
+        <span className="px-3 py-1.5 rounded-full bg-white/5 border border-white/[0.07] text-gray-300 font-semibold">
+          {viajes.length} viaje{viajes.length !== 1 ? 's' : ''} activo{viajes.length !== 1 ? 's' : ''}
+        </span>
+        <span className="px-3 py-1.5 rounded-full bg-teal-500/10 border border-teal-500/20 text-teal-300">{resorts} resort{resorts !== 1 ? 's' : ''}</span>
+        <span className="px-3 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-300">{tours} tour{tours !== 1 ? 's' : ''}</span>
+        {cerrados > 0 && (
+          <span className="px-3 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.06] text-gray-500">{cerrados} en historial</span>
+        )}
+      </div>
 
-      <ChartSection viajes={viajesProcesados} divisa={divisa} />
+      <DashboardStats totales={totales} divisa={divisa} />
+
+      <ChartSection viajes={viajesProcesados} divisa={divisa} totales={totales} onSelectViaje={onSelectViaje} />
+
+      <FechasViajes viajes={viajesProcesados} divisa={divisa} onSelectViaje={onSelectViaje} />
 
       <ViajesTable viajes={viajesProcesados} onSelectViaje={onSelectViaje} />
     </div>

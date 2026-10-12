@@ -54,6 +54,29 @@ function habitacionesReducer(state, action) {
         ),
       };
 
+    // Pagos: se actualiza solo la persona afectada (antes cada pago recargaba todas las habitaciones)
+    case 'PAGO_AGREGADO':
+    case 'PAGO_ACTUALIZADO':
+    case 'PAGO_ELIMINADO': {
+      const { personaId, pago, pagoId } = action.payload;
+      return {
+        ...state,
+        habitaciones: state.habitaciones.map((h) => {
+          if (!h.personas.some((p) => p.id === personaId)) return h;
+          return {
+            ...h,
+            personas: h.personas.map((p) => {
+              if (p.id !== personaId) return p;
+              const pagos = p.pagos || [];
+              if (action.type === 'PAGO_AGREGADO') return { ...p, pagos: [...pagos, pago] };
+              if (action.type === 'PAGO_ACTUALIZADO') return { ...p, pagos: pagos.map((x) => (x.id === pago.id ? { ...x, ...pago } : x)) };
+              return { ...p, pagos: pagos.filter((x) => x.id !== pagoId) };
+            }),
+          };
+        }),
+      };
+    }
+
     case 'ELIMINAR_HABITACION':
       return {
         ...state,
@@ -170,6 +193,21 @@ export const HabitacionesProvider = ({ children }) => {
     }
   };
 
+  /** Abre un viaje por su slug: datos del viaje y habitaciones en una sola petición. */
+  const abrirViaje = async (slug) => {
+    const { habitaciones, ...viaje } = await api.fetchViajeBySlug(slug, { conHabitaciones: true });
+    dispatch({ type: 'SET_SELECTED_VIAJE', payload: viaje.id });
+    dispatch({ type: 'SET_HABITACIONES', payload: habitaciones });
+    return viaje;
+  };
+
+  /** Guarda habitación + personas de una vez y reemplaza solo esa habitación en pantalla. */
+  const guardarHabitacionCompleta = async (id, datos) => {
+    const habitacion = await api.guardarHabitacionCompleta(id, datos);
+    dispatch({ type: 'ACTUALIZAR_HABITACION', payload: habitacion });
+    return habitacion;
+  };
+
   const agregarHabitacion = async (hab) => {
     try {
       const nuevaHabitacion = await api.crearHabitacion({
@@ -210,8 +248,8 @@ export const HabitacionesProvider = ({ children }) => {
 
   const registrarPago = async (personaId, pago) => {
     try {
-      await api.registrarPago(personaId, pago);
-      await recargar();
+      const creado = await api.registrarPago(personaId, pago);
+      dispatch({ type: 'PAGO_AGREGADO', payload: { personaId, pago: { id: creado.id, mes: creado.mes, anio: creado.anio, monto: Number(creado.monto) } } });
     } catch (error) {
       console.error('Error registrando pago:', error);
       throw error;
@@ -220,8 +258,8 @@ export const HabitacionesProvider = ({ children }) => {
 
   const actualizarPago = async (personaId, pagoId, pago) => {
     try {
-      await api.actualizarPago(personaId, pagoId, pago);
-      await recargar();
+      const actualizado = await api.actualizarPago(personaId, pagoId, pago);
+      dispatch({ type: 'PAGO_ACTUALIZADO', payload: { personaId, pago: { id: pagoId, mes: actualizado.mes, anio: actualizado.anio, monto: Number(actualizado.monto) } } });
     } catch (error) {
       console.error('Error actualizando pago:', error);
       throw error;
@@ -231,7 +269,7 @@ export const HabitacionesProvider = ({ children }) => {
   const eliminarPago = async (personaId, pagoId) => {
     try {
       await api.eliminarPago(personaId, pagoId);
-      await recargar();
+      dispatch({ type: 'PAGO_ELIMINADO', payload: { personaId, pagoId } });
     } catch (error) {
       console.error('Error eliminando pago:', error);
       throw error;
@@ -279,6 +317,12 @@ export const HabitacionesProvider = ({ children }) => {
     }
   };
 
+  const marcarRevision = async (habId, enRevision, nota) => {
+    const resultado = await api.marcarRevision(habId, enRevision, nota);
+    dispatch({ type: 'ACTUALIZAR_HABITACION', payload: resultado });
+    return resultado;
+  };
+
   const setFiltros = (filtros) => {
     dispatch({ type: 'SET_FILTROS', payload: filtros });
   };
@@ -296,6 +340,8 @@ export const HabitacionesProvider = ({ children }) => {
     cambiarEstadoViaje,
     eliminarViaje,
     seleccionarViaje,
+    abrirViaje,
+    guardarHabitacionCompleta,
     agregarHabitacion,
     editarHabitacion,
     eliminarHabitacion,
@@ -306,6 +352,7 @@ export const HabitacionesProvider = ({ children }) => {
     moverPersona,
     actualizarNota,
     actualizarEtiqueta,
+    marcarRevision,
     setFiltros,
   };
 

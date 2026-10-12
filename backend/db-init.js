@@ -56,6 +56,35 @@ export const initDb = async () => {
     console.error('No se pudo reparar habitaciones.tipo:', error.message);
   }
 
+  // Persona "stack": no paga su parte (los demás de la habitación siguen pagando su cuota normal)
+  try {
+    await pool.query('ALTER TABLE personas ADD COLUMN IF NOT EXISTS es_stack TINYINT(1) NOT NULL DEFAULT 0');
+  } catch (error) {
+    console.error('No se pudo agregar personas.es_stack:', error.message);
+  }
+
+  // Habitaciones "en revisión": marca para revisar algo pendiente (con motivo, quién y cuándo)
+  try {
+    await pool.query(`
+      ALTER TABLE habitaciones
+        ADD COLUMN IF NOT EXISTS en_revision TINYINT(1) NOT NULL DEFAULT 0,
+        ADD COLUMN IF NOT EXISTS revision_nota VARCHAR(255) NULL,
+        ADD COLUMN IF NOT EXISTS revision_por VARCHAR(50) NULL,
+        ADD COLUMN IF NOT EXISTS revision_at DATETIME NULL
+    `);
+  } catch (error) {
+    console.error('No se pudieron agregar las columnas de revisión:', error.message);
+  }
+
+  // Índices para filtros frecuentes (registro por usuario, pagos por año/mes)
+  try {
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_usuario ON logs_actividad (usuario)');
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_anio_mes ON pagos (anio, mes)');
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_entidad ON logs_actividad (entidad, entidad_id)');
+  } catch (error) {
+    console.error('No se pudieron crear índices:', error.message);
+  }
+
   // Registro de actividad: descripciones más largas, filtro por acción y soporte de "deshacer"
   try {
     await pool.query(`
