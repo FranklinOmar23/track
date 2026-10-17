@@ -10,7 +10,7 @@ import RevisionHabitacion from './RevisionHabitacion';
 import { X, Pencil, Trash2, Tag } from 'lucide-react';
 
 const ModalDetallesHabitacion = ({ habitacion: habitacionProp, onClose }) => {
-  const { actualizarNota, actualizarEtiqueta, eliminarHabitacion, state, soloLectura } = useHabitacionesContext();
+  const { actualizarNota, actualizarEtiqueta, eliminarHabitacion, state, soloLectura, puedePagar } = useHabitacionesContext();
   const { fmt } = useDivisa();
 
   const habitacion = state.habitaciones.find((h) => h.id === habitacionProp.id) || habitacionProp;
@@ -201,6 +201,7 @@ const ModalDetallesHabitacion = ({ habitacion: habitacionProp, onClose }) => {
                     habitacion={habitacion}
                     fmt={fmt}
                     soloLectura={soloLectura}
+                    puedePagar={puedePagar}
                     onPago={(pago) => setModalPago({ habId: habitacion.id, persona, pago })}
                     onMover={() => setModalMover({ habOrigen: habitacion.id, persona })}
                   />

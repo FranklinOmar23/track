@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useHabitacionesContext } from '../../Context/HabitacionesContext';
 import { rutaViaje } from '../../utils/rutas';
+import { useAuthContext } from '../../Context/AuthContext';
 import ModalAgregarViaje from '../Modals/ModalAgregarViaje';
 import ModalCompartir from '../Modals/ModalCompartir';
 import Portal from '../common/Portal';
@@ -20,6 +21,7 @@ const botonSecundario = 'shrink-0 flex items-center justify-center gap-1.5 round
 const Toolbar = ({ onOpenAgregar, onOpenDesglose }) => {
   const { state, setFiltros, crearViaje, soloLectura } = useHabitacionesContext();
   const navigate = useNavigate();
+  const { puede } = useAuthContext();
   const { busqueda, estado } = state.filtros;
   const [isAgregarViajeOpen, setIsAgregarViajeOpen] = useState(false);
   const [isCompartirOpen, setIsCompartirOpen] = useState(false);
@@ -42,6 +44,7 @@ const Toolbar = ({ onOpenAgregar, onOpenDesglose }) => {
         />
 
         <div className="flex gap-2">
+          {puede('crear_viajes') && (
           <button
             onClick={() => setIsAgregarViajeOpen(true)}
             className={`${botonSecundario} flex-1 sm:flex-none border-white/[0.08] text-gray-300 hover:bg-white/5`}
@@ -49,6 +52,8 @@ const Toolbar = ({ onOpenAgregar, onOpenDesglose }) => {
             <Plus className="h-4 w-4" />
             Viaje
           </button>
+          )}
+          {puede('editar') && (
           <button
             onClick={() => setIsCompartirOpen(true)}
             disabled={!selectedViajeId}
@@ -58,6 +63,7 @@ const Toolbar = ({ onOpenAgregar, onOpenDesglose }) => {
             <Share2 className="h-4 w-4" />
             Compartir
           </button>
+          )}
         </div>
       </div>
 

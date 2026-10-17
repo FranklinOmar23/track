@@ -1,7 +1,8 @@
 import { asyncRouter } from '../utils/asyncRouter.js';
 import pool from '../db.js';
 
-import { viajeBodyAbierto, habitacionParamAbierta } from '../utils/viajeCerrado.js';
+import { viajeBodyEditable, habitacionEditable } from '../utils/viajeCerrado.js';
+import { viajesPermitidos, rechazarSinAcceso } from '../utils/permisos.js';
 import { registrarLog } from '../utils/log.js';
 import { contextoHabitacion, fotoHabitacion, fmtMonto, firmaHabitacion } from '../utils/auditoria.js';
 
@@ -71,9 +72,15 @@ const mapHabitaciones = (rows) => {
  * Habitaciones con personas y pagos, ya agrupadas. Filtra por viajeId o por slug del viaje
  * (el slug permite abrir un viaje con una sola consulta, sin buscar antes su id).
  */
-export const consultarHabitaciones = async ({ viajeId = null, slug = null, habitacionId = null } = {}, conn = pool) => {
-  const where = habitacionId ? 'WHERE h.id = ?' : viajeId ? 'WHERE h.viaje_id = ?' : slug ? 'WHERE v.slug = ?' : '';
-  const params = habitacionId ? [habitacionId] : viajeId ? [viajeId] : slug ? [slug] : [];
+export const consultarHabitaciones = async ({ viajeId = null, slug = null, habitacionId = null, viajes = null } = {}, conn = pool) => {
+  const condiciones = [];
+  const params = [];
+  if (habitacionId) { condiciones.push('h.id = ?'); params.push(habitacionId); }
+  if (viajeId) { condiciones.push('h.viaje_id = ?'); params.push(viajeId); }
+  if (slug) { condiciones.push('v.slug = ?'); params.push(slug); }
+  // viajes: lista de viajes permitidos al usuario (null = todos)
+  if (viajes) { condiciones.push('h.viaje_id IN (?)'); params.push(viajes.length ? viajes : [0]); }
+  const where = condiciones.length ? `WHERE ${condiciones.join(' AND ')}` : '';
   const [rows] = await conn.query(`
     SELECT
       h.id AS habitacion_id,
@@ -112,10 +119,11 @@ export const consultarHabitaciones = async ({ viajeId = null, slug = null, habit
 
 router.get('/', async (req, res) => {
   const viajeId = req.query.viajeId ? Number(req.query.viajeId) : null;
-  res.json(await consultarHabitaciones({ viajeId }));
+  if (rechazarSinAcceso(req, res, viajeId)) return;
+  res.json(await consultarHabitaciones({ viajeId, viajes: viajeId ? null : viajesPermitidos(req.auth) }));
 });
 
-router.post('/', viajeBodyAbierto, async (req, res) => {
+router.post('/', viajeBodyEditable('editar'), async (req, res) => {
   const { num, tipo, total, precioNino, stack, nota, etiqueta, personas = [] } = req.body;
 
   if (!num || !tipo) {
@@ -196,7 +204,7 @@ router.post('/', viajeBodyAbierto, async (req, res) => {
 });
 
 // ← NUEVO: editar habitación (num, tipo, total, precioNino, etiqueta)
-router.put('/:id', habitacionParamAbierta, async (req, res) => {
+router.put('/:id', habitacionEditable('editar'), async (req, res) => {
   const habitacionId = Number(req.params.id);
   const { num, tipo, total, precioNino, etiqueta, stack } = req.body;
 
@@ -233,7 +241,7 @@ router.put('/:id', habitacionParamAbierta, async (req, res) => {
   res.json({ id: habitacionId, num, tipo, total: Number(total) || 0, precioNino: Number(precioNino) || 0, etiqueta, stack: !!stack });
 });
 
-router.post('/:id/personas', habitacionParamAbierta, async (req, res) => {
+router.post('/:id/personas', habitacionEditable('editar'), async (req, res) => {
   const habitacionId = Number(req.params.id);
   const { nombre, esNino, esGratis, esStack } = req.body;
 
@@ -264,7 +272,7 @@ router.post('/:id/personas', habitacionParamAbierta, async (req, res) => {
   res.status(201).json({ id: result.insertId, n: nombre.trim(), posicion, esNino: !!esNino, esGratis: !!(esNino && esGratis), esStack: !!esStack, pagos: [] });
 });
 
-router.delete('/:id', habitacionParamAbierta, async (req, res) => {
+router.delete('/:id', habitacionEditable('editar'), async (req, res) => {
   const habitacionId = Number(req.params.id);
   const foto = await fotoHabitacion(pool, habitacionId);
   if (!foto) return res.status(404).json({ error: 'Habitación no encontrada.' });
@@ -281,7 +289,7 @@ router.delete('/:id', habitacionParamAbierta, async (req, res) => {
   res.json({ ok: true });
 });
 
-router.put('/:id/nota', habitacionParamAbierta, async (req, res) => {
+router.put('/:id/nota', habitacionEditable('editar'), async (req, res) => {
   const habitacionId = Number(req.params.id);
   const { nota } = req.body;
   const [antesRows] = await pool.query('SELECT nota FROM habitaciones WHERE id = ?', [habitacionId]);
@@ -294,7 +302,7 @@ router.put('/:id/nota', habitacionParamAbierta, async (req, res) => {
   res.json({ ok: true });
 });
 
-router.put('/:id/etiqueta', habitacionParamAbierta, async (req, res) => {
+router.put('/:id/etiqueta', habitacionEditable('editar'), async (req, res) => {
   const habitacionId = Number(req.params.id);
   const { etiqueta } = req.body;
   const [antesRows] = await pool.query('SELECT etiqueta FROM habitaciones WHERE id = ?', [habitacionId]);
@@ -307,7 +315,7 @@ router.put('/:id/etiqueta', habitacionParamAbierta, async (req, res) => {
   res.json({ ok: true });
 });
 
-router.put('/:id/revision', habitacionParamAbierta, async (req, res) => {
+router.put('/:id/revision', habitacionEditable('editar'), async (req, res) => {
   const habitacionId = Number(req.params.id);
   const enRevision = req.body.enRevision ? 1 : 0;
   const nota = enRevision ? String(req.body.nota || '').trim().slice(0, 255) : null;
@@ -374,7 +382,7 @@ const describirCambios = (antes, despues) => {
   return cambios;
 };
 
-router.put('/:id/completa', habitacionParamAbierta, async (req, res) => {
+router.put('/:id/completa', habitacionEditable('editar'), async (req, res) => {
   const habitacionId = Number(req.params.id);
   const { num, tipo, total, precioNino, etiqueta, stack } = req.body;
   const personas = Array.isArray(req.body.personas) ? req.body.personas : [];

@@ -2,12 +2,14 @@ import { useState, useEffect } from 'react';
 import { useHabitacionesContext } from '../../Context/HabitacionesContext';
 import { X, Save, Trash2, Lock, LockOpen } from 'lucide-react';
 import GananciaFields from './GananciaFields';
+import { useAuthContext } from '../../Context/AuthContext';
 import PoliticaNinosFields from './PoliticaNinosFields';
 import { DIVISAS } from '../../utils/viajeOpciones';
 
 
 const ModalEditarViaje = ({ viaje, open, onClose }) => {
   const { editarViaje, eliminarViaje, cambiarEstadoViaje } = useHabitacionesContext();
+  const { puede } = useAuthContext();
   const [nombre, setNombre]                       = useState('');
   const [tipo, setTipo]                           = useState('resort');
   const [divisa, setDivisa]                       = useState('USD');
@@ -168,6 +170,7 @@ const ModalEditarViaje = ({ viaje, open, onClose }) => {
 
           {/* Actions */}
           <div className="modal-acciones space-y-2">
+            {puede('crear_viajes') && (
             <button type="button" onClick={handleCambiarEstado} disabled={loading}
               className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold transition-colors"
               style={cerrado
@@ -176,6 +179,7 @@ const ModalEditarViaje = ({ viaje, open, onClose }) => {
               {cerrado ? <LockOpen className="h-3.5 w-3.5" /> : <Lock className="h-3.5 w-3.5" />}
               {cerrado ? 'Reabrir viaje' : 'Cerrar viaje (ya terminó)'}
             </button>
+            )}
             {confirmDelete ? (
               <div
                 className="p-3 rounded-xl mb-3"
@@ -194,18 +198,22 @@ const ModalEditarViaje = ({ viaje, open, onClose }) => {
               </div>
             ) : (
               <div className="flex items-center justify-between gap-2">
+                {puede('crear_viajes') && (
                 <button className="btn-modal-danger" onClick={handleEliminar} disabled={loading}>
                   <Trash2 className="h-3.5 w-3.5" />
                   Eliminar
                 </button>
+                )}
                 <div className="flex gap-2">
                   <button className="btn-modal-secondary" onClick={onClose} disabled={loading}>
                     Cancelar
                   </button>
+                  {puede('editar') && (
                   <button className="btn-modal-primary" onClick={handleGuardar} disabled={loading || !nombre.trim()}>
                     <Save className="h-3.5 w-3.5" />
                     {loading ? 'Guardando...' : 'Guardar'}
                   </button>
+                  )}
                 </div>
               </div>
             )}

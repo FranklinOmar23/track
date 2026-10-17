@@ -7,6 +7,8 @@ import { initDb } from './db-init.js';
 import { requireAuth } from './middleware/auth.js';
 import authRoutes from './routes/auth.js';
 import logsRoutes from './routes/logs.js';
+import usuariosRoutes from './routes/usuarios.js';
+import { requierePermiso, requiereAdmin } from './utils/permisos.js';
 import { registrarError, registrarLog } from './utils/log.js';
 import { programarLimpiezaLogs } from './utils/logRetencion.js';
 import habitacionesRoutes from './routes/habitaciones.js';
@@ -170,7 +172,8 @@ app.use('/api/personas', requireAuth, personasRoutes);
 app.use('/api/movimientos', requireAuth, movimientosRoutes);
 app.use('/api/viajes', requireAuth, viajesRoutes);
 app.use('/api/stats', requireAuth, statsRoutes); // 👈 NUEVA
-app.use('/api/logs', requireAuth, logsRoutes);
+app.use('/api/logs', requireAuth, requierePermiso('actividad'), logsRoutes);
+app.use('/api/usuarios', requireAuth, requiereAdmin, usuariosRoutes);
 
 app.use((err, req, res, next) => {
   res.locals.errorRegistrado = true;

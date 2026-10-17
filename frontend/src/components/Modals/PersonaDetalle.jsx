@@ -3,7 +3,7 @@ import { calcularCuotaPersona, ninoDebePagar } from '../../utils/calculos';
 import { etiquetaPeriodo } from '../../utils/formatters';
 
 /** Tarjeta de una persona en el detalle de habitación: pagos, cuota y acciones. */
-const PersonaDetalle = ({ persona, habitacion, fmt, soloLectura, onPago, onMover }) => {
+const PersonaDetalle = ({ persona, habitacion, fmt, soloLectura, puedePagar, onPago, onMover }) => {
   const pagadoPersona = persona.pagos?.reduce((s, p) => s + p.monto, 0) || 0;
   const cuota         = calcularCuotaPersona(habitacion, persona);
   const pendienteP    = Math.max(0, cuota - pagadoPersona);
@@ -40,21 +40,21 @@ const PersonaDetalle = ({ persona, habitacion, fmt, soloLectura, onPago, onMover
             )}
           </div>
         </div>
-        {!soloLectura && <div className="flex items-center gap-1">
-          <button
+        {(puedePagar || !soloLectura) && <div className="flex items-center gap-1">
+          {puedePagar && <button
             type="button"
             onClick={() => onPago(null)}
             className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold text-teal-400 hover:bg-teal-500/10 border border-transparent hover:border-teal-500/20 transition-all"
           >
             <Plus className="h-3 w-3" /> Pago
-          </button>
-          <button
+          </button>}
+          {!soloLectura && <button
             type="button"
             onClick={() => onMover()}
             className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold text-gray-500 hover:text-gray-300 hover:bg-white/[0.06] border border-transparent hover:border-white/10 transition-all"
           >
             <ArrowRightLeft className="h-3 w-3" /> Mover
-          </button>
+          </button>}
         </div>}
       </div>
 
@@ -64,15 +64,15 @@ const PersonaDetalle = ({ persona, habitacion, fmt, soloLectura, onPago, onMover
           <button
             key={idx}
             type="button"
-            onClick={() => !soloLectura && onPago(pago)}
-            disabled={soloLectura}
+            onClick={() => puedePagar && onPago(pago)}
+            disabled={!puedePagar}
             className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all"
             style={{
               background: 'rgba(13,148,136,0.12)',
               border: '1px solid rgba(13,148,136,0.2)',
               color: '#5eead4',
             }}
-            title={soloLectura ? undefined : 'Click para editar/eliminar pago'}
+            title={puedePagar ? 'Click para editar/eliminar pago' : undefined}
           >
             <CreditCard className="h-2.5 w-2.5" />
             {etiquetaPeriodo(pago.mes, pago.anio)} — {fmt(pago.monto)}

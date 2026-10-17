@@ -9,6 +9,7 @@ import ViajeExpirado from './components/Dashboard/ViajeExpirado';
 // Páginas pesadas (gráficas) se descargan solo al entrar: la app abre más rápido
 const ReportesView = lazy(() => import('./components/reportes/ReportesView'));
 const ActividadView = lazy(() => import('./components/logs/ActividadView'));
+const UsuariosView = lazy(() => import('./components/usuarios/UsuariosView'));
 
 const CargandoPagina = () => (
   <div className="min-h-screen flex items-center justify-center" style={{ background: '#0f1117' }}>
@@ -28,6 +29,13 @@ function RequireAuth({ children }) {
   return children;
 }
 
+/** Solo deja entrar si el usuario tiene el permiso (o es administrador, si se pide admin). */
+function RequierePermiso({ permiso, admin, children }) {
+  const { puede, esAdmin } = useAuthContext();
+  const permitido = admin ? esAdmin : puede(permiso);
+  return permitido ? children : <Navigate to="/" replace />;
+}
+
 function AppContent() {
   const navigate = useNavigate();
 
@@ -42,8 +50,9 @@ function AppContent() {
   return (
     <Routes>
       <Route path="/" element={<HomeViajes onSelectViaje={handleSelectViaje} />} />
-      <Route path="/reportes" element={<Suspense fallback={<CargandoPagina />}><ReportesView /></Suspense>} />
-      <Route path="/actividad" element={<Suspense fallback={<CargandoPagina />}><ActividadView /></Suspense>} />
+      <Route path="/reportes" element={<RequierePermiso permiso="reportes"><Suspense fallback={<CargandoPagina />}><ReportesView /></Suspense></RequierePermiso>} />
+      <Route path="/actividad" element={<RequierePermiso permiso="actividad"><Suspense fallback={<CargandoPagina />}><ActividadView /></Suspense></RequierePermiso>} />
+      <Route path="/usuarios" element={<RequierePermiso admin><Suspense fallback={<CargandoPagina />}><UsuariosView /></Suspense></RequierePermiso>} />
       <Route path="/:tipo/:slug" element={<ViajeView onBack={handleBack} />} />
       <Route path="/viaje/:tipo/:slug" element={<ViajeView />} />
     </Routes>

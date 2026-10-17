@@ -3,14 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import { useHabitacionesContext } from '../../Context/HabitacionesContext';
 import { useAuthContext } from '../../Context/AuthContext';
 import ModalAgregarViaje from '../Modals/ModalAgregarViaje';
+import MenuUsuario from '../common/MenuUsuario';
 import { DashboardFull } from '../Dashboard/DashboardFull';
 import { ViajeCard } from './ViajeCard';
-import { Plus, BarChart2, History, LogOut, Archive, LockOpen } from 'lucide-react';
+import { Plus, BarChart2, History, Archive, LockOpen } from 'lucide-react';
 
 const HomeViajes = ({ onSelectViaje }) => {
   const navigate = useNavigate();
   const { state, crearViaje, seleccionarViaje, cambiarEstadoViaje } = useHabitacionesContext();
-  const { user, logout } = useAuthContext();
+  const { puede } = useAuthContext();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeView, setActiveView] = useState('dashboard');
   const viajesActivos  = state.viajes.filter((v) => v.estado !== 'cerrado');
@@ -58,18 +59,7 @@ const HomeViajes = ({ onSelectViaje }) => {
                 <h1 className="text-3xl sm:text-4xl font-bold gradient-text tracking-tight leading-tight">
                   Mis Viajes
                 </h1>
-                {user && (
-                  <span className="flex items-center gap-2 text-xs font-medium text-gray-400 bg-white/5 border border-white/[0.07] rounded-full px-3 py-1">
-                    {user.nombreDisplay || user.username}
-                    <button
-                      onClick={logout}
-                      className="flex items-center gap-1 text-gray-500 hover:text-white transition-colors"
-                      title="Cerrar sesión"
-                    >
-                      <LogOut className="h-3 w-3" />
-                    </button>
-                  </span>
-                )}
+                <MenuUsuario />
               </div>
               <p className="text-gray-500 mt-2 text-sm">
                 Gestiona y monitorea todos tus viajes y pagos en tiempo real
@@ -115,6 +105,7 @@ const HomeViajes = ({ onSelectViaje }) => {
                 Historial{viajesCerrados.length > 0 ? ` (${viajesCerrados.length})` : ''}
               </button>
 
+              {puede('reportes') && (
               <button
                 onClick={() => navigate('/reportes')}
                 className="btn-press flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-semibold bg-white/5 text-gray-400 hover:bg-white/10 border border-white/[0.07] hover:border-white/15 transition-all duration-200 flex items-center gap-1.5"
@@ -122,7 +113,9 @@ const HomeViajes = ({ onSelectViaje }) => {
                 <BarChart2 className="h-4 w-4" />
                 Reportes
               </button>
+              )}
 
+              {puede('actividad') && (
               <button
                 onClick={() => navigate('/actividad')}
                 className="btn-press flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-semibold bg-white/5 text-gray-400 hover:bg-white/10 border border-white/[0.07] hover:border-white/15 transition-all duration-200 flex items-center gap-1.5"
@@ -130,7 +123,9 @@ const HomeViajes = ({ onSelectViaje }) => {
                 <History className="h-4 w-4" />
                 Actividad
               </button>
+              )}
 
+              {puede('crear_viajes') && (
               <button
                 onClick={() => setIsModalOpen(true)}
                 className="btn-press w-full sm:w-auto text-white px-4 py-2 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 text-sm font-semibold"
@@ -142,6 +137,7 @@ const HomeViajes = ({ onSelectViaje }) => {
                 <Plus className="h-4 w-4" />
                 Nuevo viaje
               </button>
+              )}
             </div>
           </div>
         </div>
@@ -163,10 +159,12 @@ const HomeViajes = ({ onSelectViaje }) => {
               {viajesCerrados.map((viaje, i) => (
                 <div key={viaje.id} className="flex flex-col gap-2">
                   <ViajeCard viaje={viaje} onSelect={handleSelectViaje} index={i} />
+                  {puede('crear_viajes') && (
                   <button type="button" onClick={() => handleReabrir(viaje)}
                     className="self-end flex items-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-teal-300 px-2 py-1 rounded-lg hover:bg-teal-500/10 transition-colors">
                     <LockOpen className="h-3.5 w-3.5" /> Reabrir
                   </button>
+                  )}
                 </div>
               ))}
               {viajesCerrados.length === 0 && (

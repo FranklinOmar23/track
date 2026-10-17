@@ -1,6 +1,7 @@
 import { asyncRouter } from '../utils/asyncRouter.js';
 import pool from '../db.js';
-import { viajeParamAbierto } from '../utils/viajeCerrado.js';
+import { viajeEditable } from '../utils/viajeCerrado.js';
+import { requierePermiso, requiereAdmin, filtrarPorViaje, darAccesoAViajeNuevo } from '../utils/permisos.js';
 import crypto from 'crypto';
 import { registrarLog } from '../utils/log.js';
 import { normalizarGanancia } from '../utils/ganancia.js';
@@ -21,10 +22,10 @@ router.get('/', async (req, res) => {
      COALESCE(estado, 'activo') AS estado, cerrado_at AS cerradoAt
      FROM viajes ORDER BY id DESC`
   );
-  res.json(rows.map((v) => ({ ...v, gananciaValor: Number(v.gananciaValor) || 0 })));
+  res.json(filtrarPorViaje(req.auth, rows).map((v) => ({ ...v, gananciaValor: Number(v.gananciaValor) || 0 })));
 });
 
-router.post('/', async (req, res) => {
+router.post('/', requierePermiso('crear_viajes'), async (req, res) => {
   const { nombre, fechaInicio, fechaFin, nota, tipo = 'resort', divisa = 'USD', edadMinimaPago = 0 } = req.body;
 
   if (!nombre) {
@@ -36,13 +37,14 @@ router.post('/', async (req, res) => {
     [nombre, fechaInicio || null, fechaFin || null, nota || null, tipo, divisa, Number(edadMinimaPago) || 0]
   );
 
+  await darAccesoAViajeNuevo(req, result.insertId);
   registrarLog(req.usuario, 'crear', 'viaje', result.insertId, `${req.usuario} creó el viaje "${nombre}"`);
 
   res.status(201).json({ id: result.insertId, nombre, fechaInicio, fechaFin, nota, tipo, divisa, edadMinimaPago: Number(edadMinimaPago) || 0 });
 });
 
 // ← NUEVO: editar viaje
-router.put('/:id', viajeParamAbierto, async (req, res) => {
+router.put('/:id', viajeEditable('editar'), async (req, res) => {
   const viajeId = Number(req.params.id);
   const { nombre, fechaInicio, fechaFin, nota, tipo, divisa, edadMinimaPago = 0 } = req.body;
   const { gananciaTipo, gananciaValor } = normalizarGanancia(req.body);
@@ -89,7 +91,7 @@ router.put('/:id', viajeParamAbierto, async (req, res) => {
 });
 
 // Cerrar / reabrir viaje
-router.patch('/:id/estado', async (req, res) => {
+router.patch('/:id/estado', viajeEditable('crear_viajes', { permitirCerrado: true }), async (req, res) => {
   const viajeId = Number(req.params.id);
   const estado = req.body.estado === 'cerrado' ? 'cerrado' : 'activo';
   const cerradoAt = estado === 'cerrado' ? new Date() : null;
@@ -116,7 +118,7 @@ router.patch('/:id/estado', async (req, res) => {
 });
 
 // ← NUEVO: eliminar viaje
-router.delete('/:id', viajeParamAbierto, async (req, res) => {
+router.delete('/:id', viajeEditable('crear_viajes'), async (req, res) => {
   const viajeId = Number(req.params.id);
   const connection = await pool.getConnection();
 
@@ -155,7 +157,7 @@ router.delete('/:id', viajeParamAbierto, async (req, res) => {
   }
 });
 
-router.post('/default', async (req, res) => {
+router.post('/default', requiereAdmin, async (req, res) => {
   const defaultNombre = 'Resort MamaTingo';
   const connection = await pool.getConnection();
 
@@ -202,7 +204,7 @@ router.post('/default', async (req, res) => {
 });
 
 // Generar token de compartir con expiración
-router.post('/:id/compartir', async (req, res) => {
+router.post('/:id/compartir', viajeEditable('editar', { permitirCerrado: true }), async (req, res) => {
   const viajeId = Number(req.params.id);
   const { duracion } = req.body; // '1h', '7h', '24h', '7d', 'never'
   const tipo = req.body.tipo === 'pendientes' ? 'pendientes' : 'completo';
@@ -273,7 +275,7 @@ router.post('/:id/compartir', async (req, res) => {
 });
 
 // Desactivar link de compartir
-router.delete('/:id/compartir', async (req, res) => {
+router.delete('/:id/compartir', viajeEditable('editar', { permitirCerrado: true }), async (req, res) => {
   const viajeId = Number(req.params.id);
 
   try {

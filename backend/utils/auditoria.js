@@ -9,7 +9,7 @@ export const fmtMonto = (monto, divisa = 'USD') =>
 /** "Juan Pérez (Hab. 12 · Resort X)" + divisa del viaje. */
 export const contextoPersona = async (conn, personaId) => {
   const [rows] = await conn.query(`
-    SELECT p.nombre, h.id AS habitacion_id, h.numero, v.nombre AS viaje, COALESCE(v.divisa, 'USD') AS divisa,
+    SELECT p.nombre, h.id AS habitacion_id, h.numero, v.id AS viaje_id, v.nombre AS viaje, COALESCE(v.divisa, 'USD') AS divisa,
            COALESCE(v.estado, 'activo') AS estado
     FROM personas p
     JOIN habitaciones h ON h.id = p.habitacion_id
@@ -21,6 +21,7 @@ export const contextoPersona = async (conn, personaId) => {
     texto: `${r.nombre} (Hab. ${r.numero}${r.viaje ? ` · ${r.viaje}` : ''})`,
     divisa: r.divisa,
     habitacionId: r.habitacion_id,
+    viajeId: r.viaje_id,
     cerrado: r.estado === 'cerrado',
     existe: true,
   };

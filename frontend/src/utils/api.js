@@ -234,3 +234,21 @@ export const fetchReportePagos = (params = {}) => request(`/api/stats/reportes/p
 
 /** Movimientos de personas entre habitaciones. { viajeId } */
 export const fetchReporteMovimientos = (params = {}) => request(`/api/stats/reportes/movimientos${query(params)}`);
+
+// ─── USUARIOS Y PERMISOS ─────────────────────────────────────────────────────
+/** Perfil del usuario actual: permisos y viajes asignados. */
+export const fetchMe = () => request('/api/auth/me');
+
+export const cambiarMiPassword = (actual, nueva) =>
+  request('/api/auth/password', { method: 'PUT', body: JSON.stringify({ actual, nueva }) });
+
+export const fetchUsuarios = () => request('/api/usuarios');
+
+export const crearUsuario = (datos) =>
+  request('/api/usuarios', { method: 'POST', body: JSON.stringify(datos) });
+
+export const actualizarUsuario = (id, datos) =>
+  request(`/api/usuarios/${id}`, { method: 'PUT', body: JSON.stringify(datos) });
+
+export const restablecerPassword = (id, password) =>
+  request(`/api/usuarios/${id}/password`, { method: 'PUT', body: JSON.stringify({ password }) });

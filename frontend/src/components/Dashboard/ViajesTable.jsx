@@ -8,6 +8,7 @@ import { FileText, Building2, Bus, Eye, Pencil, Lock, ArrowUp, ArrowDown, ArrowU
 import { calcularGananciaResumen } from '../../utils/calculos';
 import { formatCurrency } from '../../utils/formatters';
 import ModalEditarViaje from '../Modals/ModalEditarViaje';
+import { useAuthContext } from '../../Context/AuthContext';
 
 
 const STAGGER_DELAYS = [0, 40, 80, 120, 160, 200, 240];
@@ -40,6 +41,7 @@ const Encabezado = ({ campo, orden, onOrdenar, className = '', children }) => {
 };
 
 export const ViajesTable = ({ viajes, onSelectViaje }) => {
+  const { puede } = useAuthContext();
   const [viajeEditando, setViajeEditando] = useState(null);
   const [orden, setOrden] = useState({ campo: null, dir: 'desc' });
 
@@ -188,6 +190,7 @@ export const ViajesTable = ({ viajes, onSelectViaje }) => {
 
                     <TableCell className="text-center py-3.5">
                       <div className="flex items-center justify-center gap-1">
+                        {(puede('editar') || puede('crear_viajes')) && (
                         <button
                           onClick={(e) => { e.stopPropagation(); setViajeEditando(viaje); }}
                           className="text-gray-600 hover:text-gray-200 hover:bg-white/[0.06] p-1.5 rounded-lg transition-all duration-150"
@@ -195,6 +198,7 @@ export const ViajesTable = ({ viajes, onSelectViaje }) => {
                         >
                           <Pencil className="h-3.5 w-3.5" />
                         </button>
+                        )}
                         <button
                           onClick={(e) => { e.stopPropagation(); onSelectViaje(viaje); }}
                           className="text-teal-400 hover:text-teal-300 hover:bg-teal-500/10 px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all duration-150 border border-transparent hover:border-teal-500/20"

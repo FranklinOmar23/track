@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useReducer } from 'react';
 import * as api from '../utils/api';
+import { useAuthContext } from './AuthContext';
 
 const HabitacionesContext = createContext();
 
@@ -116,6 +117,7 @@ export const useHabitacionesContext = () => {
 };
 
 export const HabitacionesProvider = ({ children }) => {
+  const { puede } = useAuthContext();
   const [state, dispatch] = useReducer(habitacionesReducer, initialState);
 
   const cargarViajes = async () => {
@@ -328,11 +330,16 @@ export const HabitacionesProvider = ({ children }) => {
   };
 
   const viajeActual = state.viajes.find((v) => v.id === state.selectedViajeId);
-  const soloLectura = viajeActual?.estado === 'cerrado';
+  const viajeCerrado = viajeActual?.estado === 'cerrado';
+  // soloLectura: no puede editar (viaje cerrado o sin permiso). Los pagos tienen su propio permiso.
+  const soloLectura = viajeCerrado || !puede('editar');
+  const puedePagar = !viajeCerrado && puede('pagos');
 
   const value = {
     state,
     soloLectura,
+    puedePagar,
+    viajeCerrado,
     recargarViajes: cargarViajes,
     cargarHabitaciones,
     crearViaje,

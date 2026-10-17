@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import pool from '../db.js';
 import { requireAuth } from '../middleware/auth.js';
+import { cargarPerfil } from '../utils/permisos.js';
 import { registrarLog } from '../utils/log.js';
 import { minutosBloqueado, registrarFallo, limpiarFallos } from '../utils/limiteLogin.js';
 
@@ -29,7 +30,7 @@ router.post('/login', async (req, res, next) => {
     const usernameNormalizado = String(username).trim().toUpperCase();
 
     const [rows] = await pool.query(
-      'SELECT username, password_hash, nombre_display FROM usuarios WHERE username = ?',
+      'SELECT username, password_hash, nombre_display, COALESCE(activo, 1) AS activo FROM usuarios WHERE username = ?',
       [usernameNormalizado]
     );
 
@@ -50,6 +51,10 @@ router.post('/login', async (req, res, next) => {
 
     limpiarFallos(req, username);
 
+    if (!usuario.activo) {
+      return res.status(403).json({ error: 'Este usuario está desactivado. Habla con el administrador.' });
+    }
+
     const token = jwt.sign(
       { username: usuario.username },
       process.env.JWT_SECRET,
@@ -58,17 +63,29 @@ router.post('/login', async (req, res, next) => {
 
     registrarLog(usuario.username, 'login', 'auth', null, `${usuario.username} inició sesión`);
 
-    res.json({
-      token,
-      usuario: { username: usuario.username, nombreDisplay: usuario.nombre_display },
-    });
+    res.json({ token, usuario: await cargarPerfil(usuario.username, { usarCache: false }) });
   } catch (err) {
     next(err);
   }
 });
 
+// Perfil del usuario actual (permisos y viajes): el frontend lo refresca al abrir la app
 router.get('/me', requireAuth, (req, res) => {
-  res.json({ username: req.usuario });
+  res.json(req.auth);
+});
+
+// Cambiar la propia contraseña
+router.put('/password', requireAuth, async (req, res) => {
+  const actual = String(req.body.actual || '');
+  const nueva = String(req.body.nueva || '');
+  if (nueva.length < 8) return res.status(400).json({ error: 'La contraseña nueva debe tener al menos 8 caracteres.' });
+  const [rows] = await pool.query('SELECT password_hash FROM usuarios WHERE id = ?', [req.auth.id]);
+  if (!rows[0] || !(await bcrypt.compare(actual, rows[0].password_hash))) {
+    return res.status(400).json({ error: 'La contraseña actual no es correcta.' });
+  }
+  await pool.query('UPDATE usuarios SET password_hash = ? WHERE id = ?', [await bcrypt.hash(nueva, 10), req.auth.id]);
+  registrarLog(req.usuario, 'editar', 'usuario', req.auth.id, `${req.usuario} cambió su contraseña`);
+  res.json({ ok: true });
 });
 
 export default router;

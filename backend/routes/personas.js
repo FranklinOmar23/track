@@ -1,7 +1,8 @@
 import { asyncRouter } from '../utils/asyncRouter.js';
 import pool from '../db.js';
 import { ajustarTipoPorAdultos } from '../utils/habitacion.js';
-import { personaParamAbierta, MENSAJE_VIAJE_CERRADO } from '../utils/viajeCerrado.js';
+import { personaEditable, MENSAJE_VIAJE_CERRADO } from '../utils/viajeCerrado.js';
+import { tienePermiso, puedeVerViaje, MENSAJES } from '../utils/permisos.js';
 import { registrarLog } from '../utils/log.js';
 import { normalizarPago } from '../utils/pago.js';
 import { contextoPersona, fotoPago, fotoPersona, fmtMonto } from '../utils/auditoria.js';
@@ -10,14 +11,16 @@ const router = asyncRouter();
 
 const periodo = (p) => `${p.mes} ${p.anio}`;
 
-/** Responde 404/409 si la persona no existe o su viaje está cerrado. Devuelve true si ya respondió. */
-const rechazarSiNoEditable = (res, ctx) => {
+/** Pagos: responde 403/404/409 si no hay permiso, acceso, la persona no existe o el viaje está cerrado. */
+const rechazarSiNoEditable = (req, res, ctx) => {
+  if (!tienePermiso(req.auth, 'pagos')) { res.status(403).json({ error: MENSAJES.pagos }); return true; }
   if (!ctx.existe) { res.status(404).json({ error: 'Persona no encontrada.' }); return true; }
+  if (!puedeVerViaje(req.auth, ctx.viajeId)) { res.status(403).json({ error: MENSAJES.viaje }); return true; }
   if (ctx.cerrado) { res.status(409).json({ error: MENSAJE_VIAJE_CERRADO }); return true; }
   return false;
 };
 
-router.patch('/:id/gratis', personaParamAbierta, async (req, res) => {
+router.patch('/:id/gratis', personaEditable('editar'), async (req, res) => {
   const personaId = Number(req.params.id);
   const esGratis = req.body.esGratis ? 1 : 0;
   const antes = await fotoPersona(pool, personaId);
@@ -32,7 +35,7 @@ router.patch('/:id/gratis', personaParamAbierta, async (req, res) => {
   res.json({ id: personaId, esGratis: !!esGratis });
 });
 
-router.patch('/:id/stack', personaParamAbierta, async (req, res) => {
+router.patch('/:id/stack', personaEditable('editar'), async (req, res) => {
   const personaId = Number(req.params.id);
   const esStack = req.body.esStack ? 1 : 0;
   const antes = await fotoPersona(pool, personaId);
@@ -47,7 +50,7 @@ router.patch('/:id/stack', personaParamAbierta, async (req, res) => {
   res.json({ id: personaId, esStack: !!esStack });
 });
 
-router.put('/:id', personaParamAbierta, async (req, res) => {
+router.put('/:id', personaEditable('editar'), async (req, res) => {
   const personaId = Number(req.params.id);
   const { nombre } = req.body;
 
@@ -77,7 +80,7 @@ router.post('/:id/pagos', async (req, res) => {
   const { mes, monto, anio } = pago;
 
   const ctx = await contextoPersona(pool, personaId);
-  if (rechazarSiNoEditable(res, ctx)) return;
+  if (rechazarSiNoEditable(req, res, ctx)) return;
 
   const [result] = await pool.query(
     'INSERT INTO pagos (persona_id, mes, monto, anio) VALUES (?, ?, ?, ?)',
@@ -101,7 +104,7 @@ router.put('/:id/pagos/:pagoId', async (req, res) => {
   const { mes, monto, anio } = pago;
 
   const [antes, ctx] = await Promise.all([fotoPago(pool, pagoId), contextoPersona(pool, personaId)]);
-  if (rechazarSiNoEditable(res, ctx)) return;
+  if (rechazarSiNoEditable(req, res, ctx)) return;
   if (!antes || antes.persona_id !== personaId) {
     return res.status(404).json({ error: 'Pago no encontrado.' });
   }
@@ -125,7 +128,7 @@ router.delete('/:id/pagos/:pagoId', async (req, res) => {
   const pagoId = Number(req.params.pagoId);
 
   const [antes, ctx] = await Promise.all([fotoPago(pool, pagoId), contextoPersona(pool, personaId)]);
-  if (rechazarSiNoEditable(res, ctx)) return;
+  if (rechazarSiNoEditable(req, res, ctx)) return;
   if (!antes || antes.persona_id !== personaId) {
     return res.status(404).json({ error: 'Pago no encontrado.' });
   }
@@ -139,7 +142,7 @@ router.delete('/:id/pagos/:pagoId', async (req, res) => {
   res.json({ ok: true });
 });
 
-router.delete('/:id', personaParamAbierta, async (req, res) => {
+router.delete('/:id', personaEditable('editar'), async (req, res) => {
   const personaId = Number(req.params.id);
   const connection = await pool.getConnection();
 

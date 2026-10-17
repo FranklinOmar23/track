@@ -3,6 +3,7 @@ import pool from '../db.js';
 import { registrarLog } from '../utils/log.js';
 import { normalizarGanancia } from '../utils/ganancia.js';
 import { consultarHabitaciones } from './habitaciones.js';
+import { requierePermiso, filtrarPorViaje, viajesPermitidos, rechazarSinAcceso, darAccesoAViajeNuevo } from '../utils/permisos.js';
 import { calcularGananciasPorViaje } from '../utils/gananciaReporte.js';
 import { cargarHabitacionesPorViaje, sumarResumenes, redondear } from '../utils/totales.js';
 
@@ -28,7 +29,7 @@ const cargarViajesYHabitaciones = async () => {
 router.get('/dashboard', async (req, res) => {
   const [viajes, habsPorViaje] = await cargarViajesYHabitaciones();
 
-  const viajesConTotales = viajes.map((v) => {
+  const viajesConTotales = filtrarPorViaje(req.auth, viajes).map((v) => {
     const r = sumarResumenes(habsPorViaje.get(v.id) || [], v.edad_minima_pago);
     return {
       ...v,
@@ -63,12 +64,15 @@ router.get('/dashboard', async (req, res) => {
 
 // ─── REPORTE: PAGOS POR MES (global o filtrado por viaje) ───────────────────
 // GET /api/stats/reportes/pagos-por-mes?viajeId=X
-router.get('/reportes/pagos-por-mes', async (req, res) => {
+router.get('/reportes/pagos-por-mes', requierePermiso('reportes'), async (req, res) => {
   try {
     const { viajeId } = req.query;
+    if (rechazarSinAcceso(req, res, viajeId)) return;
     const params = [];
-    const whereViaje = viajeId ? 'AND h.viaje_id = ?' : '';
-    if (viajeId) params.push(Number(viajeId));
+    const permitidos = viajesPermitidos(req.auth);
+    let whereViaje = '';
+    if (viajeId) { whereViaje = 'AND h.viaje_id = ?'; params.push(Number(viajeId)); }
+    else if (permitidos) { whereViaje = 'AND h.viaje_id IN (?)'; params.push(permitidos.length ? permitidos : [0]); }
 
     const [rows] = await pool.query(`
       SELECT
@@ -100,8 +104,9 @@ router.get('/reportes/pagos-por-mes', async (req, res) => {
 
 // ─── REPORTE: RESUMEN POR ETIQUETA (global o por viaje) ─────────────────────
 // GET /api/stats/reportes/por-etiqueta?viajeId=X
-router.get('/reportes/por-etiqueta', async (req, res) => {
+router.get('/reportes/por-etiqueta', requierePermiso('reportes'), async (req, res) => {
   const { viajeId } = req.query;
+  if (rechazarSinAcceso(req, res, viajeId)) return;
   // Las dos consultas son independientes: en paralelo
   const [[viajes], habsPorViaje] = await Promise.all([
     pool.query(
@@ -112,7 +117,7 @@ router.get('/reportes/por-etiqueta', async (req, res) => {
   ]);
 
   const porEtiqueta = new Map();
-  viajes.forEach((v) => {
+  filtrarPorViaje(req.auth, viajes).forEach((v) => {
     (habsPorViaje.get(v.id) || []).forEach((h) => {
       const etiqueta = h.etiqueta || 'Sin etiqueta';
       if (!porEtiqueta.has(etiqueta)) porEtiqueta.set(etiqueta, { etiqueta, habs: [], edad: v.edad_minima_pago });
@@ -142,10 +147,10 @@ router.get('/reportes/por-etiqueta', async (req, res) => {
 
 // ─── REPORTE: COMPARATIVA ENTRE VIAJES ──────────────────────────────────────
 // GET /api/stats/reportes/comparativa-viajes
-router.get('/reportes/comparativa-viajes', async (req, res) => {
+router.get('/reportes/comparativa-viajes', requierePermiso('reportes'), async (req, res) => {
   const [viajes, habsPorViaje] = await cargarViajesYHabitaciones();
 
-  res.json(viajes.map((v) => {
+  res.json(filtrarPorViaje(req.auth, viajes).map((v) => {
     const r = sumarResumenes(habsPorViaje.get(v.id) || [], v.edad_minima_pago);
     return {
       id: v.id,
@@ -164,7 +169,7 @@ router.get('/reportes/comparativa-viajes', async (req, res) => {
 
 // ─── REPORTE: PAGOS POR MES × VIAJE (para heatmap/tabla cruzada) ────────────
 // GET /api/stats/reportes/pagos-mes-viaje
-router.get('/reportes/pagos-mes-viaje', async (req, res) => {
+router.get('/reportes/pagos-mes-viaje', requierePermiso('reportes'), async (req, res) => {
   try {
     const [rows] = await pool.query(`
       SELECT
@@ -184,7 +189,7 @@ router.get('/reportes/pagos-mes-viaje', async (req, res) => {
       )
     `);
 
-    res.json(rows.map(r => ({ ...r, anio: Number(r.anio), total: Number(r.total) })));
+    res.json(filtrarPorViaje(req.auth, rows, 'viaje_id').map(r => ({ ...r, anio: Number(r.anio), total: Number(r.total) })));
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -192,17 +197,20 @@ router.get('/reportes/pagos-mes-viaje', async (req, res) => {
 
 // ─── REPORTE: GANANCIAS POR VIAJE ────────────────────────────────────────────
 // GET /api/stats/reportes/ganancias
-router.get('/reportes/ganancias', async (req, res) => {
+router.get('/reportes/ganancias', requierePermiso('reportes'), async (req, res) => {
   const [viajes, habsPorViaje] = await cargarViajesYHabitaciones();
-  res.json(calcularGananciasPorViaje(viajes, habsPorViaje));
+  res.json(calcularGananciasPorViaje(filtrarPorViaje(req.auth, viajes), habsPorViaje));
 });
 
 // ─── REPORTE: PAGOS DETALLADOS (libro de caja, último pago por persona) ─────
 // GET /api/stats/reportes/pagos?viajeId=&desde=YYYY-MM-DD&hasta=YYYY-MM-DD
-router.get('/reportes/pagos', async (req, res) => {
+router.get('/reportes/pagos', requierePermiso('reportes'), async (req, res) => {
+  if (rechazarSinAcceso(req, res, req.query.viajeId)) return;
   const where = [];
   const params = [];
+  const permitidos = viajesPermitidos(req.auth);
   if (req.query.viajeId) { where.push('h.viaje_id = ?'); params.push(Number(req.query.viajeId)); }
+  else if (permitidos) { where.push('h.viaje_id IN (?)'); params.push(permitidos.length ? permitidos : [0]); }
   if (req.query.desde) { where.push('pg.created_at >= ?'); params.push(`${req.query.desde} 00:00:00`); }
   if (req.query.hasta) { where.push('pg.created_at <= ?'); params.push(`${req.query.hasta} 23:59:59`); }
 
@@ -227,13 +235,14 @@ router.get('/reportes/pagos', async (req, res) => {
 
 // ─── REPORTE: MOVIMIENTOS ENTRE HABITACIONES ───────────────────────────────
 // GET /api/stats/reportes/movimientos?viajeId=
-router.get('/reportes/movimientos', async (req, res) => {
+router.get('/reportes/movimientos', requierePermiso('reportes'), async (req, res) => {
+  if (rechazarSinAcceso(req, res, req.query.viajeId)) return;
   const params = [];
   let where = '';
   if (req.query.viajeId) { where = 'WHERE (ho.viaje_id = ? OR hd.viaje_id = ?)'; params.push(Number(req.query.viajeId), Number(req.query.viajeId)); }
   const [rows] = await pool.query(`
     SELECT m.id, m.fecha_movimiento AS fecha, p.nombre AS persona,
-           ho.numero AS origen, hd.numero AS destino, v.nombre AS viaje,
+           ho.numero AS origen, hd.numero AS destino, v.id AS viaje_id, v.nombre AS viaje,
            (SELECT l.usuario FROM logs_actividad l
              WHERE l.accion = 'mover' AND l.entidad_id = m.persona_id
                AND l.fecha BETWEEN m.fecha_movimiento - INTERVAL 1 MINUTE AND m.fecha_movimiento + INTERVAL 1 MINUTE
@@ -246,7 +255,7 @@ router.get('/reportes/movimientos', async (req, res) => {
     ${where}
     ORDER BY m.fecha_movimiento DESC
   `, params);
-  res.json(rows);
+  res.json(filtrarPorViaje(req.auth, rows, 'viaje_id'));
 });
 
 // ─── RUTAS EXISTENTES ────────────────────────────────────────────────────────
@@ -264,13 +273,14 @@ router.get('/viaje/slug/:slug', async (req, res) => {
       incluirHabitaciones ? consultarHabitaciones({ slug }) : null,
     ]);
     if (rows.length === 0) return res.status(404).json({ error: 'Viaje no encontrado' });
+    if (rechazarSinAcceso(req, res, rows[0].id)) return;
     res.json(incluirHabitaciones ? { ...rows[0], habitaciones } : rows[0]);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-router.post('/viajes/with-slug', async (req, res) => {
+router.post('/viajes/with-slug', requierePermiso('crear_viajes'), async (req, res) => {
   const { nombre, fechaInicio, fechaFin, nota, tipo = 'resort', divisa = 'USD', edadMinimaPago = 0 } = req.body;
   const { gananciaTipo, gananciaValor } = normalizarGanancia(req.body);
   if (!nombre) return res.status(400).json({ error: 'Nombre del viaje es requerido.' });
@@ -290,6 +300,7 @@ router.post('/viajes/with-slug', async (req, res) => {
       [nombre, fechaInicio || null, fechaFin || null, nota || null, tipo, divisa, slug, Number(edadMinimaPago) || 0, gananciaTipo, gananciaValor]
     );
 
+    await darAccesoAViajeNuevo(req, result.insertId);
     registrarLog(req.usuario, 'crear', 'viaje', result.insertId, `${req.usuario} creó el viaje "${nombre}"`);
 
     res.status(201).json({

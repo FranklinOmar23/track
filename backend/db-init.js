@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs';
 import pool from './db.js';
+import { PERMISOS_TODOS } from './utils/permisos.js';
 
 // Usuarios semilla desde SEED_USERS (JSON). Solo se insertan si no existen.
 const leerUsuariosIniciales = () => {
@@ -54,6 +55,31 @@ export const initDb = async () => {
     if (reparadas.affectedRows > 0) console.log(`Habitaciones con tipo vacío reparadas: ${reparadas.affectedRows}`);
   } catch (error) {
     console.error('No se pudo reparar habitaciones.tipo:', error.message);
+  }
+
+  // Usuarios: rol, activo, permisos y viajes asignados
+  try {
+    await pool.query(`
+      ALTER TABLE usuarios
+        ADD COLUMN IF NOT EXISTS es_admin TINYINT(1) NOT NULL DEFAULT 0,
+        ADD COLUMN IF NOT EXISTS activo TINYINT(1) NOT NULL DEFAULT 1,
+        ADD COLUMN IF NOT EXISTS permisos TEXT NULL,
+        ADD COLUMN IF NOT EXISTS todos_viajes TINYINT(1) NOT NULL DEFAULT 1
+    `);
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS usuario_viajes (
+        usuario_id INT NOT NULL,
+        viaje_id INT NOT NULL,
+        PRIMARY KEY (usuario_id, viaje_id),
+        CONSTRAINT fk_uv_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
+        CONSTRAINT fk_uv_viaje FOREIGN KEY (viaje_id) REFERENCES viajes(id) ON DELETE CASCADE
+      )
+    `);
+    // ODISLA es el administrador. Los usuarios que ya existían conservan todos los permisos.
+    await pool.query("UPDATE usuarios SET es_admin = 1 WHERE username = 'ODISLA'");
+    await pool.query('UPDATE usuarios SET permisos = ? WHERE permisos IS NULL', [JSON.stringify(PERMISOS_TODOS)]);
+  } catch (error) {
+    console.error('No se pudieron preparar los permisos de usuarios:', error.message);
   }
 
   // Persona "stack": no paga su parte (los demás de la habitación siguen pagando su cuota normal)

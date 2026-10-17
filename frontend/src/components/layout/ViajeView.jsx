@@ -3,18 +3,19 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useHabitacionesContext } from '../../Context/HabitacionesContext';
 import { useAuthContext } from '../../Context/AuthContext';
 import MenuExportarExcel from './MenuExportarExcel';
+import MenuUsuario from '../common/MenuUsuario';
 import StatsGrid from './StatsGrid';
 import Toolbar from './Toolbar';
 import HabitacionesList from '../Habitaciones/HabitacionesList';
 import ModalAgregarHabitacion from '../Modals/ModalAgregarHabitacion';
 import ModalDesgloseGeneral from '../Modals/ModalDesgloseGeneral';
-import { LogOut, Lock } from 'lucide-react';
+import { Lock, Eye } from 'lucide-react';
 
 const ViajeView = ({ onBack }) => {
   const { slug } = useParams();
   const navigate = useNavigate();
   const { abrirViaje, state } = useHabitacionesContext();
-  const { user, logout } = useAuthContext();
+  const { puede } = useAuthContext();
   const [isAgregarOpen, setIsAgregarOpen] = useState(false);
   const [isDesgloseOpen, setIsDesgloseOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -71,18 +72,7 @@ const ViajeView = ({ onBack }) => {
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            {user && (
-              <span className="hidden sm:flex items-center gap-2 text-xs font-medium text-gray-400 bg-white/5 border border-white/[0.07] rounded-full px-3 py-1.5">
-                {user.nombreDisplay || user.username}
-                <button
-                  onClick={logout}
-                  className="flex items-center text-gray-500 hover:text-white transition-colors"
-                  title="Cerrar sesión"
-                >
-                  <LogOut className="h-3 w-3" />
-                </button>
-              </span>
-            )}
+            <MenuUsuario className="hidden sm:block" />
             <MenuExportarExcel
               habitaciones={state.habitaciones}
               viaje={state.viajes.find((v) => v.id === viaje.id) || viaje}
@@ -92,6 +82,11 @@ const ViajeView = ({ onBack }) => {
         {state.viajes.find((v) => v.id === viaje.id)?.estado === 'cerrado' && (
           <div className="flex items-center gap-2 mb-4 px-4 py-2.5 rounded-xl text-sm text-amber-300 bg-amber-500/10 border border-amber-500/20">
             <Lock className="h-4 w-4" /> Viaje cerrado · modo solo lectura. Para hacer cambios, reábrelo desde Historial.
+          </div>
+        )}
+        {state.viajes.find((v) => v.id === viaje.id)?.estado !== 'cerrado' && !puede('editar') && !puede('pagos') && (
+          <div className="flex items-center gap-2 mb-4 px-4 py-2.5 rounded-xl text-sm text-sky-300 bg-sky-500/10 border border-sky-500/20">
+            <Eye className="h-4 w-4" /> Modo consulta: tu usuario puede ver este viaje pero no hacer cambios.
           </div>
         )}
         <StatsGrid />

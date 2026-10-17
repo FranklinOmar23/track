@@ -1,13 +1,13 @@
 import { asyncRouter } from '../utils/asyncRouter.js';
 import pool from '../db.js';
 import { capacidadPorTipo, contarAdultos, ajustarTipoPorAdultos } from '../utils/habitacion.js';
-import { movimientoAbierto } from '../utils/viajeCerrado.js';
+import { movimientoEditable } from '../utils/viajeCerrado.js';
 import { registrarLog } from '../utils/log.js';
 import { contextoHabitacion } from '../utils/auditoria.js';
 
 const router = asyncRouter();
 
-router.post('/', movimientoAbierto, async (req, res) => {
+router.post('/', movimientoEditable('editar'), async (req, res) => {
   const { personaId, destinoHabitacionId } = req.body;
 
   if (!personaId || !destinoHabitacionId) {
