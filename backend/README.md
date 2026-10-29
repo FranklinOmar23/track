@@ -379,3 +379,5 @@ Base URL: `/api`. Los marcados con 🔒 requieren `Authorization: Bearer <token>
 3. **Creación de viajes**: usar `POST /api/viajes` si no se necesita slug, o `POST /api/stats/viajes/with-slug` si sí. El "id_sistema" que debería guardar el backend nuevo es el `id` devuelto por cualquiera de estos dos.
 4. **Alta de pasajero (pax)**: no hay un endpoint directo "crear persona con pago" — el flujo real es `POST /api/habitaciones/:id/personas` (agregar persona a una habitación) y luego `POST /api/personas/:id/pagos` si aplica un pago inicial. Esto asume que ya existe una habitación destino; el sistema actual no tiene un concepto de "reserva sin habitación asignada".
 5. **Credenciales antiguas en el historial de git**: `.env.example` ya tiene placeholders, pero la contraseña de MySQL y las de los usuarios semilla aparecen en commits anteriores. Hay que rotarlas.
+
+kasndfgjk

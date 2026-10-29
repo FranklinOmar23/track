@@ -1,12 +1,13 @@
 import { Plus, ArrowRightLeft, CreditCard, Gift, Layers } from 'lucide-react';
-import { calcularCuotaPersona, ninoDebePagar } from '../../utils/calculos';
+import { calcularCuotaPersona, calcularPendientePersona, ninoDebePagar } from '../../utils/calculos';
 import { etiquetaPeriodo } from '../../utils/formatters';
 
 /** Tarjeta de una persona en el detalle de habitación: pagos, cuota y acciones. */
 const PersonaDetalle = ({ persona, habitacion, fmt, soloLectura, puedePagar, onPago, onMover }) => {
   const pagadoPersona = persona.pagos?.reduce((s, p) => s + p.monto, 0) || 0;
   const cuota         = calcularCuotaPersona(habitacion, persona);
-  const pendienteP    = Math.max(0, cuota - pagadoPersona);
+  const pendienteP    = calcularPendientePersona(habitacion, persona);
+  const cubierto      = Math.max(0, cuota - pagadoPersona) - pendienteP;
   const esNino        = persona.esNino || /\(\d+ años\)/.test(persona.n || '');
   const esGratis      = esNino && (persona.esGratis || !ninoDebePagar(persona, habitacion.edadMinimaPago));
 
@@ -109,6 +110,18 @@ const PersonaDetalle = ({ persona, habitacion, fmt, soloLectura, puedePagar, onP
               <div>
                 <div className="text-[10px] text-gray-600 uppercase tracking-wide">Pendiente</div>
                 <div className="text-xs font-bold text-rose-400 tabular-nums">-{fmt(pendienteP)}</div>
+              </div>
+            )}
+            {cubierto > 0 && (
+              <div title="Pagado de más por otra persona de la habitación">
+                <div className="text-[10px] text-gray-600 uppercase tracking-wide">Cubierto por la hab.</div>
+                <div className="text-xs font-bold text-sky-300 tabular-nums">{fmt(cubierto)}</div>
+              </div>
+            )}
+            {pagadoPersona > cuota && cuota >= 0 && !persona.esStack && (
+              <div title="Pagó más que su cuota: el excedente se aplica a los demás de la habitación">
+                <div className="text-[10px] text-gray-600 uppercase tracking-wide">A favor</div>
+                <div className="text-xs font-bold text-sky-300 tabular-nums">{fmt(pagadoPersona - cuota)}</div>
               </div>
             )}
             {pendienteP === 0 && cuota > 0 && (

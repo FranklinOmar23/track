@@ -68,9 +68,41 @@ export const contarAdultos = (habitacion) =>
   habitacion.personas.filter((p) => p.n && !p.esNino && !/\(\d+ años?\)/.test(p.n)).length;
 
 /** Pendiente de una persona = cuota − pagado (mínimo 0). */
+/**
+ * Situación de cada persona de la habitación. Si alguien pagó más que su cuota (p. ej. un pago
+ * registrado a nombre de un niño que no paga), ese excedente se aplica a lo que deben los demás
+ * de la misma habitación, en orden. Así el pendiente por persona suma lo mismo que el de la habitación.
+ * Devuelve [{ persona, cuota, pagado, pendiente, aFavor, cubiertoPorOtros }].
+ */
+export const calcularPendientesHabitacion = (habitacion) => {
+  const filas = habitacion.personas.filter((p) => p.n).map((persona) => {
+    const cuota = calcularCuotaPersona(habitacion, persona);
+    const pagado = (persona.pagos || []).reduce((s, p) => s + Number(p.monto || 0), 0);
+    return {
+      persona, cuota, pagado,
+      pendiente: Math.max(0, cuota - pagado),
+      aFavor: Math.max(0, pagado - cuota),
+      cubiertoPorOtros: 0,
+    };
+  });
+  let disponible = filas.reduce((s, f) => s + f.aFavor, 0);
+  filas.forEach((f) => {
+    if (disponible <= 0 || f.pendiente <= 0) return;
+    const aplicado = Math.min(disponible, f.pendiente);
+    f.pendiente -= aplicado;
+    f.cubiertoPorOtros = aplicado;
+    disponible -= aplicado;
+  });
+  return filas;
+};
+
+/** Pendiente de una persona, ya descontando lo que otros de su habitación pagaron de más. */
 export const calcularPendientePersona = (habitacion, persona) => {
+  const fila = calcularPendientesHabitacion(habitacion)
+    .find((f) => f.persona === persona || (persona.id && f.persona.id === persona.id));
+  if (fila) return fila.pendiente;
   const cuota = calcularCuotaPersona(habitacion, persona);
-  const pagado = (persona.pagos || []).reduce((s, p) => s + p.monto, 0);
+  const pagado = (persona.pagos || []).reduce((s, p) => s + Number(p.monto || 0), 0);
   return Math.max(0, cuota - pagado);
 };
 

@@ -1,5 +1,5 @@
 // Exportaciones a Excel con formato (ExcelJS se carga solo al exportar, para no pesar en la app).
-import { calcularCuotaPersona, calcularTotalHabitacion, ninoDebePagar } from './calculos';
+import { calcularCuotaPersona, calcularTotalHabitacion, calcularPendientesHabitacion, ninoDebePagar } from './calculos';
 import { clavePeriodo, etiquetaPeriodo } from './formatters';
 
 const cargarExcelJS = async () => (await import('exceljs')).default;
@@ -187,25 +187,27 @@ export const exportarExcelDetallado = async (habitaciones, viaje) => {
   const COL_MES = 4; // primera columna de meses
   const COL_PAGADO = COL_MES + claves.length;
   const COL_PENDIENTE = COL_PAGADO + 1;
-  const COLS = COL_PENDIENTE;
+  // "A favor": lo que una persona pagó por encima de su cuota (cuenta para su habitación)
+  const COL_FAVOR = COL_PENDIENTE + 1;
+  const COLS = COL_FAVOR;
 
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet('Detallado', { views: [{ state: 'frozen', ySplit: 4, xSplit: 2 }] });
   ws.columns = [
     { width: 12 }, { width: 36 }, { width: 14 },
     ...claves.map(() => ({ width: 12 })),
-    { width: 15 }, { width: 15 },
+    { width: 15 }, { width: 15 }, { width: 12 },
   ];
 
   escribirTitulo(ws, `${viaje?.nombre || 'Viaje'} — Pagos por persona y mes`,
     `Generado el ${fechaHoy()} · Montos en ${viaje?.divisa || 'USD'}`, COLS);
-  escribirEncabezado(ws, 4, ['Habitación', 'Huésped', 'Cuota', ...claves.map((k) => periodos.get(k)), 'Total pagado', 'Pendiente']);
+  escribirEncabezado(ws, 4, ['Habitación', 'Huésped', 'Cuota', ...claves.map((k) => periodos.get(k)), 'Total pagado', 'Pendiente', 'A favor']);
 
   const montos = (fila, desde, hasta) => {
     for (let c = desde; c <= hasta; c += 1) fila.getCell(c).numFmt = FORMATO_MONTO;
   };
   const totalMes = Object.fromEntries(claves.map((k) => [k, 0]));
-  const totales = { cuota: 0, pagado: 0, pendiente: 0 };
+  const totales = { cuota: 0, pagado: 0, pendiente: 0, favor: 0 };
   const grupos = agruparPorEtiqueta(habitaciones);
   const conGrupos = grupos.length > 1 || grupos[0][0] !== '';
   let r = 5;
@@ -218,11 +220,15 @@ export const exportarExcelDetallado = async (habitaciones, viaje) => {
       const inicio = r;
       const subHab = { cuota: 0, pagado: 0, pendiente: 0, meses: Object.fromEntries(claves.map((k) => [k, 0])) };
 
+      const situacion = calcularPendientesHabitacion(hab);
       personas.forEach((p) => {
         const fila = ws.getRow(r++);
+        const sit = situacion.find((x) => x.persona === p);
         const cuota = hab.stack || !p.id ? 0 : calcularCuotaPersona(hab, p);
         const pagado = pagadoPersona(p);
-        const pendiente = Math.max(0, cuota - pagado);
+        // Pendiente neto: lo pagado de más por otro de la habitación ya está descontado
+        const pendiente = hab.stack ? 0 : sit ? sit.pendiente : Math.max(0, cuota - pagado);
+        const aFavor = hab.stack ? 0 : Math.max(0, pagado - cuota);
         fila.getCell(2).value = nombreHuesped(hab, p);
         fila.getCell(3).value = hab.stack ? 'STACK' : cuota;
         claves.forEach((k, i) => {
@@ -234,10 +240,11 @@ export const exportarExcelDetallado = async (habitaciones, viaje) => {
         });
         fila.getCell(COL_PAGADO).value = pagado;
         fila.getCell(COL_PENDIENTE).value = pendiente;
+        fila.getCell(COL_FAVOR).value = aFavor;
         estilarFila(fila, 1, COLS, {});
         montos(fila, 3, COLS);
         if (hab.stack) fila.getCell(3).alignment = { horizontal: 'center' };
-        subHab.cuota += cuota; subHab.pagado += pagado; subHab.pendiente += pendiente;
+        subHab.cuota += cuota; subHab.pagado += pagado;
       });
 
       const fin = r - 1;
@@ -251,11 +258,16 @@ export const exportarExcelDetallado = async (habitaciones, viaje) => {
       fila.getCell(3).value = subHab.cuota;
       claves.forEach((k, i) => { fila.getCell(COL_MES + i).value = subHab.meses[k]; totalMes[k] += subHab.meses[k]; });
       fila.getCell(COL_PAGADO).value = subHab.pagado;
+      // Lo pagado por cualquiera de la habitación cuenta para la habitación (igual que en el sistema)
+      subHab.pendiente = Math.max(0, subHab.cuota - subHab.pagado);
+      subHab.favor = Math.max(0, subHab.pagado - subHab.cuota);
       fila.getCell(COL_PENDIENTE).value = subHab.pendiente;
+      fila.getCell(COL_FAVOR).value = subHab.favor;
       estilarFila(fila, 1, COLS, { fill: COLOR_SEPARADOR, italic: true });
       fila.getCell(2).alignment = { horizontal: 'right' };
       montos(fila, 3, COLS);
-      totales.cuota += subHab.cuota; totales.pagado += subHab.pagado; totales.pendiente += subHab.pendiente;
+      totales.cuota += subHab.cuota; totales.pagado += subHab.pagado;
+      totales.pendiente += subHab.pendiente; totales.favor += subHab.favor;
     });
   });
 
@@ -265,6 +277,7 @@ export const exportarExcelDetallado = async (habitaciones, viaje) => {
   claves.forEach((k, i) => { fila.getCell(COL_MES + i).value = totalMes[k]; });
   fila.getCell(COL_PAGADO).value = totales.pagado;
   fila.getCell(COL_PENDIENTE).value = totales.pendiente;
+  fila.getCell(COL_FAVOR).value = totales.favor;
   estilarFila(fila, 1, COLS, { bold: true, fill: COLOR_ENCABEZADO });
   fila.getCell(2).alignment = { horizontal: 'right' };
   montos(fila, 3, COLS);

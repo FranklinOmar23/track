@@ -5,7 +5,7 @@
 //  - agruparPor (opcional): clave por la que se agrupa con subtotales
 //  - construir(datos, filtros): devuelve las filas (objetos con las claves de las columnas)
 import {
-  calcularCuotaPersona, calcularTotalHabitacion, calcularTotalPagado, ninoDebePagar,
+  calcularCuotaPersona, calcularPendientePersona, calcularTotalHabitacion, calcularTotalPagado, ninoDebePagar,
 } from '../../../utils/calculos';
 import { clavePeriodo, etiquetaPeriodo } from '../../../utils/formatters';
 
@@ -81,7 +81,7 @@ export const REPORTES = [
         const pag = pagado(p);
         return {
           persona: p.n, habitacion: h.num, etiqueta: etiquetaDe(h), cuota, pagado: pag,
-          pendiente: Math.max(0, cuota - pag), ultimoPago: ultimo.get(p.id) || null,
+          pendiente: calcularPendientePersona(h, p), ultimoPago: ultimo.get(p.id) || null,
         };
       })).filter((f) => f.pendiente > 0).sort((a, b) => b.pendiente - a.pendiente);
     },
@@ -122,6 +122,7 @@ export const REPORTES = [
           .map((k) => ({ clave: `m${k}`, titulo: periodos.get(k), tipo: 'monto', total: 'suma', ancho: 12 })),
         { clave: 'pagado', titulo: 'Total pagado', tipo: 'monto', total: 'suma' },
         { clave: 'pendiente', titulo: 'Pendiente', tipo: 'monto', total: 'suma' },
+        { clave: 'aFavor', titulo: 'A favor', tipo: 'monto', total: 'suma', ancho: 12 },
       ];
     },
     construir: ({ habitaciones }) => [...habitaciones].sort(ordenHab).flatMap((h) => conNombre(h).map((p) => {
@@ -131,7 +132,8 @@ export const REPORTES = [
         const k = `m${clavePeriodo(g.mes, g.anio)}`;
         fila[k] = (fila[k] || 0) + Number(g.monto || 0);
       });
-      fila.pendiente = Math.max(0, cuota - fila.pagado);
+      fila.pendiente = calcularPendientePersona(h, p);
+      fila.aFavor = Math.max(0, fila.pagado - cuota);
       return fila;
     })),
   },
