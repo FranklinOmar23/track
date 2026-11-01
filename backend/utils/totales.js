@@ -35,9 +35,13 @@ export const cuotasHabitacion = (habitacion, edadMinimaPago) => {
 /** Totales de una habitación: por cobrar, pagado, personas que pagan y personas con nombre. */
 export const resumenHabitacion = (habitacion, edadMinimaPago) => {
   const cuotas = cuotasHabitacion(habitacion, edadMinimaPago);
+  const totalPorCobrar = cuotas.reduce((s, p) => s + p.cuota, 0);
+  const pagado = habitacion.personas.reduce((s, p) => s + (Number(p.pagado) || 0), 0);
   return {
-    totalPorCobrar: cuotas.reduce((s, p) => s + p.cuota, 0),
-    pagado: habitacion.personas.reduce((s, p) => s + (Number(p.pagado) || 0), 0),
+    totalPorCobrar,
+    pagado,
+    // Por habitación: lo pagado de más en una no descuenta la deuda de otra
+    pendiente: Math.max(0, totalPorCobrar - pagado),
     pax: cuotas.filter((p) => p.paga).length,
     personas: cuotas.length,
   };
@@ -49,11 +53,12 @@ export const sumarResumenes = (habitaciones, edadMinimaPago) =>
     const r = resumenHabitacion(h, edadMinimaPago);
     acc.totalPorCobrar += r.totalPorCobrar;
     acc.pagado += r.pagado;
+    acc.pendiente += r.pendiente;
     acc.pax += r.pax;
     acc.personas += r.personas;
     acc.habitaciones += 1;
     return acc;
-  }, { totalPorCobrar: 0, pagado: 0, pax: 0, personas: 0, habitaciones: 0 });
+  }, { totalPorCobrar: 0, pagado: 0, pendiente: 0, pax: 0, personas: 0, habitaciones: 0 });
 
 const redondear = (n) => Math.round(n * 100) / 100;
 export { redondear };

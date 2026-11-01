@@ -126,7 +126,12 @@ export const calcularEstadisticas = (habitaciones) => {
   }, 0);
 
   const pagado = habitaciones.reduce((sum, hab) => sum + calcularTotalPagado(hab), 0);
-  const pendiente = Math.max(0, total - pagado);
+  // Pendiente por habitación: lo pagado de más en una no descuenta la deuda de otra (igual que el Excel)
+  const pendiente = habitaciones.reduce((sum, hab) => {
+    if (hab.stack) return sum;
+    const totalHab = hab.personas.filter((p) => p.n).reduce((s, p) => s + calcularCuotaPersona(hab, p), 0);
+    return sum + Math.max(0, totalHab - calcularTotalPagado(hab));
+  }, 0);
 
   return { total, pagado, pendiente };
 };

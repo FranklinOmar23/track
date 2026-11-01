@@ -36,7 +36,7 @@ router.get('/dashboard', async (req, res) => {
       ganancia_valor: Number(v.ganancia_valor) || 0,
       total_por_cobrar: redondear(r.totalPorCobrar),
       total_pagado: redondear(r.pagado),
-      pendiente: redondear(Math.max(0, r.totalPorCobrar - r.pagado)),
+      pendiente: redondear(r.pendiente),
       total_habitaciones: r.habitaciones,
       total_personas: r.personas,
       personas_pagan: r.pax,
@@ -53,7 +53,7 @@ router.get('/dashboard', async (req, res) => {
       total_tours:   viajesConTotales.filter((v) => v.tipo === 'tour').length,
       total_por_cobrar: totalGlobalPorCobrar,
       total_pagado:     totalGlobalPagado,
-      total_pendiente:  Math.max(0, totalGlobalPorCobrar - totalGlobalPagado),
+      total_pendiente:  viajesConTotales.reduce((s, v) => s + v.pendiente, 0),
       porcentaje_pagado: totalGlobalPorCobrar > 0
         ? ((totalGlobalPagado / totalGlobalPorCobrar) * 100).toFixed(1)
         : 0,
@@ -128,16 +128,16 @@ router.get('/reportes/por-etiqueta', requierePermiso('reportes'), async (req, re
   const filas = [...porEtiqueta.values()].map(({ etiqueta, habs }) => {
     const r = habs.reduce((acc, { h, edad }) => {
       const x = sumarResumenes([h], edad);
-      acc.totalPorCobrar += x.totalPorCobrar; acc.pagado += x.pagado; acc.personas += x.personas;
+      acc.totalPorCobrar += x.totalPorCobrar; acc.pagado += x.pagado; acc.pendiente += x.pendiente; acc.personas += x.personas;
       return acc;
-    }, { totalPorCobrar: 0, pagado: 0, personas: 0 });
+    }, { totalPorCobrar: 0, pagado: 0, pendiente: 0, personas: 0 });
     return {
       etiqueta,
       habitaciones: habs.length,
       personas: r.personas,
       total_por_cobrar: redondear(r.totalPorCobrar),
       total_pagado: redondear(r.pagado),
-      pendiente: redondear(Math.max(0, r.totalPorCobrar - r.pagado)),
+      pendiente: redondear(r.pendiente),
       porcentaje: r.totalPorCobrar > 0 ? ((r.pagado / r.totalPorCobrar) * 100).toFixed(1) : 0,
     };
   });
@@ -159,7 +159,7 @@ router.get('/reportes/comparativa-viajes', requierePermiso('reportes'), async (r
       fecha_inicio: v.fecha_inicio,
       total_por_cobrar: redondear(r.totalPorCobrar),
       total_pagado: redondear(r.pagado),
-      pendiente: redondear(Math.max(0, r.totalPorCobrar - r.pagado)),
+      pendiente: redondear(r.pendiente),
       habitaciones: r.habitaciones,
       personas: r.personas,
       porcentaje: r.totalPorCobrar > 0 ? ((r.pagado / r.totalPorCobrar) * 100).toFixed(1) : 0,

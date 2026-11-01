@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useDivisa } from '../../hooks/useDivisa';
-import { calcularTotalHabitacion, filtrarHabitaciones } from '../../utils/calculos';
+import { calcularTotalHabitacion, calcularEstadisticas, filtrarHabitaciones } from '../../utils/calculos';
 import { useHabitacionesContext } from '../../Context/HabitacionesContext';
 import { HabitacionCard } from './HabitacionCard';
 import ModalDetallesHabitacion from '../Modals/ModalDetallesHabitacion';
@@ -134,6 +134,8 @@ const HabitacionesList = () => {
               ), 0
             );
             const pctGrupo = totalGrupo > 0 ? Math.round((pagadoGrupo / totalGrupo) * 100) : 0;
+            // Pendiente por habitación (lo pagado de más en una no descuenta la deuda de otra), igual que el Excel
+            const pendienteGrupo = calcularEstadisticas(habs).pendiente;
 
             return (
               <div key={clave} className="animate-fade-in-up" style={{ animationDelay: `${groupIdx * 60}ms` }}>
@@ -157,7 +159,7 @@ const HabitacionesList = () => {
                     </div>
                     <div className="text-right hidden sm:block">
                       <div className="text-gray-600 mb-0.5">Pendiente</div>
-                      <div className="font-bold text-rose-400 tabular-nums">{formatCurrency(Math.max(0, totalGrupo - pagadoGrupo))}</div>
+                      <div className="font-bold text-rose-400 tabular-nums">{formatCurrency(pendienteGrupo)}</div>
                     </div>
                     <div
                       className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold"
