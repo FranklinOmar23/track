@@ -1,11 +1,11 @@
 import React from 'react';
 export const Badge = React.forwardRef(({ className, variant, ...props }, ref) => {
   const variantClasses = {
-    default: "bg-white/10 text-white hover:bg-white/20",
-    secondary: "bg-white/10 text-gray-200 hover:bg-white/20",
-    outline: "border border-white/20 text-gray-300",
-    resort: "bg-teal-900/40 text-teal-400 border border-teal-600/40",
-    tour: "bg-cyan-900/40 text-cyan-400 border border-cyan-600/40",
+    default: "bg-slate-100 text-slate-900 hover:bg-slate-100",
+    secondary: "bg-slate-100 text-slate-800 hover:bg-slate-100",
+    outline: "border border-slate-200 text-slate-700",
+    resort: "bg-teal-50 text-teal-700 border border-teal-200",
+    tour: "bg-cyan-50 text-cyan-700 border border-cyan-200",
   };
 
   return (

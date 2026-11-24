@@ -26,3 +26,15 @@ export const ajustarTipoPorAdultos = async (conn, habitacionId) => {
   const tipo = tipoPorOcupacion(adultos);
   await conn.query('UPDATE habitaciones SET tipo = ? WHERE id = ? AND tipo <> ?', [tipo, habitacionId, tipo]);
 };
+
+/**
+ * Asigna nuevas posiciones a las personas de una habitación sin chocar con la clave única
+ * (habitacion_id, posicion): primero las pasa a valores negativos temporales y luego a las finales.
+ * `posiciones` = [{ id, posicion }].
+ */
+export const reordenarPosiciones = async (conn, habitacionId, posiciones) => {
+  await conn.query('UPDATE personas SET posicion = -posicion WHERE habitacion_id = ? AND posicion > 0', [habitacionId]);
+  for (const p of posiciones) {
+    await conn.query('UPDATE personas SET posicion = ? WHERE id = ? AND habitacion_id = ?', [p.posicion, p.id, habitacionId]);
+  }
+};

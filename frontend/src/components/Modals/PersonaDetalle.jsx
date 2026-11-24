@@ -1,133 +1,134 @@
-import { Plus, ArrowRightLeft, CreditCard, Gift, Layers } from 'lucide-react';
+import { Plus, ArrowRightLeft, Gift, Layers, Crown, GripVertical } from 'lucide-react';
 import { calcularCuotaPersona, calcularPendientePersona, ninoDebePagar } from '../../utils/calculos';
-import { etiquetaPeriodo } from '../../utils/formatters';
 
-/** Tarjeta de una persona en el detalle de habitación: pagos, cuota y acciones. */
-const PersonaDetalle = ({ persona, habitacion, fmt, soloLectura, puedePagar, onPago, onMover }) => {
+
+/** Dato del pie de la tarjeta (CUOTA / PAGADO / PENDIENTE…). */
+const Dato = ({ label, children, color = 'text-slate-900', titulo }) => (
+  <div title={titulo}>
+    <p className="label-mayus">{label}</p>
+    <p className={`text-sm font-semibold tabular-nums mt-0.5 ${color}`}>{children}</p>
+  </div>
+);
+
+/**
+ * Tarjeta de una persona en el detalle de habitación: pagos, cuota y acciones.
+ * titular: es la primera persona de la habitación (círculo dorado).
+ * arrastrable: se puede arrastrar sobre el titular para cambiarlo.
+ */
+const PersonaDetalle = ({
+  persona, habitacion, fmt, soloLectura, puedePagar, onPago, onMover,
+  titular = false, arrastrable = false, onHacerTitular,
+}) => {
   const pagadoPersona = persona.pagos?.reduce((s, p) => s + p.monto, 0) || 0;
   const cuota         = calcularCuotaPersona(habitacion, persona);
   const pendienteP    = calcularPendientePersona(habitacion, persona);
   const cubierto      = Math.max(0, cuota - pagadoPersona) - pendienteP;
   const esNino        = persona.esNino || /\(\d+ años\)/.test(persona.n || '');
   const esGratis      = esNino && (persona.esGratis || !ninoDebePagar(persona, habitacion.edadMinimaPago));
+  const pagos         = persona.pagos || [];
 
   return (
-    <div
-      className="rounded-xl p-3.5"
-      style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
-    >
-      <div className="flex items-center justify-between mb-2.5">
-        <div className="flex items-center gap-2">
-          <div
-            className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white"
-            style={{ background: esNino ? 'rgba(245,158,11,0.25)' : 'rgba(13,148,136,0.25)' }}
-          >
-            {persona.n?.charAt(0).toUpperCase()}
+    <div className="rounded-xl border border-slate-200 overflow-hidden">
+      <div className="p-4">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            {arrastrable && (
+              <GripVertical className="h-4 w-4 text-slate-400 shrink-0 -mr-1.5 cursor-grab" aria-hidden="true" />
+            )}
+            <span className={`h-9 w-9 rounded-full bg-slate-200 text-slate-600 text-sm font-semibold flex items-center justify-center shrink-0 ${titular ? 'avatar-titular' : ''}`}
+              title={titular ? 'Titular de la habitación' : undefined}>
+              {persona.n?.charAt(0).toUpperCase()}
+            </span>
+            <div className="min-w-0 flex flex-wrap items-center gap-1.5">
+              <span className="text-[15px] font-semibold text-slate-900 truncate">{persona.n}</span>
+              {titular && (
+                <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 rounded-full leading-4"
+                  style={{ background: '#fbf1d3', color: '#8a5a00' }}>
+                  <Crown className="h-2.5 w-2.5" /> titular
+                </span>
+              )}
+              {esNino && <span className="text-[10px] font-semibold px-1.5 rounded-full bg-amber-50 text-amber-800 leading-4">niño</span>}
+              {persona.esStack && (
+                <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 rounded-full bg-violet-50 text-violet-700 leading-4">
+                  <Layers className="h-2.5 w-2.5" /> stack
+                </span>
+              )}
+              {esGratis && (
+                <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 rounded-full bg-emerald-50 text-emerald-700 leading-4">
+                  <Gift className="h-2.5 w-2.5" /> gratis
+                </span>
+              )}
+            </div>
           </div>
-          <div>
-            <span className="text-sm font-semibold text-white">{persona.n}</span>
-            {esNino && (
-              <span className="ml-1.5 text-[9px] text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-full border border-amber-500/20">niño</span>
-            )}
-          {persona.esStack && (
-              <span className="ml-1 inline-flex items-center gap-0.5 text-[9px] font-bold tracking-wide text-emerald-300 bg-emerald-500/10 px-1.5 py-0.5 rounded-full border border-emerald-500/25">
-                <Layers className="h-2.5 w-2.5" /> STACK
-              </span>
-            )}
-          {esGratis && (
-              <span className="ml-1 flex items-center gap-0.5 text-[9px] text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-full border border-emerald-500/20">
-                <Gift className="h-2.5 w-2.5" /> gratis
-              </span>
-            )}
-          </div>
+          {(puedePagar || !soloLectura) && (
+            <div className="flex items-center gap-2 shrink-0">
+              {!soloLectura && !titular && onHacerTitular && (
+                <button type="button" onClick={onHacerTitular} title="Hacer titular" aria-label={`Hacer titular a ${persona.n}`}
+                  className="btn btn-borde !px-2.5 text-amber-700 hover:!border-amber-300 hover:!bg-amber-50">
+                  <Crown className="h-4 w-4" />
+                </button>
+              )}
+              {!soloLectura && (
+                <button type="button" onClick={() => onMover()} className="btn btn-borde !font-medium">
+                  <ArrowRightLeft className="h-3.5 w-3.5" /> Mover
+                </button>
+              )}
+              {puedePagar && (
+                <button type="button" onClick={() => onPago(null)} className="btn btn-primario">
+                  <Plus className="h-4 w-4" /> Pago
+                </button>
+              )}
+            </div>
+          )}
         </div>
-        {(puedePagar || !soloLectura) && <div className="flex items-center gap-1">
-          {puedePagar && <button
-            type="button"
-            onClick={() => onPago(null)}
-            className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold text-teal-400 hover:bg-teal-500/10 border border-transparent hover:border-teal-500/20 transition-all"
-          >
-            <Plus className="h-3 w-3" /> Pago
-          </button>}
-          {!soloLectura && <button
-            type="button"
-            onClick={() => onMover()}
-            className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold text-gray-500 hover:text-gray-300 hover:bg-white/[0.06] border border-transparent hover:border-white/10 transition-all"
-          >
-            <ArrowRightLeft className="h-3 w-3" /> Mover
-          </button>}
-        </div>}
+
+        {/* Pagos */}
+        <div className="flex flex-wrap gap-2 mt-3.5">
+          {pagos.map((pago, idx) => (
+            <button
+              key={pago.id ?? idx}
+              type="button"
+              onClick={() => puedePagar && onPago(pago)}
+              disabled={!puedePagar}
+              className={`inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-[13px] border border-emerald-200 bg-emerald-50/70 text-emerald-800 transition-colors ${
+                puedePagar ? 'hover:bg-emerald-100 hover:border-emerald-300 cursor-pointer' : 'cursor-default'
+              }`}
+              title={puedePagar ? 'Clic para editar o eliminar el pago' : undefined}
+            >
+              <span className="font-semibold">{pago.mes}{pago.anio ? ` ${pago.anio}` : ''}</span>
+              <span className="tabular-nums">{fmt(pago.monto)}</span>
+            </button>
+          ))}
+          {pagos.length === 0 && <span className="text-sm text-slate-400 italic">Sin pagos registrados</span>}
+        </div>
       </div>
 
-      {/* Pagos list */}
-      <div className="flex flex-wrap gap-1.5 mb-2.5">
-        {(persona.pagos || []).map((pago, idx) => (
-          <button
-            key={idx}
-            type="button"
-            onClick={() => puedePagar && onPago(pago)}
-            disabled={!puedePagar}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all"
-            style={{
-              background: 'rgba(13,148,136,0.12)',
-              border: '1px solid rgba(13,148,136,0.2)',
-              color: '#5eead4',
-            }}
-            title={puedePagar ? 'Click para editar/eliminar pago' : undefined}
-          >
-            <CreditCard className="h-2.5 w-2.5" />
-            {etiquetaPeriodo(pago.mes, pago.anio)} — {fmt(pago.monto)}
-          </button>
-        ))}
-        {(!persona.pagos || persona.pagos.length === 0) && (
-          <span className="text-xs text-gray-600 italic px-1">Sin pagos registrados</span>
-        )}
-      </div>
-
-      {/* Person totals */}
-      <div className="flex items-center gap-4 pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+      {/* Totales de la persona */}
+      <div className="px-4 py-3 bg-slate-50 border-t border-slate-200">
         {persona.esStack ? (
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-300">
-            <Layers className="h-3 w-3" />
-            Stack · no paga su parte
-          </div>
+          <p className="flex items-center gap-1.5 text-sm font-semibold text-violet-700">
+            <Layers className="h-4 w-4" /> Stack · no paga su parte
+          </p>
         ) : esGratis ? (
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-400">
-            <Gift className="h-3 w-3" />
-            Sin costo · entra gratis
-          </div>
+          <p className="flex items-center gap-1.5 text-sm font-semibold text-emerald-700">
+            <Gift className="h-4 w-4" /> Sin costo · entra gratis
+          </p>
         ) : (
-          <>
-            <div>
-              <div className="text-[10px] text-gray-600 uppercase tracking-wide">Cuota</div>
-              <div className="text-xs font-bold text-gray-300 tabular-nums">{fmt(cuota)}</div>
-            </div>
-            <div>
-              <div className="text-[10px] text-gray-600 uppercase tracking-wide">Pagado</div>
-              <div className="text-xs font-bold text-emerald-400 tabular-nums">{fmt(pagadoPersona)}</div>
-            </div>
-            {pendienteP > 0 && (
-              <div>
-                <div className="text-[10px] text-gray-600 uppercase tracking-wide">Pendiente</div>
-                <div className="text-xs font-bold text-rose-400 tabular-nums">-{fmt(pendienteP)}</div>
-              </div>
+          <div className="grid grid-cols-3 gap-3">
+            <Dato label="Cuota">{fmt(cuota)}</Dato>
+            <Dato label="Pagado" color="text-emerald-700">{fmt(pagadoPersona)}</Dato>
+            {pendienteP > 0 ? (
+              <Dato label="Pendiente" color="text-red-700">{fmt(pendienteP)}</Dato>
+            ) : cubierto > 0 ? (
+              <Dato label="Cubierto por la hab." color="text-sky-700" titulo="Pagado de más por otra persona de la habitación">{fmt(cubierto)}</Dato>
+            ) : pagadoPersona > cuota && cuota >= 0 ? (
+              <Dato label="A favor" color="text-sky-700" titulo="Pagó más que su cuota: el excedente se aplica a los demás de la habitación">
+                {fmt(pagadoPersona - cuota)}
+              </Dato>
+            ) : (
+              <Dato label="Pendiente" color="text-emerald-700">✓ Completo</Dato>
             )}
-            {cubierto > 0 && (
-              <div title="Pagado de más por otra persona de la habitación">
-                <div className="text-[10px] text-gray-600 uppercase tracking-wide">Cubierto por la hab.</div>
-                <div className="text-xs font-bold text-sky-300 tabular-nums">{fmt(cubierto)}</div>
-              </div>
-            )}
-            {pagadoPersona > cuota && cuota >= 0 && !persona.esStack && (
-              <div title="Pagó más que su cuota: el excedente se aplica a los demás de la habitación">
-                <div className="text-[10px] text-gray-600 uppercase tracking-wide">A favor</div>
-                <div className="text-xs font-bold text-sky-300 tabular-nums">{fmt(pagadoPersona - cuota)}</div>
-              </div>
-            )}
-            {pendienteP === 0 && cuota > 0 && (
-              <div className="text-xs font-bold text-emerald-400">✓ Completo</div>
-            )}
-          </>
+          </div>
         )}
       </div>
     </div>

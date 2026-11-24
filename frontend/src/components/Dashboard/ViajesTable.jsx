@@ -1,57 +1,45 @@
 import { useState } from 'react';
-import { Badge } from '../ui/badge';
-import { Progress } from '../ui/progress';
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from '../ui/table';
-import { FileText, Building2, Bus, Eye, Pencil, Lock, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
-import { calcularGananciaResumen } from '../../utils/calculos';
+import { ChevronRight, ArrowUp, ArrowDown } from 'lucide-react';
 import { formatCurrency } from '../../utils/formatters';
-import ModalEditarViaje from '../Modals/ModalEditarViaje';
-import { useAuthContext } from '../../Context/AuthContext';
-
-
-const STAGGER_DELAYS = [0, 40, 80, 120, 160, 200, 240];
+import { calcularGananciaResumen } from '../../utils/calculos';
 
 // Valor por el que se ordena cada columna
 const VALOR_ORDEN = {
   nombre: (v) => v.nombre.toLowerCase(),
-  habitaciones: (v) => v.total_habitaciones || 0,
-  personas: (v) => v.total_personas || 0,
   total: (v) => v.total_por_cobrar || 0,
   pagado: (v) => v.total_pagado || 0,
   pendiente: (v) => v.pendiente || 0,
   ganancia: (v) => calcularGananciaResumen(v),
-  progreso: (v) => (v.total_por_cobrar > 0 ? v.total_pagado / v.total_por_cobrar : 0),
+  progreso: (v) => v.pct || 0,
 };
 
 /** Encabezado que ordena al hacer clic (1er clic: mayor a menor; 2º: menor a mayor; 3º: orden original). */
 const Encabezado = ({ campo, orden, onOrdenar, className = '', children }) => {
   const activo = orden.campo === campo;
-  const Icono = !activo ? ArrowUpDown : orden.dir === 'desc' ? ArrowDown : ArrowUp;
+  const Icono = orden.dir === 'desc' ? ArrowDown : ArrowUp;
   return (
-    <TableHead className={`font-semibold text-xs tracking-wider uppercase ${className}`}>
+    <th className={`px-4 h-11 font-normal ${className}`}>
       <button type="button" onClick={() => onOrdenar(campo)}
-        className={`inline-flex items-center gap-1 uppercase tracking-wider transition-colors ${activo ? 'text-teal-300' : 'text-gray-500 hover:text-gray-300'}`}>
+        className={`tabla-th inline-flex items-center gap-1 hover:text-slate-900 transition-colors ${activo ? '!text-slate-900' : ''}`}>
         {children}
-        <Icono className={`h-3 w-3 ${activo ? '' : 'opacity-40'}`} />
+        {activo && <Icono className="h-3 w-3" />}
       </button>
-    </TableHead>
+    </th>
   );
 };
 
+/** Tabla "Detalle por viaje" del dashboard. */
 export const ViajesTable = ({ viajes, onSelectViaje }) => {
-  const { puede } = useAuthContext();
-  const [viajeEditando, setViajeEditando] = useState(null);
   const [orden, setOrden] = useState({ campo: null, dir: 'desc' });
 
   const onOrdenar = (campo) => setOrden((o) => {
-    if (o.campo !== campo) return { campo, dir: campo === 'nombre' ? 'asc' : 'desc' };
-    if (o.dir === (campo === 'nombre' ? 'asc' : 'desc')) return { campo, dir: campo === 'nombre' ? 'desc' : 'asc' };
+    const primera = campo === 'nombre' ? 'asc' : 'desc';
+    if (o.campo !== campo) return { campo, dir: primera };
+    if (o.dir === primera) return { campo, dir: primera === 'asc' ? 'desc' : 'asc' };
     return { campo: null, dir: 'desc' };
   });
 
-  const viajesOrdenados = orden.campo
+  const ordenados = orden.campo
     ? [...viajes].sort((a, b) => {
       const va = VALOR_ORDEN[orden.campo](a);
       const vb = VALOR_ORDEN[orden.campo](b);
@@ -62,166 +50,62 @@ export const ViajesTable = ({ viajes, onSelectViaje }) => {
   const props = { orden, onOrdenar };
 
   return (
-    <>
-      <div
-        className="relative overflow-hidden rounded-xl animate-fade-in-up stagger-3"
-        style={{
-          backgroundColor: '#1a1f2e',
-          border: '1px solid rgba(255,255,255,0.07)',
-        }}
-      >
-        {/* Subtle top-left orb */}
-        <div
-          className="orb w-56 h-56 pointer-events-none"
-          style={{ top: '-60px', left: '-60px', background: '#0d9488', opacity: 0.05 }}
-        />
-
-        <div className="relative flex items-center gap-2.5 p-4 sm:p-6 pb-4">
-          <div className="p-1.5 rounded-lg bg-white/5">
-            <FileText className="h-4 w-4 text-gray-400" />
-          </div>
-          <div>
-            <h3 className="font-semibold text-white text-sm">Detalle por Viaje</h3>
-            <p className="text-xs text-gray-600 mt-0.5">{viajes.length} viaje{viajes.length !== 1 ? 's' : ''} registrado{viajes.length !== 1 ? 's' : ''}</p>
-          </div>
-        </div>
-
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-white/[0.025] hover:bg-white/[0.025] border-b border-white/[0.05]">
-                <Encabezado campo="nombre" {...props}>Viaje</Encabezado>
-                <TableHead className="font-semibold text-gray-500 text-xs tracking-wider uppercase hidden sm:table-cell">Tipo</TableHead>
-                <Encabezado campo="habitaciones" className="text-center hidden md:table-cell" {...props}>Hab.</Encabezado>
-                <Encabezado campo="personas" className="text-center hidden md:table-cell" {...props}>Pax</Encabezado>
-                <Encabezado campo="total" className="text-right" {...props}>Total</Encabezado>
-                <Encabezado campo="pagado" className="text-right hidden sm:table-cell" {...props}>Pagado</Encabezado>
-                <Encabezado campo="pendiente" className="text-right" {...props}>Pendiente</Encabezado>
-                <Encabezado campo="ganancia" className="text-right hidden lg:table-cell" {...props}>Ganancia</Encabezado>
-                <Encabezado campo="progreso" className="text-center hidden sm:table-cell" {...props}>Progreso</Encabezado>
-                <TableHead className="font-semibold text-gray-500 text-xs tracking-wider uppercase text-center">Acción</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {viajesOrdenados.map((viaje, rowIdx) => {
-                const total      = viaje.total_por_cobrar || 0;
-                const pagado     = viaje.total_pagado     || 0;
-                const pendiente  = viaje.pendiente        || 0;
-                const porcentaje = total > 0 ? ((pagado / total) * 100).toFixed(1) : 0;
-                const divisa     = viaje.divisa || 'USD';
-                const ganancia   = calcularGananciaResumen(viaje);
-                const cerrado    = viaje.estado === 'cerrado';
-                const delay      = STAGGER_DELAYS[Math.min(rowIdx, STAGGER_DELAYS.length - 1)];
-
-                return (
-                  <TableRow
-                    key={viaje.id}
-                    onClick={() => onSelectViaje(viaje)}
-                    className={`border-b border-white/[0.04] hover:bg-white/[0.025] transition-colors ${cerrado ? 'opacity-60' : ''} cursor-pointer`}
-                    style={{
-                      animation: `fadeInUp 0.45s cubic-bezier(0.23,1,0.32,1) backwards`,
-                      animationDelay: `${250 + delay}ms`,
-                    }}
-                  >
-                    <TableCell className="font-medium text-white max-w-[120px] sm:max-w-[200px] py-3.5">
-                      <span className="truncate block text-sm">{viaje.nombre}</span>
-                      {cerrado && (
-                        <span className="text-[10px] font-semibold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded mt-0.5 mr-1 inline-flex items-center gap-1">
-                          <Lock className="h-2.5 w-2.5" /> Cerrado
-                        </span>
-                      )}
-                      {divisa !== 'USD' && (
-                        <span className="text-[10px] font-semibold text-gray-500 bg-white/5 px-1.5 py-0.5 rounded mt-0.5 inline-block">
-                          {divisa}
-                        </span>
-                      )}
-                    </TableCell>
-
-                    <TableCell className="hidden sm:table-cell py-3.5">
-                      <Badge
-                        className={`gap-1.5 font-semibold text-xs border ${
-                          viaje.tipo === 'resort'
-                            ? 'bg-teal-900/40 text-teal-400 border-teal-600/30'
-                            : 'bg-cyan-900/40 text-cyan-400 border-cyan-600/30'
-                        }`}
-                      >
-                        {viaje.tipo === 'resort'
-                          ? <Building2 className="h-3 w-3" />
-                          : <Bus className="h-3 w-3" />}
-                        {viaje.tipo === 'resort' ? 'Resort' : 'Tour'}
-                      </Badge>
-                    </TableCell>
-
-                    <TableCell className="text-center text-gray-500 text-sm hidden md:table-cell py-3.5">
-                      {viaje.total_habitaciones || 0}
-                    </TableCell>
-                    <TableCell className="text-center text-gray-500 text-sm hidden md:table-cell py-3.5">
-                      {viaje.total_personas || 0}
-                    </TableCell>
-
-                    <TableCell className="text-right font-semibold text-gray-200 text-sm py-3.5">
-                      {formatCurrency(total, divisa)}
-                    </TableCell>
-                    <TableCell className="text-right font-semibold text-emerald-400 text-sm hidden sm:table-cell py-3.5">
-                      {formatCurrency(pagado, divisa)}
-                    </TableCell>
-                    <TableCell className="text-right font-semibold text-rose-400 text-sm py-3.5">
-                      {formatCurrency(pendiente, divisa)}
-                    </TableCell>
-
-                    <TableCell className="text-right font-semibold text-sm hidden lg:table-cell py-3.5">
-                      {viaje.ganancia_tipo && viaje.ganancia_tipo !== 'ninguna' ? (
-                        <span className="text-emerald-300" title={viaje.ganancia_tipo === 'porcentaje'
-                          ? `${viaje.ganancia_valor}% del total`
-                          : `${formatCurrency(viaje.ganancia_valor, divisa)} × ${viaje.personas_pagan || 0} pax`}>
-                          {formatCurrency(ganancia, divisa)}
-                        </span>
-                      ) : (
-                        <span className="text-gray-600">—</span>
-                      )}
-                    </TableCell>
-
-                    <TableCell className="text-center hidden sm:table-cell py-3.5">
-                      <div className="flex items-center gap-2 justify-center">
-                        <Progress value={parseFloat(porcentaje)} className="w-16 h-1.5" />
-                        <span className="text-xs text-gray-500 w-10 tabular-nums">{porcentaje}%</span>
-                      </div>
-                    </TableCell>
-
-                    <TableCell className="text-center py-3.5">
-                      <div className="flex items-center justify-center gap-1">
-                        {(puede('editar') || puede('crear_viajes')) && (
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setViajeEditando(viaje); }}
-                          className="text-gray-600 hover:text-gray-200 hover:bg-white/[0.06] p-1.5 rounded-lg transition-all duration-150"
-                          title="Editar viaje"
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </button>
-                        )}
-                        <button
-                          onClick={(e) => { e.stopPropagation(); onSelectViaje(viaje); }}
-                          className="text-teal-400 hover:text-teal-300 hover:bg-teal-500/10 px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all duration-150 border border-transparent hover:border-teal-500/20"
-                          title="Ver viaje"
-                        >
-                          <Eye className="h-3.5 w-3.5" />
-                          <span className="hidden sm:inline">Ver</span>
-                        </button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </div>
+    <div className="tarjeta overflow-hidden animate-fade-in-up" style={{ animationDelay: '350ms' }}>
+      <div className="px-5 sm:px-6 pt-5 pb-4">
+        <h3 className="text-[15px] font-semibold text-slate-900">Detalle por viaje</h3>
+        <p className="text-xs text-slate-500 mt-0.5">{viajes.length} viaje{viajes.length !== 1 ? 's' : ''} registrado{viajes.length !== 1 ? 's' : ''}</p>
       </div>
 
-      <ModalEditarViaje
-        viaje={viajeEditando}
-        open={!!viajeEditando}
-        onClose={() => setViajeEditando(null)}
-      />
-    </>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm min-w-[680px]">
+          <thead>
+            <tr className="bg-slate-50 border-y border-slate-100 text-left">
+              <Encabezado campo="nombre" className="pl-5 sm:pl-6" {...props}>Viaje</Encabezado>
+              <th className="px-4 h-11 font-normal"><span className="tabla-th">Tipo</span></th>
+              <Encabezado campo="total" className="text-right" {...props}>Total</Encabezado>
+              <Encabezado campo="pagado" className="text-right" {...props}>Pagado</Encabezado>
+              <Encabezado campo="pendiente" className="text-right" {...props}>Pendiente</Encabezado>
+              <Encabezado campo="progreso" {...props}>Progreso</Encabezado>
+              <th className="px-4 pr-5 sm:pr-6 h-11 font-normal text-right"><span className="tabla-th">Acción</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            {ordenados.map((v) => {
+              const divisa = v.divisa || 'USD';
+              const pct = v.pct || 0;
+              return (
+                <tr key={v.id} onClick={() => onSelectViaje(v)}
+                  className="border-b border-slate-100 last:border-b-0 hover:bg-slate-50/70 cursor-pointer transition-colors">
+                  <td className="pl-5 sm:pl-6 px-4 py-3.5">
+                    <p className="font-semibold text-slate-900">{v.nombre}</p>
+                    <p className="text-xs text-slate-500">{divisa}</p>
+                  </td>
+                  <td className="px-4 py-3.5">
+                    <span className={`etiqueta-tipo ${v.tipo === 'tour' ? 'etiqueta-tour' : 'etiqueta-resort'}`}>
+                      {v.tipo === 'tour' ? 'Tour' : 'Resort'}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3.5 text-right tabular-nums text-slate-900">{formatCurrency(v.total_por_cobrar, divisa)}</td>
+                  <td className="px-4 py-3.5 text-right tabular-nums font-semibold text-emerald-700">{formatCurrency(v.total_pagado, divisa)}</td>
+                  <td className="px-4 py-3.5 text-right tabular-nums font-semibold text-red-700">{formatCurrency(v.pendiente, divisa)}</td>
+                  <td className="px-4 py-3.5">
+                    <div className="flex items-center gap-3">
+                      <div className="barra w-20"><span className="bg-emerald-600" style={{ width: `${Math.min(100, pct)}%` }} /></div>
+                      <span className="text-xs text-slate-600 tabular-nums w-12">{pct.toFixed(1)}%</span>
+                    </div>
+                  </td>
+                  <td className="px-4 pr-5 sm:pr-6 py-3.5 text-right">
+                    <button type="button" onClick={(e) => { e.stopPropagation(); onSelectViaje(v); }}
+                      className="btn btn-borde btn-sm">
+                      Ver <ChevronRight className="h-3.5 w-3.5" />
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 };

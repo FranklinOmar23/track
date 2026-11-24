@@ -1,11 +1,11 @@
 import { asyncRouter } from '../utils/asyncRouter.js';
 import pool from '../db.js';
-import { ajustarTipoPorAdultos } from '../utils/habitacion.js';
+import { ajustarTipoPorAdultos, reordenarPosiciones } from '../utils/habitacion.js';
 import { personaEditable, MENSAJE_VIAJE_CERRADO } from '../utils/viajeCerrado.js';
 import { tienePermiso, puedeVerViaje, MENSAJES } from '../utils/permisos.js';
 import { registrarLog } from '../utils/log.js';
 import { normalizarPago } from '../utils/pago.js';
-import { contextoPersona, fotoPago, fotoPersona, fmtMonto } from '../utils/auditoria.js';
+import { contextoPersona, contextoHabitacion, fotoPago, fotoPersona, fmtMonto } from '../utils/auditoria.js';
 
 const router = asyncRouter();
 
@@ -48,6 +48,46 @@ router.patch('/:id/stack', personaEditable('editar'), async (req, res) => {
     `${req.usuario} ${esStack ? 'marcó como stack (no paga)' : 'quitó el stack de'} ${ctx.texto}`,
     { op: 'persona.stack', personaId, antes: Number(antes.persona.es_stack), despues: esStack });
   res.json({ id: personaId, esStack: !!esStack });
+});
+
+/** Hace titular a la persona: pasa a la primera posición y el resto conserva su orden. */
+router.patch('/:id/titular', personaEditable('editar'), async (req, res) => {
+  const personaId = Number(req.params.id);
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    const [personaRows] = await connection.query('SELECT habitacion_id, nombre FROM personas WHERE id = ?', [personaId]);
+    if (!personaRows.length) {
+      await connection.rollback();
+      return res.status(404).json({ error: 'Persona no encontrada.' });
+    }
+    const habitacionId = personaRows[0].habitacion_id;
+    const [todas] = await connection.query(
+      'SELECT id, nombre, posicion FROM personas WHERE habitacion_id = ? ORDER BY posicion, id FOR UPDATE', [habitacionId]);
+
+    if (todas[0]?.id === personaId) {
+      await connection.rollback();
+      return res.json({ ok: true, sinCambios: true });
+    }
+
+    const antes = todas.map((p) => ({ id: p.id, posicion: p.posicion }));
+    const orden = [todas.find((p) => p.id === personaId), ...todas.filter((p) => p.id !== personaId)];
+    const despues = orden.map((p, i) => ({ id: p.id, posicion: i + 1 }));
+    await reordenarPosiciones(connection, habitacionId, despues);
+    await connection.commit();
+
+    const textoHab = await contextoHabitacion(pool, habitacionId);
+    registrarLog(req.usuario, 'editar', 'persona', personaId,
+      `${req.usuario} cambió el titular de la ${textoHab}: ${todas[0].nombre} → ${personaRows[0].nombre}`,
+      { op: 'persona.titular', habitacionId, antes, despues });
+    res.json({ ok: true });
+  } catch (error) {
+    await connection.rollback();
+    console.error('Error cambiando el titular:', error);
+    res.status(500).json({ error: 'No se pudo cambiar el titular. Intenta de nuevo.' });
+  } finally {
+    connection.release();
+  }
 });
 
 router.put('/:id', personaEditable('editar'), async (req, res) => {

@@ -2,7 +2,7 @@ import React from 'react';
 export const Progress = React.forwardRef(({ className, value, ...props }, ref) => (
   <div
     ref={ref}
-    className={`relative h-2 w-full overflow-hidden rounded-full bg-white/10 ${className || ''}`}
+    className={`relative h-2 w-full overflow-hidden rounded-full bg-slate-100 ${className || ''}`}
     {...props}
   >
     <div

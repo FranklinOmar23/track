@@ -1,106 +1,124 @@
-import { CalendarClock, PlaneTakeoff, CircleCheckBig, AlertTriangle } from 'lucide-react';
+import { useState } from 'react';
+import { ChevronRight, AlertTriangle, CircleCheckBig } from 'lucide-react';
 import { formatCurrency } from '../../utils/formatters';
-
-const UN_DIA = 24 * 60 * 60 * 1000;
-const hoy = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; };
-const aFecha = (s) => (s ? new Date(`${String(s).slice(0, 10)}T00:00:00`) : null);
-const fechaCorta = (d) => d.toLocaleDateString('es-DO', { day: 'numeric', month: 'short' });
+import {
+  situacionViaje, textoCuenta, rangoDias, fechaMedia, mesCorto, colorAvanceViaje,
+} from '../../utils/viajeFechas';
+import { useAuthContext } from '../../Context/AuthContext';
+import ModalEditarViaje from '../Modals/ModalEditarViaje';
+import { EncabezadoTarjeta } from './ChartSection';
 
 /** Clasifica cada viaje activo con fechas: en curso, próximo o terminado sin cerrar. */
 const clasificar = (viajes) => {
-  const h = hoy();
   const resultado = { enCurso: [], proximos: [], terminados: [] };
   viajes.forEach((v) => {
-    const inicio = aFecha(v.fechaInicio);
-    const fin = aFecha(v.fechaFin) || inicio;
-    if (!inicio) return;
-    if (fin < h) resultado.terminados.push({ ...v, inicio, fin, dias: Math.round((h - fin) / UN_DIA) });
-    else if (inicio <= h) resultado.enCurso.push({ ...v, inicio, fin, dias: Math.round((fin - h) / UN_DIA) });
-    else resultado.proximos.push({ ...v, inicio, fin, dias: Math.round((inicio - h) / UN_DIA) });
+    const s = situacionViaje(v);
+    if (s.situacion === 'terminado') resultado.terminados.push({ ...v, ...s });
+    else if (s.situacion === 'en_curso') resultado.enCurso.push({ ...v, ...s });
+    else if (s.situacion === 'proximo') resultado.proximos.push({ ...v, ...s });
   });
   resultado.proximos.sort((a, b) => a.dias - b.dias);
+  resultado.terminados.sort((a, b) => b.dias - a.dias);
   return resultado;
 };
 
-const Fila = ({ v, etiqueta, colorEtiqueta, divisa, onSelectViaje, indice }) => {
-  const pct = v.total_por_cobrar > 0 ? Math.round((v.total_pagado / v.total_por_cobrar) * 100) : 0;
+const FilaProximo = ({ v, divisa, onSelectViaje }) => {
+  const pct = Math.round(v.pct);
   return (
     <button type="button" onClick={() => onSelectViaje(v)}
-      className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left hover:bg-white/[0.03] transition-colors animate-fade-in-up"
-      style={{ animationDelay: `${400 + indice * 50}ms` }}>
-      <span className="shrink-0 w-16 text-center">
-        <span className="block text-[11px] font-bold leading-tight" style={{ color: colorEtiqueta }}>{etiqueta}</span>
-        <span className="block text-[10px] text-gray-600">{fechaCorta(v.inicio)}</span>
+      className="w-full flex items-center gap-4 py-3.5 px-2 text-left border-t border-slate-100 first:border-t-0 hover:bg-slate-50/70 rounded-lg transition-colors">
+      <span className={`shrink-0 w-12 h-12 rounded-lg flex flex-col items-center justify-center ${v.situacion === 'en_curso' ? 'bg-emerald-50' : 'bg-slate-100'}`}>
+        <span className="text-base font-bold text-slate-900 leading-none">{v.inicio.getDate()}</span>
+        <span className="text-[10px] font-semibold text-slate-500 mt-0.5">{mesCorto(v.inicio)}</span>
       </span>
       <span className="flex-1 min-w-0">
-        <span className="block text-sm font-medium text-gray-200 truncate">{v.nombre}</span>
-        <span className="block h-1 mt-1.5 rounded-full bg-white/[0.06] overflow-hidden">
-          <span className="block h-full rounded-full bg-emerald-500" style={{ width: `${pct}%` }} />
+        <span className="block text-sm font-semibold text-slate-900 truncate">{v.nombre}</span>
+        <span className={`block text-xs mt-0.5 ${v.situacion === 'en_curso' ? 'text-emerald-700 font-medium' : 'text-slate-500'}`}>
+          {textoCuenta(v)} · {rangoDias(v)}
         </span>
       </span>
-      <span className="shrink-0 text-right">
-        <span className="block text-xs font-semibold text-gray-300 tabular-nums">{pct}%</span>
-        {v.pendiente > 0 && (
-          <span className="block text-[10px] text-rose-400/80 tabular-nums">faltan {formatCurrency(v.pendiente, divisa)}</span>
-        )}
+      <span className="shrink-0 w-28 sm:w-48">
+        <span className="flex items-baseline justify-between gap-2 text-xs">
+          <span className="text-slate-500 truncate hidden sm:inline tabular-nums">
+            {v.pendiente > 0 ? `Faltan ${formatCurrency(v.pendiente, v.divisa || divisa)}` : 'Todo cobrado'}
+          </span>
+          <span className="font-semibold text-slate-900 tabular-nums ml-auto">{pct}%</span>
+        </span>
+        <span className="barra block mt-1.5">
+          <span style={{ width: `${Math.min(100, pct)}%`, background: colorAvanceViaje(pct) }} />
+        </span>
       </span>
+      <ChevronRight className="h-4 w-4 text-slate-400 shrink-0" />
     </button>
   );
 };
 
-/** Calendario de viajes: en curso, próximos (cuenta regresiva) y terminados que siguen abiertos. */
+/** Próximos viajes (cuenta regresiva) y terminados que siguen abiertos. */
 export const FechasViajes = ({ viajes, divisa, onSelectViaje }) => {
+  const { puede } = useAuthContext();
+  const [editando, setEditando] = useState(null);
   const { enCurso, proximos, terminados } = clasificar(viajes);
   if (!enCurso.length && !proximos.length && !terminados.length) return null;
+  const lista = [...enCurso, ...proximos].slice(0, 6);
+  const puedeEditar = puede('editar') || puede('crear_viajes');
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      <div className="rounded-2xl p-5 sm:p-6 border border-white/[0.07] animate-fade-in-up"
-        style={{ background: 'linear-gradient(135deg, #1a1f2e 0%, #1c2233 100%)', animationDelay: '380ms' }}>
-        <div className="flex items-center gap-2.5 mb-4">
-          <div className="p-2 rounded-lg bg-sky-500/12"><CalendarClock className="h-4 w-4 text-sky-400" /></div>
-          <div>
-            <h3 className="font-semibold text-white text-sm">Próximos viajes</h3>
-            <p className="text-xs text-gray-500 mt-0.5">Cuánto falta para salir y cuánto se ha cobrado</p>
-          </div>
-        </div>
-        <div className="space-y-0.5">
-          {enCurso.map((v, i) => (
-            <Fila key={v.id} v={v} indice={i} divisa={divisa} onSelectViaje={onSelectViaje}
-              etiqueta={<span className="inline-flex items-center gap-1"><PlaneTakeoff className="h-3 w-3" />En curso</span>} colorEtiqueta="#34d399" />
-          ))}
-          {proximos.slice(0, 6).map((v, i) => (
-            <Fila key={v.id} v={v} indice={enCurso.length + i} divisa={divisa} onSelectViaje={onSelectViaje}
-              etiqueta={v.dias === 0 ? 'Hoy' : v.dias === 1 ? 'Mañana' : `En ${v.dias} días`}
-              colorEtiqueta={v.dias <= 7 ? '#fbbf24' : '#7dd3fc'} />
-          ))}
-          {!enCurso.length && !proximos.length && (
-            <p className="text-sm text-gray-600 text-center py-8">No hay viajes próximos con fecha</p>
-          )}
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="tarjeta p-5 sm:p-6 lg:col-span-2 animate-fade-in-up" style={{ animationDelay: '250ms' }}>
+        <EncabezadoTarjeta titulo="Próximos viajes" subtitulo="Cuánto falta para salir y cuánto se ha cobrado" />
+        <div className="mt-3 -mx-2">
+          {lista.map((v) => <FilaProximo key={v.id} v={v} divisa={divisa} onSelectViaje={onSelectViaje} />)}
+          {!lista.length && <p className="text-sm text-slate-400 text-center py-8">No hay viajes próximos con fecha</p>}
         </div>
       </div>
 
-      <div className="rounded-2xl p-5 sm:p-6 border border-white/[0.07] animate-fade-in-up"
-        style={{ background: 'linear-gradient(135deg, #1a1f2e 0%, #1c2233 100%)', animationDelay: '420ms' }}>
-        <div className="flex items-center gap-2.5 mb-4">
-          <div className="p-2 rounded-lg bg-amber-500/12"><AlertTriangle className="h-4 w-4 text-amber-400" /></div>
+      <div className="rounded-[0.875rem] p-5 sm:p-6 animate-fade-in-up border"
+        style={{ background: '#fdf8e6', borderColor: '#f3e3a8', animationDelay: '300ms' }}>
+        <div className="flex items-start gap-3">
+          <span className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: '#fbe7b0' }}>
+            <AlertTriangle className="h-4 w-4 text-amber-700" />
+          </span>
           <div>
-            <h3 className="font-semibold text-white text-sm">Terminados sin cerrar</h3>
-            <p className="text-xs text-gray-500 mt-0.5">Ya pasó la fecha: ciérralos desde "Editar viaje" para moverlos al historial</p>
+            <h3 className="text-[15px] font-semibold text-amber-900">Terminados sin cerrar</h3>
+            <p className="text-xs text-amber-800/80 mt-0.5">
+              Ya pasó la fecha. Ciérralos desde “Editar viaje” para moverlos al historial.
+            </p>
           </div>
         </div>
-        <div className="space-y-0.5">
-          {terminados.map((v, i) => (
-            <Fila key={v.id} v={v} indice={i} divisa={divisa} onSelectViaje={onSelectViaje}
-              etiqueta={v.dias === 0 ? 'Terminó hoy' : `Hace ${v.dias} d`} colorEtiqueta="#f59e0b" />
+
+        <div className="mt-4 space-y-3">
+          {terminados.map((v) => (
+            <div key={v.id} className="bg-white rounded-xl border p-3.5" style={{ borderColor: '#f3e3a8' }}>
+              <div className="flex items-start justify-between gap-2">
+                <button type="button" onClick={() => onSelectViaje(v)}
+                  className="text-sm font-semibold text-slate-900 text-left hover:underline">
+                  {v.nombre}
+                </button>
+                <span className="etiqueta-tipo etiqueta-ambar shrink-0">
+                  {v.dias === 0 ? 'Hoy' : `Hace ${v.dias} día${v.dias !== 1 ? 's' : ''}`}
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 mt-1">{fechaMedia(v.fin)} · Cobrado {Math.round(v.pct)}%</p>
+              {puedeEditar ? (
+                <button type="button" onClick={() => setEditando(v)} className="btn btn-borde w-full mt-3">
+                  Editar viaje
+                </button>
+              ) : (
+                <button type="button" onClick={() => onSelectViaje(v)} className="btn btn-borde w-full mt-3">
+                  Ver viaje
+                </button>
+              )}
+            </div>
           ))}
           {!terminados.length && (
-            <p className="flex items-center justify-center gap-2 text-sm text-gray-600 py-8">
-              <CircleCheckBig className="h-4 w-4 text-emerald-500/60" /> Todo al día
+            <p className="flex items-center justify-center gap-2 text-sm text-amber-900/70 py-6">
+              <CircleCheckBig className="h-4 w-4 text-emerald-600" /> Todo al día
             </p>
           )}
         </div>
       </div>
+
+      <ModalEditarViaje viaje={editando} open={!!editando} onClose={() => setEditando(null)} />
     </div>
   );
 };

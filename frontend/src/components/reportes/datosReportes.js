@@ -3,20 +3,20 @@ import { calcularTotalPagado, calcularPorcentaje, calcularRankingPersonas } from
 
 // Estilos compartidos de gráficas
 export const DARK_TOOLTIP = {
-  backgroundColor: '#1a1f2e',
-  border: '1px solid rgba(255,255,255,0.1)',
+  backgroundColor: '#ffffff',
+  border: '1px solid rgba(15,23,42,0.1)',
   borderRadius: '10px',
-  color: '#e2e8f0',
+  color: '#334155',
   fontSize: '12px',
-  boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+  boxShadow: '0 10px 28px -10px rgba(15,23,42,0.25)',
 };
 
 export const heatColor = (pct) => {
-  if (pct === 0) return { bg: 'rgba(255,255,255,0.03)', text: '#374151' };
-  if (pct < 30)  return { bg: 'rgba(13,148,136,0.15)',  text: '#5eead4' };
-  if (pct < 50)  return { bg: 'rgba(13,148,136,0.3)',   text: '#2dd4bf' };
-  if (pct < 70)  return { bg: 'rgba(13,148,136,0.5)',   text: '#99f6e4' };
-  if (pct < 85)  return { bg: 'rgba(13,148,136,0.7)',   text: '#ccfbf1' };
+  if (pct === 0) return { bg: 'rgba(15,23,42,0.03)', text: '#374151' };
+  if (pct < 30)  return { bg: 'rgba(13,148,136,0.15)',  text: '#0f766e' };
+  if (pct < 50)  return { bg: 'rgba(13,148,136,0.3)',   text: '#0f766e' };
+  if (pct < 70)  return { bg: 'rgba(13,148,136,0.5)',   text: '#134e4a' };
+  if (pct < 85)  return { bg: 'rgba(13,148,136,0.7)',   text: '#ffffff' };
   return           { bg: 'rgba(16,185,129,0.85)',        text: '#fff' };
 };
 

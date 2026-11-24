@@ -4,10 +4,13 @@ import { X, Save, Trash2, Lock, LockOpen } from 'lucide-react';
 import GananciaFields from './GananciaFields';
 import { useAuthContext } from '../../Context/AuthContext';
 import PoliticaNinosFields from './PoliticaNinosFields';
+import TipoViajeSelector from './TipoViajeSelector';
+import Portal from '../common/Portal';
 import { DIVISAS } from '../../utils/viajeOpciones';
+import { avisarError } from '../../utils/avisos';
 
 
-const ModalEditarViaje = ({ viaje, open, onClose }) => {
+const ModalEditarViaje = ({ viaje, open, onClose, onEliminado }) => {
   const { editarViaje, eliminarViaje, cambiarEstadoViaje } = useHabitacionesContext();
   const { puede } = useAuthContext();
   const [nombre, setNombre]                       = useState('');
@@ -54,7 +57,7 @@ const ModalEditarViaje = ({ viaje, open, onClose }) => {
       });
       onClose();
     } catch {
-      alert('Error al guardar el viaje');
+      avisarError('Error al guardar el viaje');
     } finally {
       setLoading(false);
     }
@@ -70,7 +73,7 @@ const ModalEditarViaje = ({ viaje, open, onClose }) => {
       await cambiarEstadoViaje(viaje.id, cerrado ? 'activo' : 'cerrado');
       onClose();
     } catch {
-      alert(`Error al ${accion} el viaje`);
+      avisarError(`Error al ${accion} el viaje`);
     } finally {
       setLoading(false);
     }
@@ -82,28 +85,30 @@ const ModalEditarViaje = ({ viaje, open, onClose }) => {
     try {
       await eliminarViaje(viaje.id);
       onClose();
+      onEliminado?.();
     } catch {
-      alert('Error al eliminar el viaje');
+      avisarError('Error al eliminar el viaje');
     } finally {
       setLoading(false);
     }
   };
 
   return (
+    <Portal>
     <div className="modal-overlay-dark" onClick={onClose}>
-      <div className="modal-card-dark w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+      <div className="modal-card-dark w-full max-w-[560px]" onClick={(e) => e.stopPropagation()}>
         {/* Purple orb */}
         <div className="orb w-44 h-44 pointer-events-none" style={{ top: '-50px', right: '-50px', background: '#8b5cf6', opacity: 0.09 }} />
 
         <div className="overflow-y-auto" style={{ maxHeight: '90vh' }}>
 
         {/* Header */}
-        <div className="relative flex items-center justify-between px-6 pt-6 pb-5" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-          <div>
-            <h2 className="text-lg font-bold text-white">Editar viaje</h2>
-            <p className="text-xs text-gray-600 mt-0.5 truncate max-w-[220px]">{viaje.nombre}</p>
+        <div className="relative flex items-start justify-between px-6 pt-6 pb-5 border-b border-slate-100">
+          <div className="min-w-0">
+            <h2 className="text-xl font-bold text-slate-900">Editar viaje</h2>
+            <p className="text-sm text-slate-500 mt-0.5 truncate">{viaje.nombre}</p>
           </div>
-          <button type="button" onClick={onClose} className="p-1.5 rounded-lg text-gray-500 hover:text-gray-200 hover:bg-white/[0.06] transition-colors">
+          <button type="button" onClick={onClose} className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -116,13 +121,7 @@ const ModalEditarViaje = ({ viaje, open, onClose }) => {
               onChange={(e) => setNombre(e.target.value)} disabled={loading} />
           </div>
 
-          <div>
-            <label className="modal-section-label">Tipo</label>
-            <select className="input-dark" value={tipo} onChange={(e) => setTipo(e.target.value)} disabled={loading}>
-              <option value="resort">🏨 Resort</option>
-              <option value="tour">🚐 Tour</option>
-            </select>
-          </div>
+          <TipoViajeSelector valor={tipo} onChange={setTipo} disabled={loading} />
 
           <div>
             <label className="modal-section-label">Divisa</label>
@@ -133,12 +132,12 @@ const ModalEditarViaje = ({ viaje, open, onClose }) => {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="modal-section-label">Fecha inicio</label>
+              <label className="modal-section-label">Fecha de inicio</label>
               <input className="input-dark" type="date" value={fechaInicio}
                 onChange={(e) => setFechaInicio(e.target.value)} disabled={loading} />
             </div>
             <div>
-              <label className="modal-section-label">Fecha fin</label>
+              <label className="modal-section-label">Fecha de fin</label>
               <input className="input-dark" type="date" value={fechaFin}
                 onChange={(e) => setFechaFin(e.target.value)} disabled={loading} />
             </div>
@@ -174,8 +173,8 @@ const ModalEditarViaje = ({ viaje, open, onClose }) => {
             <button type="button" onClick={handleCambiarEstado} disabled={loading}
               className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold transition-colors"
               style={cerrado
-                ? { background: 'rgba(13,148,136,0.1)', border: '1px solid rgba(13,148,136,0.3)', color: '#5eead4' }
-                : { background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)', color: '#fbbf24' }}>
+                ? { background: 'rgba(13,148,136,0.1)', border: '1px solid rgba(13,148,136,0.3)', color: '#0f766e' }
+                : { background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)', color: '#b45309' }}>
               {cerrado ? <LockOpen className="h-3.5 w-3.5" /> : <Lock className="h-3.5 w-3.5" />}
               {cerrado ? 'Reabrir viaje' : 'Cerrar viaje (ya terminó)'}
             </button>
@@ -185,7 +184,7 @@ const ModalEditarViaje = ({ viaje, open, onClose }) => {
                 className="p-3 rounded-xl mb-3"
                 style={{ background: 'rgba(244,63,94,0.08)', border: '1px solid rgba(244,63,94,0.2)' }}
               >
-                <p className="text-sm text-rose-300 font-semibold mb-2">¿Eliminar este viaje y todos sus datos?</p>
+                <p className="text-sm text-red-700 font-semibold mb-2">¿Eliminar este viaje y todos sus datos?</p>
                 <div className="flex gap-2">
                   <button className="btn-modal-danger flex-1" onClick={handleEliminar} disabled={loading}>
                     <Trash2 className="h-3.5 w-3.5" />
@@ -222,6 +221,7 @@ const ModalEditarViaje = ({ viaje, open, onClose }) => {
         </div>{/* fin scroll container */}
       </div>
     </div>
+    </Portal>
   );
 };
 

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogIn } from 'lucide-react';
 import { useAuthContext } from '../../Context/AuthContext';
+import { Marca } from '../layout/AppLayout';
 
 const LoginView = () => {
   const navigate = useNavigate();
@@ -26,64 +26,52 @@ const LoginView = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0f1117] bg-dot-grid px-4">
-      <div className="relative overflow-hidden rounded-2xl w-full max-w-sm p-8 animate-fade-in-scale"
-        style={{
-          background: 'linear-gradient(135deg, #1a1f2e 0%, #1e2538 100%)',
-          border: '1px solid rgba(255,255,255,0.07)',
-          boxShadow: '0 4px 24px rgba(0,0,0,0.3)',
-        }}
-      >
-        <div className="orb w-56 h-56" style={{ top: '-60px', left: '-40px', background: '#0d9488', opacity: 0.12 }} />
+    <div className="min-h-screen grid lg:grid-cols-2 bg-white">
+      {/* Panel de marca */}
+      <div className="hidden lg:flex flex-col justify-between p-14 xl:p-16" style={{ background: 'var(--lateral)' }}>
+        <Marca />
+        <div className="max-w-md">
+          <h1 className="text-[2.1rem] leading-tight font-bold text-white tracking-tight">
+            Todos tus viajes y cobros, en un solo lugar.
+          </h1>
+          <p className="mt-4 text-[15px] leading-relaxed text-slate-300">
+            Registra pagos por habitación, da seguimiento a lo pendiente y genera reportes para el hotel y el bus.
+          </p>
+        </div>
+        <p className="text-xs text-slate-500">{window.location.host}</p>
+      </div>
 
-        <div className="relative">
-          <h1 className="text-xl font-bold gradient-text text-center">ResortMamaTingo</h1>
-          <p className="text-gray-500 text-sm text-center mt-1 mb-6">Inicia sesión para continuar</p>
+      {/* Formulario */}
+      <div className="flex flex-col items-center justify-center px-6 py-12">
+        <div className="lg:hidden mb-10 self-center rounded-xl px-4 py-3" style={{ background: 'var(--lateral)' }}>
+          <Marca />
+        </div>
+        <form onSubmit={handleSubmit} className="w-full max-w-[368px] animate-fade-in-up">
+          <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Iniciar sesión</h2>
+          <p className="text-sm text-slate-500 mt-1">Ingresa con tu usuario para continuar.</p>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="mt-6 space-y-4">
             <div>
-              <label className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Usuario</label>
-              <input
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="input-dark w-full mt-1.5"
-                autoFocus
-                autoComplete="username"
-              />
+              <label htmlFor="login-usuario" className="modal-section-label !mb-1.5">Usuario</label>
+              <input id="login-usuario" type="text" value={username} onChange={(e) => setUsername(e.target.value)}
+                className="input-dark" placeholder="Tu usuario" autoFocus autoComplete="username" />
             </div>
-
             <div>
-              <label className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Contraseña</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="input-dark w-full mt-1.5"
-                autoComplete="current-password"
-              />
+              <label htmlFor="login-clave" className="modal-section-label !mb-1.5">Contraseña</label>
+              <input id="login-clave" type="password" value={password} onChange={(e) => setPassword(e.target.value)}
+                className="input-dark" placeholder="••••••••" autoComplete="current-password" />
             </div>
 
             {error && (
-              <p className="text-sm text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded-lg px-3 py-2">
-                {error}
-              </p>
+              <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2" role="alert">{error}</p>
             )}
 
-            <button
-              type="submit"
-              disabled={loading || !username || !password}
-              className="btn-press w-full text-white px-4 py-2.5 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 text-sm font-semibold disabled:opacity-50"
-              style={{
-                background: 'linear-gradient(135deg, #0d9488, #0891b2)',
-                boxShadow: '0 4px 20px -4px rgba(13,148,136,0.5)',
-              }}
-            >
-              <LogIn className="h-4 w-4" />
+            <button type="submit" disabled={loading || !username || !password}
+              className="btn btn-primario w-full h-11 text-sm">
               {loading ? 'Ingresando...' : 'Ingresar'}
             </button>
-          </form>
-        </div>
+          </div>
+        </form>
       </div>
     </div>
   );

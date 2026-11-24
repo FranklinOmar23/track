@@ -1,207 +1,188 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Plus, RotateCcw } from 'lucide-react';
 import { useHabitacionesContext } from '../../Context/HabitacionesContext';
 import { useAuthContext } from '../../Context/AuthContext';
+import { useStatsViajes } from '../../hooks/useStatsViajes';
+import { rutaViaje } from '../../utils/rutas';
+import { situacionViaje, rangoLargo } from '../../utils/viajeFechas';
 import ModalAgregarViaje from '../Modals/ModalAgregarViaje';
-import MenuUsuario from '../common/MenuUsuario';
 import { DashboardFull } from '../Dashboard/DashboardFull';
 import { ViajeCard } from './ViajeCard';
-import { Plus, BarChart2, History, Archive, LockOpen } from 'lucide-react';
+import { avisarError } from '../../utils/avisos';
 
-const HomeViajes = ({ onSelectViaje }) => {
-  const navigate = useNavigate();
-  const { state, crearViaje, seleccionarViaje, cambiarEstadoViaje } = useHabitacionesContext();
+/** Orden de "Mis viajes": primero los que hay que cerrar, luego en curso, próximos por fecha y sin fecha al final. */
+const PESO = { terminado: 0, en_curso: 1, proximo: 2 };
+const ordenarActivos = (viajes) => [...viajes].sort((a, b) => {
+  const sa = situacionViaje(a);
+  const sb = situacionViaje(b);
+  const pa = PESO[sa.situacion] ?? 3;
+  const pb = PESO[sb.situacion] ?? 3;
+  if (pa !== pb) return pa - pb;
+  return (sa.inicio?.getTime() ?? Infinity) - (sb.inicio?.getTime() ?? Infinity);
+});
+
+const resumenTipos = (viajes) => {
+  const tours = viajes.filter((v) => v.tipo === 'tour').length;
+  const resorts = viajes.length - tours;
+  return `${resorts} resort${resorts !== 1 ? 's' : ''} · ${tours} tour${tours !== 1 ? 's' : ''}`;
+};
+
+/** Mis viajes: tarjetas de los viajes activos. */
+const MisViajes = ({ onSelectViaje }) => {
+  const { state, crearViaje } = useHabitacionesContext();
   const { puede } = useAuthContext();
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [activeView, setActiveView] = useState('dashboard');
-  const viajesActivos  = state.viajes.filter((v) => v.estado !== 'cerrado');
-  const viajesCerrados = state.viajes.filter((v) => v.estado === 'cerrado');
+  const navigate = useNavigate();
+  const { viajes, loading } = useStatsViajes();
+  const [nuevo, setNuevo] = useState(false);
+  const activos = ordenarActivos(viajes.filter((v) => v.estado !== 'cerrado'));
+
+  const alCrear = async (datos) => {
+    const creado = await crearViaje(datos);
+    if (creado?.id) navigate(rutaViaje(creado));
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div>
+          <h1 className="titulo-pagina">Mis viajes</h1>
+          <p className="subtitulo-pagina">
+            {activos.length} viaje{activos.length !== 1 ? 's' : ''} activo{activos.length !== 1 ? 's' : ''} · {resumenTipos(activos)}
+          </p>
+        </div>
+        {puede('crear_viajes') && (
+          <button type="button" onClick={() => setNuevo(true)} className="btn btn-primario h-10 px-4 self-start sm:self-auto">
+            <Plus className="h-4 w-4" /> Nuevo viaje
+          </button>
+        )}
+      </div>
+
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {[0, 1, 2].map((i) => <div key={i} className="tarjeta h-52 animate-pulse" />)}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {activos.map((viaje, i) => (
+            <ViajeCard key={viaje.id} viaje={viaje} onSelect={onSelectViaje} index={i} />
+          ))}
+          {activos.length === 0 && (
+            <div className="col-span-full tarjeta p-12 text-center">
+              <p className="text-slate-900 font-semibold">
+                {state.viajes.length ? 'No hay viajes activos.' : 'No hay viajes registrados aún.'}
+              </p>
+              <p className="text-sm text-slate-500 mt-1">
+                {state.viajes.length ? 'Los viajes cerrados están en Historial.' : 'Crea tu primer viaje para comenzar.'}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      <ModalAgregarViaje open={nuevo} onClose={() => setNuevo(false)} onCreate={alCrear} />
+    </div>
+  );
+};
+
+/** Historial: tabla de viajes cerrados (consultar o reabrir). */
+const Historial = ({ onSelectViaje }) => {
+  const { state, cambiarEstadoViaje } = useHabitacionesContext();
+  const { puede } = useAuthContext();
+  const cerrados = state.viajes.filter((v) => v.estado === 'cerrado');
 
   const handleReabrir = async (viaje) => {
     if (!window.confirm(`¿Reabrir "${viaje.nombre}"? Volverá a la lista de viajes activos y se podrá editar.`)) return;
     try {
       await cambiarEstadoViaje(viaje.id, 'activo');
     } catch (error) {
-      alert(`No se pudo reabrir el viaje: ${error.message}`);
+      avisarError(`No se pudo reabrir el viaje: ${error.message}`);
     }
   };
 
-  const handleSelectViaje = async (viaje) => {
-    await seleccionarViaje(viaje.id);
-    onSelectViaje(viaje);
-  };
-
-  const handleCrearViaje = async (datos) => {
-    await crearViaje(datos);
-  };
-
   return (
-    <div className="min-h-screen bg-[#0f1117] bg-dot-grid">
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
+    <div className="space-y-6">
+      <div>
+        <h1 className="titulo-pagina">Historial de viajes</h1>
+        <p className="subtitulo-pagina">Viajes cerrados. Puedes consultarlos, pero no editarlos. Usa “Reabrir” si necesitas hacer cambios.</p>
+      </div>
 
-        {/* ── Animated Hero Header ── */}
-        <div
-          className="relative overflow-hidden rounded-2xl mb-8 p-6 sm:p-8 animate-fade-in-scale"
-          style={{
-            background: 'linear-gradient(135deg, #141820 0%, #0f1117 100%)',
-            border: '1px solid rgba(255,255,255,0.06)',
-          }}
-        >
-          {/* Floating orbs */}
-          <div className="orb w-72 h-72" style={{ top: '-80px', left: '-60px', background: '#0d9488', opacity: 0.14 }} />
-          <div className="orb orb-reverse w-56 h-56" style={{ bottom: '-60px', right: '-40px', background: '#06b6d4', opacity: 0.10 }} />
-          <div className="orb w-40 h-40" style={{ top: '20px', right: '35%', background: '#8b5cf6', opacity: 0.07, animationDelay: '3s' }} />
-
-          <div className="relative flex flex-col gap-5 sm:flex-row sm:justify-between sm:items-center">
-            {/* Title block */}
-            <div className="animate-fade-in-up stagger-0">
-              <div className="flex items-center gap-3 flex-wrap">
-                <h1 className="text-3xl sm:text-4xl font-bold gradient-text tracking-tight leading-tight">
-                  Mis Viajes
-                </h1>
-                <MenuUsuario />
-              </div>
-              <p className="text-gray-500 mt-2 text-sm">
-                Gestiona y monitorea todos tus viajes y pagos en tiempo real
-              </p>
-            </div>
-
-            {/* Nav buttons */}
-            <div className="flex gap-2 flex-wrap animate-fade-in-up stagger-1">
-              <button
-                onClick={() => setActiveView('dashboard')}
-                className={`btn-press flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${
-                  activeView === 'dashboard'
-                    ? 'bg-teal-500 text-white shadow-lg'
-                    : 'bg-white/5 text-gray-400 hover:bg-white/10 border border-white/[0.07] hover:border-white/15'
-                }`}
-                style={activeView === 'dashboard' ? { boxShadow: '0 4px 16px -4px rgba(13,148,136,0.4)' } : undefined}
-              >
-                Dashboard
-              </button>
-
-              <button
-                onClick={() => setActiveView('viajes')}
-                className={`btn-press flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${
-                  activeView === 'viajes'
-                    ? 'bg-teal-500 text-white'
-                    : 'bg-white/5 text-gray-400 hover:bg-white/10 border border-white/[0.07] hover:border-white/15'
-                }`}
-                style={activeView === 'viajes' ? { boxShadow: '0 4px 16px -4px rgba(13,148,136,0.4)' } : undefined}
-              >
-                Mis Viajes
-              </button>
-
-              <button
-                onClick={() => setActiveView('historial')}
-                className={`btn-press flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 flex items-center gap-1.5 ${
-                  activeView === 'historial'
-                    ? 'bg-teal-500 text-white'
-                    : 'bg-white/5 text-gray-400 hover:bg-white/10 border border-white/[0.07] hover:border-white/15'
-                }`}
-                style={activeView === 'historial' ? { boxShadow: '0 4px 16px -4px rgba(13,148,136,0.4)' } : undefined}
-              >
-                <Archive className="h-4 w-4" />
-                Historial{viajesCerrados.length > 0 ? ` (${viajesCerrados.length})` : ''}
-              </button>
-
-              {puede('reportes') && (
-              <button
-                onClick={() => navigate('/reportes')}
-                className="btn-press flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-semibold bg-white/5 text-gray-400 hover:bg-white/10 border border-white/[0.07] hover:border-white/15 transition-all duration-200 flex items-center gap-1.5"
-              >
-                <BarChart2 className="h-4 w-4" />
-                Reportes
-              </button>
-              )}
-
-              {puede('actividad') && (
-              <button
-                onClick={() => navigate('/actividad')}
-                className="btn-press flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-semibold bg-white/5 text-gray-400 hover:bg-white/10 border border-white/[0.07] hover:border-white/15 transition-all duration-200 flex items-center gap-1.5"
-              >
-                <History className="h-4 w-4" />
-                Actividad
-              </button>
-              )}
-
-              {puede('crear_viajes') && (
-              <button
-                onClick={() => setIsModalOpen(true)}
-                className="btn-press w-full sm:w-auto text-white px-4 py-2 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 text-sm font-semibold"
-                style={{
-                  background: 'linear-gradient(135deg, #0d9488, #0891b2)',
-                  boxShadow: '0 4px 20px -4px rgba(13,148,136,0.5)',
-                }}
-              >
-                <Plus className="h-4 w-4" />
-                Nuevo viaje
-              </button>
-              )}
-            </div>
-          </div>
+      <div className="tarjeta overflow-hidden animate-fade-in-up">
+        <div className="flex items-center justify-between gap-3 px-5 sm:px-6 py-4">
+          <h2 className="text-[15px] font-semibold text-slate-900">
+            {cerrados.length} viaje{cerrados.length !== 1 ? 's' : ''} cerrado{cerrados.length !== 1 ? 's' : ''}
+          </h2>
+          <span className="text-xs text-slate-500">{resumenTipos(cerrados)}</span>
         </div>
 
-        {/* ── Main Content ── */}
-        {activeView === 'dashboard' ? (
-          <DashboardFull onSelectViaje={handleSelectViaje} />
-        ) : activeView === 'historial' ? (
-          <div>
-            <div className="mb-5">
-              <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-                <Archive className="h-5 w-5 text-gray-400" /> Historial de viajes
-              </h2>
-              <p className="text-sm text-gray-500 mt-1">
-                Viajes cerrados. Puedes consultarlos pero no editarlos.
-              </p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {viajesCerrados.map((viaje, i) => (
-                <div key={viaje.id} className="flex flex-col gap-2">
-                  <ViajeCard viaje={viaje} onSelect={handleSelectViaje} index={i} />
-                  {puede('crear_viajes') && (
-                  <button type="button" onClick={() => handleReabrir(viaje)}
-                    className="self-end flex items-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-teal-300 px-2 py-1 rounded-lg hover:bg-teal-500/10 transition-colors">
-                    <LockOpen className="h-3.5 w-3.5" /> Reabrir
-                  </button>
-                  )}
-                </div>
-              ))}
-              {viajesCerrados.length === 0 && (
-                <p className="col-span-full text-center py-16 text-gray-600 text-sm">
-                  Aún no hay viajes cerrados. Cierra un viaje desde "Editar viaje" en el dashboard cuando termine.
-                </p>
-              )}
-            </div>
-          </div>
+        {cerrados.length === 0 ? (
+          <p className="border-t border-slate-100 text-center py-14 px-6 text-sm text-slate-500">
+            Aún no hay viajes cerrados. Cierra un viaje desde “Editar viaje” cuando termine.
+          </p>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {viajesActivos.map((viaje, i) => (
-              <ViajeCard key={viaje.id} viaje={viaje} onSelect={handleSelectViaje} index={i} />
-            ))}
-            {state.viajes.length > 0 && viajesActivos.length === 0 && (
-              <p className="col-span-full text-center py-16 text-gray-600 text-sm">
-                No hay viajes activos. Los viajes cerrados están en Historial.
-              </p>
-            )}
-            {state.viajes.length === 0 && (
-              <div className="col-span-full text-center py-20 animate-fade-in">
-                <div className="text-5xl mb-4 animate-float inline-block">✈️</div>
-                <p className="text-gray-600 font-semibold mt-4">No hay viajes registrados aún.</p>
-                <p className="text-gray-700 text-sm mt-1">Crea tu primer viaje para comenzar.</p>
-              </div>
-            )}
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[640px]">
+              <thead>
+                <tr className="bg-slate-50 border-y border-slate-100 text-left">
+                  <th className="pl-5 sm:pl-6 px-4 h-11 font-normal"><span className="tabla-th">Viaje</span></th>
+                  <th className="px-4 h-11 font-normal"><span className="tabla-th">Fechas</span></th>
+                  <th className="px-4 h-11 font-normal"><span className="tabla-th">Tipo</span></th>
+                  <th className="px-4 h-11 font-normal"><span className="tabla-th">Estado</span></th>
+                  <th className="px-4 pr-5 sm:pr-6 h-11 font-normal text-right"><span className="tabla-th">Acciones</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                {cerrados.map((v) => {
+                  const tour = v.tipo === 'tour';
+                  return (
+                    <tr key={v.id} className="border-b border-slate-100 last:border-b-0 hover:bg-slate-50/60 transition-colors">
+                      <td className="pl-5 sm:pl-6 px-4 py-3">
+                        <span className="flex items-center gap-3">
+                          <span className={`h-8 w-8 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${tour ? 'etiqueta-tour' : 'etiqueta-resort'}`}>
+                            {tour ? 'T' : 'R'}
+                          </span>
+                          <span className="font-semibold text-slate-900">{v.nombre}</span>
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-slate-600 whitespace-nowrap">{rangoLargo(v) || 'Sin fechas'}</td>
+                      <td className="px-4 py-3">
+                        <span className={`etiqueta-tipo ${tour ? 'etiqueta-tour' : 'etiqueta-resort'}`}>{tour ? 'Tour' : 'Resort'}</span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="inline-flex items-center gap-1.5 text-slate-600">
+                          <span className="h-1.5 w-1.5 rounded-full bg-slate-400" /> Cerrado
+                        </span>
+                      </td>
+                      <td className="px-4 pr-5 sm:pr-6 py-3">
+                        <div className="flex items-center justify-end gap-2">
+                          <button type="button" onClick={() => onSelectViaje(v)} className="btn btn-borde btn-sm">Ver</button>
+                          {puede('crear_viajes') && (
+                            <button type="button" onClick={() => handleReabrir(v)} className="btn btn-borde btn-sm !text-teal-700">
+                              <RotateCcw className="h-3.5 w-3.5" /> Reabrir
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         )}
-
-        <ModalAgregarViaje
-          open={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          onCreate={handleCrearViaje}
-        />
       </div>
     </div>
   );
+};
+
+/** Páginas principales: dashboard, mis viajes e historial. */
+const HomeViajes = ({ vista = 'dashboard' }) => {
+  const navigate = useNavigate();
+  const abrirViaje = (viaje) => navigate(rutaViaje(viaje));
+
+  if (vista === 'viajes') return <MisViajes onSelectViaje={abrirViaje} />;
+  if (vista === 'historial') return <Historial onSelectViaje={abrirViaje} />;
+  return <DashboardFull onSelectViaje={abrirViaje} />;
 };
 
 export default HomeViajes;

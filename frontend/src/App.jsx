@@ -1,25 +1,25 @@
 import { lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuthContext } from './Context/AuthContext';
 import { HabitacionesProvider } from './Context/HabitacionesContext';
+import AppLayout from './components/layout/AppLayout';
 import HomeViajes from './components/layout/HomeViajes';
 import ViajeView from './components/layout/ViajeView';
 import ViajePublico from './components/Dashboard/ViajePublico';
 import ViajeExpirado from './components/Dashboard/ViajeExpirado';
+import LoginView from './components/auth/LoginView';
+import './components/styles/global.css';
+
 // Páginas pesadas (gráficas) se descargan solo al entrar: la app abre más rápido
 const ReportesView = lazy(() => import('./components/reportes/ReportesView'));
 const ActividadView = lazy(() => import('./components/logs/ActividadView'));
 const UsuariosView = lazy(() => import('./components/usuarios/UsuariosView'));
 
 const CargandoPagina = () => (
-  <div className="min-h-screen flex items-center justify-center" style={{ background: '#0f1117' }}>
-    <div className="h-8 w-8 rounded-full border-2 border-teal-500/30 border-t-teal-400 animate-spin" />
+  <div className="min-h-[60vh] flex items-center justify-center">
+    <div className="h-8 w-8 rounded-full border-2 border-teal-700/20 border-t-teal-700 animate-spin" />
   </div>
 );
-import LoginView from './components/auth/LoginView';
-import './components/styles/global.css';
-import { rutaViaje } from './utils/rutas';
-
 
 function RequireAuth({ children }) {
   const { isAuthenticated } = useAuthContext();
@@ -36,25 +36,21 @@ function RequierePermiso({ permiso, admin, children }) {
   return permitido ? children : <Navigate to="/" replace />;
 }
 
+const Diferida = ({ children }) => <Suspense fallback={<CargandoPagina />}>{children}</Suspense>;
+
 function AppContent() {
-  const navigate = useNavigate();
-
-  const handleSelectViaje = (viaje) => {
-    navigate(rutaViaje(viaje));
-  };
-
-  const handleBack = () => {
-    navigate('/');
-  };
-
   return (
     <Routes>
-      <Route path="/" element={<HomeViajes onSelectViaje={handleSelectViaje} />} />
-      <Route path="/reportes" element={<RequierePermiso permiso="reportes"><Suspense fallback={<CargandoPagina />}><ReportesView /></Suspense></RequierePermiso>} />
-      <Route path="/actividad" element={<RequierePermiso permiso="actividad"><Suspense fallback={<CargandoPagina />}><ActividadView /></Suspense></RequierePermiso>} />
-      <Route path="/usuarios" element={<RequierePermiso admin><Suspense fallback={<CargandoPagina />}><UsuariosView /></Suspense></RequierePermiso>} />
-      <Route path="/:tipo/:slug" element={<ViajeView onBack={handleBack} />} />
-      <Route path="/viaje/:tipo/:slug" element={<ViajeView />} />
+      <Route element={<AppLayout />}>
+        <Route path="/" element={<HomeViajes vista="dashboard" />} />
+        <Route path="/viajes" element={<HomeViajes vista="viajes" />} />
+        <Route path="/historial" element={<HomeViajes vista="historial" />} />
+        <Route path="/reportes" element={<RequierePermiso permiso="reportes"><Diferida><ReportesView /></Diferida></RequierePermiso>} />
+        <Route path="/actividad" element={<RequierePermiso permiso="actividad"><Diferida><ActividadView /></Diferida></RequierePermiso>} />
+        <Route path="/usuarios" element={<RequierePermiso admin><Diferida><UsuariosView /></Diferida></RequierePermiso>} />
+        <Route path="/:tipo/:slug" element={<ViajeView />} />
+        <Route path="/viaje/:tipo/:slug" element={<ViajeView />} />
+      </Route>
     </Routes>
   );
 }

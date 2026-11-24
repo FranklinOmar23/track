@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { FileDown, ChevronDown, Zap, TableProperties } from 'lucide-react';
+import { Download, Zap, TableProperties } from 'lucide-react';
 import { exportarExcelRapido, exportarExcelDetallado } from '../../utils/exportExcel';
 import { useGeneracionExcel } from '../../hooks/useGeneracionExcel';
 
@@ -55,12 +55,11 @@ const MenuExportarExcel = ({ habitaciones, viaje }) => {
         disabled={generando}
         aria-haspopup="menu"
         aria-expanded={abierto}
-        className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30 transition-colors disabled:opacity-60"
+        className="btn btn-borde"
         title="Exportar a Excel"
       >
-        <FileDown className="h-4 w-4" />
+        <Download className="h-4 w-4" />
         <span className="hidden sm:inline">Exportar Excel</span>
-        <ChevronDown className={`h-3.5 w-3.5 transition-transform ${abierto ? 'rotate-180' : ''}`} />
       </button>
 
       {pantalla}
@@ -68,14 +67,14 @@ const MenuExportarExcel = ({ habitaciones, viaje }) => {
       {abierto && (
         <div role="menu"
           className="absolute right-0 mt-2 w-72 rounded-xl overflow-hidden z-30 animate-fade-in-scale origin-top-right"
-          style={{ background: '#1a1f2e', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 12px 32px rgba(0,0,0,0.45)' }}>
+          style={{ background: '#ffffff', border: '1px solid rgba(15,23,42,0.1)', boxShadow: '0 16px 36px -12px rgba(15,23,42,0.25)' }}>
           {OPCIONES.map((op) => (
             <button key={op.id} type="button" role="menuitem" onClick={() => exportar(op)}
-              className="w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-white/[0.05] transition-colors border-b border-white/[0.05] last:border-b-0">
-              <op.icono className="h-4 w-4 text-emerald-400 mt-0.5 shrink-0" />
+              className="w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-b-0">
+              <op.icono className="h-4 w-4 text-emerald-700 mt-0.5 shrink-0" />
               <span>
-                <span className="block text-sm font-semibold text-white">{op.titulo}</span>
-                <span className="block text-xs text-gray-500 mt-0.5">{op.descripcion}</span>
+                <span className="block text-sm font-semibold text-slate-900">{op.titulo}</span>
+                <span className="block text-xs text-slate-500 mt-0.5">{op.descripcion}</span>
               </span>
             </button>
           ))}

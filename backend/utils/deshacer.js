@@ -4,7 +4,7 @@
 // después, hay que deshacer primero lo más reciente). Nunca sobre viajes cerrados,
 // salvo deshacer el propio cierre.
 
-import { ajustarTipoPorAdultos } from './habitacion.js';
+import { ajustarTipoPorAdultos, reordenarPosiciones } from './habitacion.js';
 import { fotoHabitacion, firmaHabitacion } from './auditoria.js';
 
 export class ErrorDeshacer extends Error {}
@@ -130,6 +130,17 @@ export const OPERACIONES = {
     if (d.tipoHabitacionAntes) {
       await conn.query('UPDATE habitaciones SET tipo = ? WHERE id = ?', [d.tipoHabitacionAntes, persona.habitacion_id]);
     }
+  },
+
+  'persona.titular': async (conn, d) => {
+    if (!(await existe(conn, 'habitaciones', d.habitacionId))) throw new ErrorDeshacer('La habitación ya no existe.');
+    const [rows] = await conn.query('SELECT id, posicion FROM personas WHERE habitacion_id = ?', [d.habitacionId]);
+    const actual = new Map(rows.map((r) => [r.id, r.posicion]));
+    // Solo si nadie cambió el orden (ni movió personas) después
+    const intacto = rows.length === d.despues.length && d.despues.every((p) => igual(actual.get(p.id), p.posicion));
+    if (!intacto) throw new ErrorDeshacer(CAMBIO_POSTERIOR);
+    await viajeAbiertoPorHabitacion(conn, d.habitacionId);
+    await reordenarPosiciones(conn, d.habitacionId, d.antes);
   },
 
   'persona.mover': async (conn, d) => {

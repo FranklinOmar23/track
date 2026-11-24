@@ -1,99 +1,78 @@
-import { useState, useEffect } from 'react';
 import { DashboardStats } from './DashboardStats';
 import { ChartSection } from './ChartSection';
 import { ViajesTable } from './ViajesTable';
-import { fetchDashboardStats } from '../../utils/api';
-import { useHabitacionesContext } from '../../Context/HabitacionesContext';
+import { FechasViajes } from './FechasViajes';
+import { useStatsViajes } from '../../hooks/useStatsViajes';
 import { divisaPrincipal } from '../../utils/formatters';
 import { calcularGananciaResumen } from '../../utils/calculos';
-import { FechasViajes } from './FechasViajes';
+
+const fechaHoy = () => {
+  const t = new Date().toLocaleDateString('es-DO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  // "martes, 24 de noviembre de 2026" -> "Martes, 24 de noviembre 2026"
+  return (t.charAt(0).toUpperCase() + t.slice(1)).replace(/ de (\d{4})$/, ' $1');
+};
 
 export const DashboardFull = ({ onSelectViaje }) => {
-  const { state } = useHabitacionesContext();
-  const [statsExtra, setStatsExtra] = useState(null); // solo totales del resumen
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const { viajes: todos, loading, error } = useStatsViajes();
 
-  useEffect(() => {
-    const cargarStats = async () => {
-      try {
-        const data = await fetchDashboardStats();
-        // Guardamos solo el resumen y los stats por viaje (hab, personas, pagados)
-        // pero NO los datos de nombre/tipo/divisa — esos vienen del contexto
-        const statsMap = {};
-        (data.viajes || []).forEach((v) => {
-          statsMap[v.id] = {
-            total_por_cobrar: Number(v.total_por_cobrar) || 0,
-            total_pagado:     Number(v.total_pagado)     || 0,
-            pendiente:        Number(v.pendiente)        || 0,
-            total_habitaciones: Number(v.total_habitaciones) || 0,
-            total_personas:   Number(v.total_personas)   || 0,
-            personas_pagan:   Number(v.personas_pagan)   || 0,
-          };
-        });
-        setStatsExtra({ resumen: data.resumen, statsMap });
-      } catch (err) {
-        console.error('Error cargando estadísticas:', err);
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-    cargarStats();
-  }, []);
+  // Los viajes cerrados van al Historial, no al dashboard
+  const viajes = todos.filter((v) => v.estado !== 'cerrado');
+  const resorts = viajes.filter((v) => v.tipo !== 'tour').length;
+  const tours = viajes.length - resorts;
+  const cerrados = todos.length - viajes.length;
+
+  const encabezado = (
+    <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 animate-fade-in">
+      <div>
+        <p className="text-xs text-slate-500">{fechaHoy()}</p>
+        <h1 className="titulo-pagina mt-1">Dashboard</h1>
+        <p className="subtitulo-pagina">Gestiona y monitorea todos tus viajes y pagos en tiempo real.</p>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <span className="chip chip-fuerte">{viajes.length} viaje{viajes.length !== 1 ? 's' : ''} activo{viajes.length !== 1 ? 's' : ''}</span>
+        <span className="chip">{resorts} resort{resorts !== 1 ? 's' : ''}</span>
+        <span className="chip">{tours} tour{tours !== 1 ? 's' : ''}</span>
+        <span className="chip">{cerrados} en historial</span>
+      </div>
+    </div>
+  );
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-500" />
+      <div className="space-y-6">
+        {encabezado}
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+          {[0, 1, 2, 3].map((i) => <div key={i} className="tarjeta h-[120px] animate-pulse" />)}
+        </div>
+        <div className="tarjeta h-72 animate-pulse" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="text-center py-12">
-        <p className="text-red-400">Error: {error}</p>
+      <div className="space-y-6">
+        {encabezado}
+        <p className="tarjeta p-6 text-sm text-red-700">No se pudieron cargar las estadísticas: {error}</p>
       </div>
     );
   }
 
-  // Viajes del contexto (reactivos a ediciones) + stats del API (totales)
-  // Los viajes cerrados van al Historial, no al dashboard
-  const viajes = state.viajes.filter((v) => v.estado !== 'cerrado');
-
-  if (!viajes || viajes.length === 0) {
+  if (viajes.length === 0) {
     return (
-      <div className="text-center py-12">
-        <p className="text-gray-600">No hay viajes activos.</p>
+      <div className="space-y-6">
+        {encabezado}
+        <div className="tarjeta p-12 text-center">
+          <p className="text-slate-900 font-semibold">No hay viajes activos.</p>
+          <p className="text-sm text-slate-500 mt-1">Crea un viaje con el botón “Nuevo viaje” del menú.</p>
+        </div>
       </div>
     );
   }
-
-  // Combinar: datos frescos del contexto + stats de totales del API
-  const viajesProcesados = viajes.map((v) => {
-    const extra = statsExtra?.statsMap?.[v.id] || {
-      total_por_cobrar: 0,
-      total_pagado: 0,
-      pendiente: 0,
-      total_habitaciones: 0,
-      total_personas: 0,
-    };
-    // Todos los datos del viaje del contexto (fechas, nota, política, ganancia, estado)
-    // + totales del API. Antes solo se pasaban algunos campos y el modal de editar
-    // recibía fechas vacías, que al guardar se borraban.
-    return {
-      ...v,
-      ...extra,
-      divisa: v.divisa || 'USD',
-      ganancia_tipo:  v.gananciaTipo || 'ninguna',
-      ganancia_valor: Number(v.gananciaValor) || 0,
-    };
-  });
 
   // Totales globales (los viajes se suman en la divisa más usada)
   const divisa = divisaPrincipal(viajes);
-  const totales = viajesProcesados.reduce((acc, v) => {
+  const totales = viajes.reduce((acc, v) => {
     const ganancia = calcularGananciaResumen(v);
     const avance = v.total_por_cobrar > 0 ? Math.min(1, v.total_pagado / v.total_por_cobrar) : 0;
     acc.porCobrar += v.total_por_cobrar;
@@ -110,31 +89,13 @@ export const DashboardFull = ({ onSelectViaje }) => {
     return acc;
   }, { porCobrar: 0, pagado: 0, pendiente: 0, habitaciones: 0, personas: 0, ganancia: 0, gananciaCobrada: 0, viajesConSaldo: 0, conGanancia: false });
 
-  const resorts = viajes.filter((v) => v.tipo !== 'tour').length;
-  const tours = viajes.length - resorts;
-  const cerrados = state.viajes.length - viajes.length;
-
   return (
     <div className="space-y-5">
-      {/* Resumen en una línea */}
-      <div className="flex flex-wrap items-center gap-2 text-xs animate-fade-in">
-        <span className="px-3 py-1.5 rounded-full bg-white/5 border border-white/[0.07] text-gray-300 font-semibold">
-          {viajes.length} viaje{viajes.length !== 1 ? 's' : ''} activo{viajes.length !== 1 ? 's' : ''}
-        </span>
-        <span className="px-3 py-1.5 rounded-full bg-teal-500/10 border border-teal-500/20 text-teal-300">{resorts} resort{resorts !== 1 ? 's' : ''}</span>
-        <span className="px-3 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-300">{tours} tour{tours !== 1 ? 's' : ''}</span>
-        {cerrados > 0 && (
-          <span className="px-3 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.06] text-gray-500">{cerrados} en historial</span>
-        )}
-      </div>
-
-      <DashboardStats totales={totales} divisa={divisa} />
-
-      <ChartSection viajes={viajesProcesados} divisa={divisa} totales={totales} onSelectViaje={onSelectViaje} />
-
-      <FechasViajes viajes={viajesProcesados} divisa={divisa} onSelectViaje={onSelectViaje} />
-
-      <ViajesTable viajes={viajesProcesados} onSelectViaje={onSelectViaje} />
+      {encabezado}
+      <div className="pt-1"><DashboardStats totales={totales} divisa={divisa} /></div>
+      <ChartSection viajes={viajes} divisa={divisa} totales={totales} onSelectViaje={onSelectViaje} />
+      <FechasViajes viajes={viajes} divisa={divisa} onSelectViaje={onSelectViaje} />
+      <ViajesTable viajes={viajes} onSelectViaje={onSelectViaje} />
     </div>
   );
 };

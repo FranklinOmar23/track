@@ -46,7 +46,7 @@ const ViajePublico = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0f1117] flex items-center justify-center">
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-teal-500" />
       </div>
     );
@@ -110,20 +110,20 @@ const ViajePublico = () => {
   const fmt = (amount) => formatCurrency(amount, data.viaje.divisa || 'USD');
 
   return (
-    <div className="min-h-screen bg-[#0f1117]">
+    <div className="min-h-screen bg-slate-50">
       <div className="container mx-auto px-4 py-6 max-w-6xl">
 
         {/* Header */}
-        <div className="flex items-center justify-between gap-4 pb-4 border-b border-white/[0.07] mb-6">
+        <div className="flex items-center justify-between gap-4 pb-4 border-b border-slate-200 mb-6">
           <div>
-            <h1 className="text-lg font-semibold text-white">{data.viaje.nombre}</h1>
-            <div className={`flex items-center gap-1.5 mt-1 text-xs ${expiraPronto ? 'text-red-400' : 'text-gray-500'}`}>
+            <h1 className="text-lg font-semibold text-slate-900">{data.viaje.nombre}</h1>
+            <div className={`flex items-center gap-1.5 mt-1 text-xs ${expiraPronto ? 'text-red-700' : 'text-slate-500'}`}>
               <EyeOff className="h-3 w-3" />
               <span>Vista de solo lectura</span>
               {esSoloPendientes && (
                 <>
                   <span>·</span>
-                  <span className="text-amber-400">Solo personas con saldo pendiente</span>
+                  <span className="text-amber-700">Solo personas con saldo pendiente</span>
                 </>
               )}
               {tieneExpiracion && (
@@ -137,25 +137,25 @@ const ViajePublico = () => {
               )}
             </div>
           </div>
-          <span className="text-xs text-gray-600 hidden sm:block">
+          <span className="text-xs text-slate-400 hidden sm:block">
             {habitacionesBase.length} habitaciones
           </span>
         </div>
 
         {/* Buscador */}
         <div className="relative mb-6">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 pointer-events-none" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 pointer-events-none" />
           <input
             type="text"
             placeholder="Buscar habitación o persona..."
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 rounded-lg bg-white/[0.05] border border-white/[0.08] text-gray-200 placeholder-gray-500 text-sm focus:outline-none focus:border-teal-500/50 focus:bg-white/[0.07] transition-colors"
+            className="w-full pl-9 pr-4 py-2.5 rounded-lg bg-slate-100 border border-slate-200 text-slate-800 placeholder-gray-500 text-sm focus:outline-none focus:border-teal-200 focus:bg-slate-100 transition-colors"
           />
           {busqueda && (
             <button
               onClick={() => setBusqueda('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 text-lg leading-none"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-900 text-lg leading-none"
             >
               ×
             </button>
@@ -169,9 +169,9 @@ const ViajePublico = () => {
               onClick={() => setEtiquetaFiltro('todas')}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold transition-colors"
               style={{
-                backgroundColor: etiquetaFiltro === 'todas' ? 'rgba(13,148,136,0.18)' : 'rgba(255,255,255,0.05)',
-                color: etiquetaFiltro === 'todas' ? '#2dd4bf' : 'rgba(255,255,255,0.45)',
-                border: `1px solid ${etiquetaFiltro === 'todas' ? 'rgba(13,148,136,0.4)' : 'rgba(255,255,255,0.08)'}`,
+                backgroundColor: etiquetaFiltro === 'todas' ? 'rgba(13,148,136,0.18)' : 'rgba(15,23,42,0.05)',
+                color: etiquetaFiltro === 'todas' ? '#0f766e' : 'rgba(15,23,42,0.45)',
+                border: `1px solid ${etiquetaFiltro === 'todas' ? 'rgba(13,148,136,0.4)' : 'rgba(15,23,42,0.08)'}`,
               }}
             >
               <LayoutGrid className="h-3.5 w-3.5" />
@@ -187,9 +187,9 @@ const ViajePublico = () => {
                   onClick={() => setEtiquetaFiltro(activa ? 'todas' : etiqueta)}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold transition-colors"
                   style={{
-                    backgroundColor: activa ? 'rgba(13,148,136,0.18)' : 'rgba(255,255,255,0.05)',
-                    color: activa ? '#2dd4bf' : 'rgba(255,255,255,0.45)',
-                    border: `1px solid ${activa ? 'rgba(13,148,136,0.4)' : 'rgba(255,255,255,0.08)'}`,
+                    backgroundColor: activa ? 'rgba(13,148,136,0.18)' : 'rgba(15,23,42,0.05)',
+                    color: activa ? '#0f766e' : 'rgba(15,23,42,0.45)',
+                    border: `1px solid ${activa ? 'rgba(13,148,136,0.4)' : 'rgba(15,23,42,0.08)'}`,
                   }}
                 >
                   <Tag className="h-3 w-3" />
@@ -203,9 +203,9 @@ const ViajePublico = () => {
                 onClick={() => setEtiquetaFiltro(etiquetaFiltro === '__sin__' ? 'todas' : '__sin__')}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold transition-colors"
                 style={{
-                  backgroundColor: etiquetaFiltro === '__sin__' ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.05)',
-                  color: etiquetaFiltro === '__sin__' ? '#e2e8f0' : 'rgba(255,255,255,0.35)',
-                  border: `1px solid ${etiquetaFiltro === '__sin__' ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.08)'}`,
+                  backgroundColor: etiquetaFiltro === '__sin__' ? 'rgba(15,23,42,0.12)' : 'rgba(15,23,42,0.05)',
+                  color: etiquetaFiltro === '__sin__' ? '#0f172a' : '#64748b',
+                  border: `1px solid ${etiquetaFiltro === '__sin__' ? 'rgba(15,23,42,0.25)' : 'rgba(15,23,42,0.08)'}`,
                 }}
               >
                 Sin etiqueta ({habitacionesBase.filter((h) => !h.etiqueta).length})
@@ -216,7 +216,7 @@ const ViajePublico = () => {
 
         {/* Resultados vacíos */}
         {habitacionesFiltradas.length === 0 && (
-          <div className="text-center py-12 text-gray-500">
+          <div className="text-center py-12 text-slate-500">
             <Search className="h-8 w-8 mx-auto mb-2 opacity-40" />
             <p>
               {query
@@ -231,9 +231,9 @@ const ViajePublico = () => {
         {/* Habitaciones agrupadas */}
         {Object.entries(grupos).map(([etiqueta, habs]) => (
           <div key={etiqueta} className="mb-8">
-            <div className="flex items-center gap-3 mb-3 pb-2 border-b border-white/[0.07]">
-              <h2 className="text-sm font-semibold text-gray-300">{etiqueta}</h2>
-              <span className="text-xs text-gray-600">{habs.length} hab.</span>
+            <div className="flex items-center gap-3 mb-3 pb-2 border-b border-slate-200">
+              <h2 className="text-sm font-semibold text-slate-700">{etiqueta}</h2>
+              <span className="text-xs text-slate-400">{habs.length} hab.</span>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {habs.map((hab) => (
@@ -243,8 +243,8 @@ const ViajePublico = () => {
           </div>
         ))}
 
-        <div className="mt-8 pt-4 border-t border-white/[0.05] text-center">
-          <p className="text-xs text-gray-700">Sistema de Control de Pagos · Solo lectura</p>
+        <div className="mt-8 pt-4 border-t border-slate-200 text-center">
+          <p className="text-xs text-slate-400">Sistema de Control de Pagos · Solo lectura</p>
         </div>
       </div>
     </div>

@@ -33,3 +33,10 @@ export const formatCurrency = (valor, divisa = 'USD') => {
 /** Símbolo de la divisa (RD$, US$, €…) según el formato de la app. */
 export const simboloDivisa = (divisa = 'USD') =>
   formatCurrency(0, divisa).replace(/[\d.,\s\u00a0]/g, '') || divisa;
+
+/** Formato corto para ejes de gráficos: RD$1.2 M, RD$350 mil… */
+export const formatoCompacto = (divisa = 'USD') => {
+  const simbolo = simboloDivisa(divisa);
+  const nf = new Intl.NumberFormat('es-DO', { notation: 'compact', maximumFractionDigits: 1 });
+  return (v) => `${simbolo}${nf.format(v)}`;
+};

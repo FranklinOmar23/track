@@ -1,120 +1,68 @@
-import { useState } from 'react';
-import { ArrowRight, Lock } from 'lucide-react';
+import { ChevronRight, Calendar, Home, Bus } from 'lucide-react';
+import { formatCurrency } from '../../utils/formatters';
+import { situacionViaje, textoSituacion, rangoLargo } from '../../utils/viajeFechas';
 
-const formatFecha = (fecha) => {
-  if (!fecha) return null;
-  const d = new Date(fecha + 'T00:00:00');
-  return d.toLocaleDateString('es-DO', { day: '2-digit', month: 'short', year: 'numeric' });
+const ESTILO_INSIGNIA = {
+  terminado: 'etiqueta-ambar',
+  en_curso: 'bg-emerald-50 text-emerald-700',
+  proximo: 'etiqueta-gris',
 };
 
-const STAGGER = ['stagger-0', 'stagger-1', 'stagger-2', 'stagger-3', 'stagger-4', 'stagger-5'];
-
+/** Tarjeta de un viaje en "Mis viajes": fechas, cuánto falta para salir y avance de cobro. */
 export const ViajeCard = ({ viaje, onSelect, index = 0 }) => {
-  const [hovered, setHovered] = useState(false);
-  const tipo = viaje.tipo || 'resort';
-  const icono = tipo === 'tour' ? '🚐' : '🏨';
-  const fechaInicio = formatFecha(viaje.fechaInicio);
-  const fechaFin    = formatFecha(viaje.fechaFin);
-  const stagger = STAGGER[Math.min(index % 6, STAGGER.length - 1)];
-
-  const accent     = tipo === 'tour' ? '6,182,212' : '13,148,136';
-  const accentHex  = tipo === 'tour' ? '#06b6d4'   : '#0d9488';
-  const badgeClass = tipo === 'tour'
-    ? 'bg-cyan-900/40 text-cyan-400 border-cyan-600/30'
-    : 'bg-teal-900/40 text-teal-400 border-teal-600/30';
+  const tour = viaje.tipo === 'tour';
+  const Icono = tour ? Bus : Home;
+  const situacion = situacionViaje(viaje);
+  const insignia = textoSituacion(situacion);
+  const rango = rangoLargo(viaje);
+  const pct = Math.round(viaje.pct || 0);
+  const divisa = viaje.divisa || 'USD';
 
   return (
     <button
       type="button"
-      className={`group relative overflow-hidden text-left w-full rounded-xl p-5 animate-fade-in-up ${stagger} ${viaje.estado === 'cerrado' ? 'opacity-70' : ''}`}
-      style={{
-        backgroundColor: '#1a1f2e',
-        border: `1px solid ${hovered ? `rgba(${accent},0.35)` : 'rgba(255,255,255,0.07)'}`,
-        transition: 'border-color 220ms ease, transform 220ms cubic-bezier(0.23,1,0.32,1), box-shadow 220ms ease',
-        transform: hovered ? 'translateY(-4px)' : 'translateY(0)',
-        boxShadow: hovered
-          ? `0 12px 36px -10px rgba(${accent},0.25), 0 0 0 1px rgba(${accent},0.12)`
-          : 'none',
-      }}
       onClick={() => onSelect(viaje)}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      className="group tarjeta card-lift text-left w-full p-5 animate-fade-in-up flex flex-col"
+      style={{ animationDelay: `${Math.min(index, 8) * 40}ms` }}
     >
-      {/* Corner accent glow */}
-      <div
-        className="absolute -top-8 -right-8 w-24 h-24 rounded-full pointer-events-none"
-        style={{
-          background: `radial-gradient(circle, rgba(${accent},0.4), transparent 70%)`,
-          filter: 'blur(20px)',
-          opacity: hovered ? 0.5 : 0.15,
-          transition: 'opacity 300ms ease',
-        }}
-      />
-
-      {/* Bottom line accent */}
-      <div
-        className="absolute bottom-0 left-0 right-0 h-px pointer-events-none"
-        style={{
-          background: `linear-gradient(90deg, transparent, rgba(${accent},0.6), transparent)`,
-          opacity: hovered ? 1 : 0,
-          transition: 'opacity 300ms ease',
-        }}
-      />
-
-      <div className="relative">
-        <div className="flex items-start justify-between">
-          <div
-            className="text-3xl"
-            style={{
-              animation: `floatY ${3.5 + (index % 3) * 0.4}s ease-in-out infinite`,
-              animationDelay: `${(index % 4) * 0.6}s`,
-              display: 'inline-block',
-            }}
-          >
-            {icono}
-          </div>
-          <div
-            style={{
-              color: hovered ? accentHex : 'rgba(255,255,255,0.25)',
-              transform: hovered ? 'translateX(3px)' : 'translateX(0)',
-              transition: 'color 220ms ease, transform 220ms ease',
-            }}
-          >
-            <ArrowRight className="h-4 w-4" />
-          </div>
-        </div>
-
-        <h3
-          className="font-semibold mt-3 leading-snug"
-          style={{
-            color: hovered ? '#f0fdfa' : '#ffffff',
-            transition: 'color 220ms ease',
-          }}
-        >
-          {viaje.nombre}
-        </h3>
-
-        {(fechaInicio || fechaFin) && (
-          <p className="text-xs text-gray-500 mt-1.5">
-            📅{' '}
-            {fechaInicio && fechaFin
-              ? `${fechaInicio} → ${fechaFin}`
-              : fechaInicio ? `Desde ${fechaInicio}` : `Hasta ${fechaFin}`}
-          </p>
-        )}
-
-        {viaje.nota && (
-          <p className="text-sm text-gray-500 mt-2 line-clamp-2">{viaje.nota}</p>
-        )}
-
-        <span className={`inline-block mt-3 text-xs px-2.5 py-1 rounded-full border font-semibold ${badgeClass}`}>
-          {tipo === 'tour' ? 'Tour' : 'Resort'}
+      <div className="flex items-start gap-3.5">
+        <span className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 ${tour ? 'bg-indigo-50 text-indigo-700' : 'bg-[#e6f4f1] text-teal-700'}`}>
+          <Icono className="h-[18px] w-[18px]" strokeWidth={1.9} />
         </span>
-        {viaje.estado === 'cerrado' && (
-          <span className="inline-flex items-center gap-1 mt-3 ml-2 text-xs px-2.5 py-1 rounded-full border font-semibold bg-amber-900/30 text-amber-400 border-amber-600/30">
-            <Lock className="h-3 w-3" /> Cerrado
-          </span>
+        <div className="flex-1 min-w-0">
+          <h3 className="text-[15px] font-semibold text-slate-900 leading-snug">{viaje.nombre}</h3>
+          {rango && (
+            <p className="flex items-center gap-1.5 text-[13px] text-slate-500 mt-1">
+              <Calendar className="h-3.5 w-3.5" /> {rango}
+            </p>
+          )}
+        </div>
+        {insignia && (
+          <span className={`etiqueta-tipo shrink-0 ${ESTILO_INSIGNIA[situacion.situacion]}`}>{insignia}</span>
         )}
+      </div>
+
+      <div className="mt-5">
+        <div className="flex justify-between text-[13px] mb-1.5">
+          <span className="text-slate-600">Cobrado</span>
+          <span className="font-semibold text-slate-900 tabular-nums">{pct}%</span>
+        </div>
+        <div className="barra"><span className="bg-emerald-600" style={{ width: `${Math.min(100, pct)}%` }} /></div>
+      </div>
+
+      <div className="mt-4 pt-4 border-t border-slate-100 flex items-end gap-5">
+        <div>
+          <p className="label-mayus">Pagado</p>
+          <p className="text-[15px] font-semibold text-emerald-700 tabular-nums mt-0.5">{formatCurrency(viaje.total_pagado, divisa)}</p>
+        </div>
+        <div>
+          <p className="label-mayus">Pendiente</p>
+          <p className="text-[15px] font-semibold text-red-700 tabular-nums mt-0.5">{formatCurrency(viaje.pendiente, divisa)}</p>
+        </div>
+        <span className="ml-auto flex items-center gap-2 self-center">
+          <span className={`etiqueta-tipo ${tour ? 'etiqueta-tour' : 'etiqueta-resort'}`}>{tour ? 'Tour' : 'Resort'}</span>
+          <ChevronRight className="h-4 w-4 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+        </span>
       </div>
     </button>
   );

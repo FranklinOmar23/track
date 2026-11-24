@@ -5,6 +5,7 @@ import { calcularPendientePersona } from '../../utils/calculos';
 import { X, CreditCard, Trash2, Save } from 'lucide-react';
 import InputMonto from '../common/InputMonto';
 import { useDivisa } from '../../hooks/useDivisa';
+import { avisarError } from '../../utils/avisos';
 
 const ModalRegistrarPago = ({ habId, persona, pago = null, onClose }) => {
   const { state, registrarPago, actualizarPago, eliminarPago } = useHabitacionesContext();
@@ -35,7 +36,7 @@ const ModalRegistrarPago = ({ habId, persona, pago = null, onClose }) => {
   const handleSubmit = async () => {
     const montoNum = parseFloat(monto);
     if (!mes || !(montoNum > 0)) {
-      alert('El monto debe ser mayor que 0.');
+      avisarError('El monto debe ser mayor que 0.');
       return;
     }
     setLoading(true);
@@ -49,7 +50,7 @@ const ModalRegistrarPago = ({ habId, persona, pago = null, onClose }) => {
       onClose();
     } catch (error) {
       console.error('Error guardando pago:', error);
-      alert('Error al guardar el pago');
+      avisarError('Error al guardar el pago');
     } finally {
       setLoading(false);
     }
@@ -63,7 +64,7 @@ const ModalRegistrarPago = ({ habId, persona, pago = null, onClose }) => {
       onClose();
     } catch (error) {
       console.error('Error eliminando pago:', error);
-      alert('Error al eliminar el pago');
+      avisarError('Error al eliminar el pago');
     } finally {
       setLoading(false);
     }
@@ -77,18 +78,18 @@ const ModalRegistrarPago = ({ habId, persona, pago = null, onClose }) => {
 
         {/* Header */}
         <div className="relative flex items-center justify-between px-5 pt-5 pb-4"
-          style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+          style={{ borderBottom: '1px solid rgba(15,23,42,0.06)' }}>
           <div>
             <div className="flex items-center gap-2 mb-0.5">
-              <CreditCard className="h-4 w-4 text-teal-400" />
-              <h3 className="text-base font-bold text-white">
+              <CreditCard className="h-4 w-4 text-teal-700" />
+              <h3 className="text-base font-bold text-slate-900">
                 {pago ? 'Editar pago' : 'Registrar pago'}
               </h3>
             </div>
-            <p className="text-xs text-gray-600">{persona.n}</p>
+            <p className="text-xs text-slate-400">{persona.n}</p>
           </div>
           <button type="button" onClick={onClose}
-            className="p-1.5 rounded-lg text-gray-500 hover:text-gray-200 hover:bg-white/[0.06] transition-colors">
+            className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -119,7 +120,7 @@ const ModalRegistrarPago = ({ habId, persona, pago = null, onClose }) => {
             <InputMonto divisa={divisa} value={monto} onChange={setMonto} min="0.01" disabled={loading} autoFocus={!pago} />
           </div>
 
-          <div className="flex items-center gap-2 pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+          <div className="flex items-center gap-2 pt-2" style={{ borderTop: '1px solid rgba(15,23,42,0.05)' }}>
             {pago?.id && (
               <button type="button" className="btn-modal-danger" onClick={handleDelete} disabled={loading}>
                 <Trash2 className="h-3.5 w-3.5" />

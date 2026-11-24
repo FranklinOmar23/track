@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useHabitacionesContext } from '../../Context/HabitacionesContext';
 import {
   fetchPagosPorMes, fetchReportePorEtiqueta,
@@ -16,12 +15,11 @@ import TabMapaCalor from './tabs/TabMapaCalor';
 import TabDistribucion from './tabs/TabDistribucion';
 import TabRendimiento from './tabs/TabRendimiento';
 import TabRankings from './tabs/TabRankings';
-import { ArrowLeft, DollarSign, Building2, Users, TrendingUp, Printer, Flame, PieChart as PieIcon, Award, Trophy, Coins, Table2 } from 'lucide-react';
+import { Download } from 'lucide-react';
 import { useGeneracionExcel } from '../../hooks/useGeneracionExcel';
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 const ReportesView = () => {
-  const navigate = useNavigate();
   const { state } = useHabitacionesContext();
   const { generar, pantalla } = useGeneracionExcel();
   const [tab, setTab]                     = useState('tendencias');
@@ -85,145 +83,78 @@ const ReportesView = () => {
 
   // ────────────────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen" style={{ background: '#0f1117' }}>
+    <div className="space-y-6">
       {pantalla}
 
-      {/* Background decoration */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 0 }}>
-        <div className="orb w-[500px] h-[500px]"
-          style={{ top: '-150px', right: '-100px', background: '#0d9488', opacity: 0.04 }} />
-        <div className="orb-reverse w-[400px] h-[400px]"
-          style={{ bottom: '-100px', left: '-100px', background: '#8b5cf6', opacity: 0.04 }} />
-        <div className="bg-dot-grid absolute inset-0" />
+      {/* ── Encabezado ─────────────────────────────────────────────────────── */}
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+        <div>
+          <h1 className="titulo-pagina">Reportes y análisis</h1>
+          <p className="subtitulo-pagina">
+            Rendimiento financiero · {comparativa.length} viajes · {totalHabs} habitaciones
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2 no-print">
+          <select
+            value={viajeId}
+            onChange={(e) => setViajeId(e.target.value)}
+            aria-label="Filtrar por viaje"
+            className="input-dark !h-10 !py-0 !text-sm !w-auto min-w-[170px]"
+          >
+            <option value="">Todos los viajes</option>
+            {viajes.map((v) => (
+              <option key={v.id} value={v.id}>{v.nombre}</option>
+            ))}
+          </select>
+          <button type="button" onClick={handleExportPDF} className="btn btn-borde h-10">
+            <Download className="h-4 w-4" />
+            Descargar PDF
+          </button>
+        </div>
       </div>
 
-      <div className="relative z-10 container mx-auto px-4 py-6 max-w-7xl">
+      {/* ── Cifras ─────────────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard label="Total recaudado" value={totalRecaudado} displayValue={(v) => fmt(v)}
+          sub={viajeId ? 'Viaje seleccionado' : 'Todos los viajes'} accentColor="#047857" index={0} ready={ready} />
+        <StatCard label="Habitaciones activas" value={totalHabs}
+          sub={`En ${comparativa.length} viaje${comparativa.length !== 1 ? 's' : ''}`} index={1} ready={ready} />
+        <StatCard label="Pasajeros" value={totalPax}
+          sub={totalHabs > 0 ? `~${(totalPax / totalHabs).toFixed(1)} por habitación` : ''} index={2} ready={ready} />
+        <StatCard label="Tasa de cobro" value={tasaCobro} displayValue={(v) => `${v}%`}
+          sub={`De ${fmt(totalPorCobrar)} por cobrar`} index={3} ready={ready} />
+      </div>
 
-        {/* ── Header ────────────────────────────────────────────────────────── */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => navigate('/')}
-              className="no-print flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200"
-              style={{
-                background: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255,255,255,0.08)',
-                color: '#9ca3af',
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.color = '#fff'; e.currentTarget.style.background = 'rgba(255,255,255,0.09)'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = '#9ca3af'; e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Volver
-            </button>
-            <div>
-              <h1 className="text-xl font-bold gradient-text">Reportes & Análisis</h1>
-              <p className="text-xs text-gray-600 mt-0.5">
-                Rendimiento financiero · {comparativa.length} viajes · {totalHabs} habitaciones
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 no-print">
-            <select
-              value={viajeId}
-              onChange={(e) => setViajeId(e.target.value)}
-              className="input-dark text-sm"
-              style={{ width: 'auto', minWidth: '160px' }}
-            >
-              <option value="">Todos los viajes</option>
-              {viajes.map((v) => (
-                <option key={v.id} value={v.id}>{v.nombre}</option>
-              ))}
-            </select>
-            <button
-              onClick={handleExportPDF}
-              className="btn-modal-secondary flex items-center gap-1.5 text-sm"
-              style={{ padding: '0.45rem 0.875rem' }}
-            >
-              <Printer className="h-3.5 w-3.5" />
-              PDF
-            </button>
-          </div>
-        </div>
-
-        {/* ── Stat cards ─────────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <StatCard
-            label="Total Recaudado"
-            value={totalRecaudado}
-            displayValue={(v) => fmt(v)}
-            icon={DollarSign}
-            accentColor="#10b981"
-            accentRgb="16,185,129"
-            index={0}
-            ready={ready}
-          />
-          <StatCard
-            label="Habitaciones Activas"
-            value={totalHabs}
-            sub={`En ${comparativa.length} viaje${comparativa.length !== 1 ? 's' : ''}`}
-            icon={Building2}
-            accentColor="#3b82f6"
-            accentRgb="59,130,246"
-            index={1}
-            ready={ready}
-          />
-          <StatCard
-            label="Pasajeros"
-            value={totalPax}
-            sub={totalHabs > 0 ? `~${(totalPax / totalHabs).toFixed(1)} por habitación` : ''}
-            icon={Users}
-            accentColor="#8b5cf6"
-            accentRgb="139,92,246"
-            index={2}
-            ready={ready}
-          />
-          <StatCard
-            label="Tasa de Cobro"
-            value={tasaCobro}
-            displayValue={(v) => `${v}%`}
-            sub={`De ${fmt(totalPorCobrar)} por cobrar`}
-            icon={TrendingUp}
-            accentColor={tasaCobro >= 50 ? '#10b981' : '#f59e0b'}
-            accentRgb={tasaCobro >= 50 ? '16,185,129' : '245,158,11'}
-            index={3}
-            ready={ready}
-          />
-        </div>
-
-        {/* ── Tabs ───────────────────────────────────────────────────────────── */}
-        <div className="flex gap-2 mb-6 no-print overflow-x-auto pb-1">
-          <Tab id="tendencias"   label="Tendencias"    icon={TrendingUp} active={tab === 'tendencias'}   onClick={setTab} />
-          <Tab id="heatmap"      label="Mapa de Calor" icon={Flame}      active={tab === 'heatmap'}      onClick={setTab} />
-          <Tab id="distribucion" label="Distribución"  icon={PieIcon}    active={tab === 'distribucion'} onClick={setTab} />
-          <Tab id="rendimiento"  label="Rendimiento"   icon={Award}      active={tab === 'rendimiento'}  onClick={setTab} />
-          <Tab id="rankings"     label="Rankings"      icon={Trophy}     active={tab === 'rankings'}     onClick={setTab} />
-          <Tab id="ganancias"    label="Ganancias"     icon={Coins}      active={tab === 'ganancias'}    onClick={setTab} />
-          <Tab id="tablas"       label="Tablas"        icon={Table2}     active={tab === 'tablas'}       onClick={setTab} />
-        </div>
+      {/* ── Pestañas ───────────────────────────────────────────────────────── */}
+      <div className="flex gap-1 border-b border-slate-200 no-print overflow-x-auto" role="tablist">
+        <Tab id="tendencias"   label="Tendencias"    active={tab === 'tendencias'}   onClick={setTab} />
+        <Tab id="heatmap"      label="Mapa de calor" active={tab === 'heatmap'}      onClick={setTab} />
+        <Tab id="distribucion" label="Distribución"  active={tab === 'distribucion'} onClick={setTab} />
+        <Tab id="rendimiento"  label="Rendimiento"   active={tab === 'rendimiento'}  onClick={setTab} />
+        <Tab id="rankings"     label="Rankings"      active={tab === 'rankings'}     onClick={setTab} />
+        <Tab id="ganancias"    label="Ganancias"     active={tab === 'ganancias'}    onClick={setTab} />
+        <Tab id="tablas"       label="Tablas"        active={tab === 'tablas'}       onClick={setTab} />
+      </div>
 
         {/* ── Content ───────────────────────────────────────────────────────── */}
         {loading ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {[0,1].map((i) => (
-              <div key={i} className="rounded-2xl h-72 animate-pulse"
-                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }} />
-            ))}
+            {[0,1].map((i) => <div key={i} className="tarjeta h-72 animate-pulse" />)}
           </div>
         ) : (
           <>
             {/* ── TENDENCIAS ──────────────────────────────────────────────────── */}
-            {tab === 'tendencias' && <TabTendencias datos={datos} fmt={fmt} />}
+            {tab === 'tendencias' && <TabTendencias datos={datos} fmt={fmt} divisa={divisa} />}
 
             {/* ── MAPA DE CALOR ─────────────────────────────────────────────── */}
-            {tab === 'heatmap' && <TabMapaCalor datos={datos} fmt={fmt} />}
+            {tab === 'heatmap' && <TabMapaCalor datos={datos} fmt={fmt} divisa={divisa} />}
 
             {/* ── DISTRIBUCIÓN ──────────────────────────────────────────────── */}
             {tab === 'distribucion' && <TabDistribucion datos={datos} />}
 
             {/* ── RENDIMIENTO ───────────────────────────────────────────────── */}
-            {tab === 'rendimiento' && <TabRendimiento datos={datos} fmt={fmt} handleExportExcel={handleExportExcel} />}
+            {tab === 'rendimiento' && <TabRendimiento datos={datos} fmt={fmt} divisa={divisa} handleExportExcel={handleExportExcel} />}
 
             {/* ── RANKINGS ──────────────────────────────────────────────────── */}
             {tab === 'ganancias' && <GananciasReporte viajeId={viajeId} />}
@@ -233,7 +164,6 @@ const ReportesView = () => {
             {tab === 'rankings' && <TabRankings datos={datos} fmt={fmt} />}
           </>
         )}
-      </div>
     </div>
   );
 };

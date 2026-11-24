@@ -4,6 +4,7 @@ import { X, Plus } from 'lucide-react';
 import { EtiquetaFields, NinosFields, StackToggle, ChipStack } from './HabitacionFormFields';
 import InputMonto from '../common/InputMonto';
 import { useDivisa } from '../../hooks/useDivisa';
+import { avisarError } from '../../utils/avisos';
 
 const ModalAgregarHabitacion = ({ open, onClose }) => {
   const { agregarHabitacion, state } = useHabitacionesContext();
@@ -41,7 +42,7 @@ const ModalAgregarHabitacion = ({ open, onClose }) => {
 
   const handleGuardar = async () => {
     if (!numero.trim() || !persona1.trim() || (!stackActivo && !total)) {
-      alert('Complete los datos obligatorios.');
+      avisarError('Complete los datos obligatorios.');
       return;
     }
     const personas = [];
@@ -64,7 +65,7 @@ const ModalAgregarHabitacion = ({ open, onClose }) => {
       });
       onClose();
     } catch (error) {
-      alert(`No se pudo guardar la habitación: ${error.message}`);
+      avisarError(`No se pudo guardar la habitación: ${error.message}`);
     } finally {
       setGuardando(false);
     }
@@ -81,12 +82,12 @@ const ModalAgregarHabitacion = ({ open, onClose }) => {
 
         {/* Header */}
         <div className="sticky top-0 z-10 flex items-center justify-between px-6 pt-6 pb-4"
-          style={{ background: '#1a1f2e', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+          style={{ background: '#ffffff', borderBottom: '1px solid rgba(15,23,42,0.06)' }}>
           <div>
-            <h2 className="text-lg font-bold text-white">Nueva habitación</h2>
-            <p className="text-xs text-gray-600 mt-0.5">Completa los datos</p>
+            <h2 className="text-lg font-bold text-slate-900">Nueva habitación</h2>
+            <p className="text-xs text-slate-400 mt-0.5">Completa los datos</p>
           </div>
-          <button type="button" onClick={onClose} className="p-1.5 rounded-lg text-gray-500 hover:text-gray-200 hover:bg-white/[0.06] transition-colors">
+          <button type="button" onClick={onClose} className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -135,7 +136,7 @@ const ModalAgregarHabitacion = ({ open, onClose }) => {
                 </div>
               ))}
               {stackPersonas.some(Boolean) && !stackActivo && (
-                <p className="text-[11px] text-emerald-400/80 pl-1">Las personas stack no pagan: el total de la habitación lo pagan las demás.</p>
+                <p className="text-[11px] text-emerald-700 pl-1">Las personas stack no pagan: el total de la habitación lo pagan las demás.</p>
               )}
             </div>
           </div>

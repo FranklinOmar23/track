@@ -11,7 +11,7 @@ export const Table = React.forwardRef(({ className, ...props }, ref) => (
 Table.displayName = "Table";
 
 export const TableHeader = React.forwardRef(({ className, ...props }, ref) => (
-  <thead ref={ref} className={`[&_tr]:border-b border-white/[0.07] ${className || ''}`} {...props} />
+  <thead ref={ref} className={`[&_tr]:border-b border-slate-200 ${className || ''}`} {...props} />
 ));
 TableHeader.displayName = "TableHeader";
 
@@ -23,7 +23,7 @@ TableBody.displayName = "TableBody";
 export const TableRow = React.forwardRef(({ className, ...props }, ref) => (
   <tr
     ref={ref}
-    className={`border-b border-white/[0.05] transition-colors hover:bg-white/[0.03] data-[state=selected]:bg-white/[0.07] ${className || ''}`}
+    className={`border-b border-slate-200 transition-colors hover:bg-slate-100 data-[state=selected]:bg-slate-100 ${className || ''}`}
     {...props}
   />
 ));
@@ -32,7 +32,7 @@ TableRow.displayName = "TableRow";
 export const TableHead = React.forwardRef(({ className, ...props }, ref) => (
   <th
     ref={ref}
-    className={`h-12 px-4 text-left align-middle font-medium text-gray-500 [&:has([role=checkbox])]:pr-0 ${className || ''}`}
+    className={`h-12 px-4 text-left align-middle font-medium text-slate-500 [&:has([role=checkbox])]:pr-0 ${className || ''}`}
     {...props}
   />
 ));
@@ -41,7 +41,7 @@ TableHead.displayName = "TableHead";
 export const TableCell = React.forwardRef(({ className, ...props }, ref) => (
   <td
     ref={ref}
-    className={`p-4 align-middle text-gray-300 [&:has([role=checkbox])]:pr-0 ${className || ''}`}
+    className={`p-4 align-middle text-slate-700 [&:has([role=checkbox])]:pr-0 ${className || ''}`}
     {...props}
   />
 ));

@@ -46,22 +46,22 @@ const Catalogo = ({ onElegir }) => (
       return (
         <section key={cat.id}>
           <div className="flex items-center gap-2.5 mb-3">
-            <span className="p-2 rounded-lg bg-teal-500/10"><Icono className="h-4 w-4 text-teal-400" /></span>
+            <span className="p-2 rounded-lg bg-teal-50"><Icono className="h-4 w-4 text-teal-700" /></span>
             <div>
-              <h3 className="text-sm font-bold text-white">{cat.titulo}</h3>
-              <p className="text-xs text-gray-500">{cat.descripcion}</p>
+              <h3 className="text-sm font-bold text-slate-900">{cat.titulo}</h3>
+              <p className="text-xs text-slate-500">{cat.descripcion}</p>
             </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {REPORTES.filter((r) => r.categoria === cat.id).map((r, i) => (
               <button key={r.id} type="button" onClick={() => onElegir(r)}
-                className="group text-left rounded-xl p-4 border border-white/[0.07] bg-[#1a1f2e] hover:border-teal-500/30 hover:bg-[#1c2233] transition-colors animate-fade-in-up"
+                className="group text-left rounded-xl p-4 border border-slate-200 bg-white hover:border-teal-200 hover:bg-slate-100 transition-colors animate-fade-in-up"
                 style={{ animationDelay: `${ci * 60 + i * 35}ms` }}>
                 <div className="flex items-start justify-between gap-2">
-                  <span className="text-sm font-semibold text-gray-100">{r.titulo}</span>
-                  <ChevronRight className="h-4 w-4 text-gray-600 group-hover:text-teal-300 shrink-0 transition-colors" />
+                  <span className="text-sm font-semibold text-slate-800">{r.titulo}</span>
+                  <ChevronRight className="h-4 w-4 text-slate-400 group-hover:text-teal-700 shrink-0 transition-colors" />
                 </div>
-                <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">{r.descripcion}</p>
+                <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">{r.descripcion}</p>
               </button>
             ))}
           </div>
@@ -146,16 +146,16 @@ const TabTablas = ({ viajes, viajeIdInicial }) => {
       {/* Barra superior (no se imprime) */}
       <div className="flex flex-wrap items-center gap-2 sin-imprimir">
         <button type="button" onClick={() => setReporte(null)}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm text-gray-400 hover:text-white bg-white/5 border border-white/[0.08] transition-colors">
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm text-slate-500 hover:text-slate-900 bg-slate-100 border border-slate-200 transition-colors">
           <ArrowLeft className="h-4 w-4" /> Todos los reportes
         </button>
         <div className="ml-auto flex gap-2">
           <button type="button" onClick={() => window.print()} disabled={!filas.length}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-semibold text-gray-200 bg-white/5 border border-white/[0.1] hover:bg-white/10 disabled:opacity-40 transition-colors">
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-semibold text-slate-800 bg-slate-100 border border-slate-200 hover:bg-slate-100 disabled:opacity-40 transition-colors">
             <Printer className="h-4 w-4" /> Imprimir
           </button>
           <button type="button" onClick={exportar} disabled={!filas.length}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-semibold text-emerald-300 bg-emerald-500/10 border border-emerald-500/30 hover:bg-emerald-500/20 disabled:opacity-40 transition-colors">
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 disabled:opacity-40 transition-colors">
             <FileDown className="h-4 w-4" /> Excel
           </button>
         </div>
@@ -163,10 +163,10 @@ const TabTablas = ({ viajes, viajeIdInicial }) => {
 
       {/* Filtros (no se imprimen) */}
       {(reporte.filtros.length > 0) && (
-        <div className="flex flex-wrap items-end gap-3 rounded-xl p-3 border border-white/[0.07] bg-[#161b27] sin-imprimir">
+        <div className="flex flex-wrap items-end gap-3 rounded-xl p-3 border border-slate-200 bg-white sin-imprimir">
           {(necesitaViaje || reporte.filtros.includes('viajeOpcional')) && (
             <label className="flex flex-col gap-1 min-w-[14rem] flex-1">
-              <span className="text-[11px] uppercase tracking-wider text-gray-500 font-semibold">Viaje</span>
+              <span className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold">Viaje</span>
               <select className={campo} value={filtros.viajeId}
                 onChange={(e) => setFiltros((f) => ({ ...f, viajeId: e.target.value }))}>
                 {!necesitaViaje && <option value="">Todos los viajes</option>}
@@ -177,12 +177,12 @@ const TabTablas = ({ viajes, viajeIdInicial }) => {
           {reporte.filtros.includes('fechas') && (
             <>
               <label className="flex flex-col gap-1">
-                <span className="text-[11px] uppercase tracking-wider text-gray-500 font-semibold">Desde</span>
+                <span className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold">Desde</span>
                 <input type="date" className={campo} value={filtros.desde} max={filtros.hasta}
                   onChange={(e) => setFiltros((f) => ({ ...f, desde: e.target.value }))} />
               </label>
               <label className="flex flex-col gap-1">
-                <span className="text-[11px] uppercase tracking-wider text-gray-500 font-semibold">Hasta</span>
+                <span className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold">Hasta</span>
                 <input type="date" className={campo} value={filtros.hasta} min={filtros.desde}
                   onChange={(e) => setFiltros((f) => ({ ...f, hasta: e.target.value }))} />
               </label>
@@ -190,7 +190,7 @@ const TabTablas = ({ viajes, viajeIdInicial }) => {
           )}
           {reporte.filtros.includes('usuario') && (
             <label className="flex flex-col gap-1 min-w-[10rem]">
-              <span className="text-[11px] uppercase tracking-wider text-gray-500 font-semibold">Usuario</span>
+              <span className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold">Usuario</span>
               <select className={campo} value={filtros.usuario} onChange={(e) => setFiltros((f) => ({ ...f, usuario: e.target.value }))}>
                 <option value="">Todos</option>
                 {usuarios.map((u) => <option key={u} value={u}>{u}</option>)}
@@ -203,18 +203,18 @@ const TabTablas = ({ viajes, viajeIdInicial }) => {
       {/* Zona imprimible */}
       <div className="reporte-imprimible">
         <div className="mb-3">
-          <h2 className="text-lg font-bold text-white flex items-center gap-2 titulo-reporte">
-            <Table2 className="h-5 w-5 text-teal-400 sin-imprimir" /> {reporte.titulo}
+          <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2 titulo-reporte">
+            <Table2 className="h-5 w-5 text-teal-700 sin-imprimir" /> {reporte.titulo}
           </h2>
-          <p className="text-xs text-gray-500 mt-0.5 subtitulo-reporte">{subtitulo}</p>
+          <p className="text-xs text-slate-500 mt-0.5 subtitulo-reporte">{subtitulo}</p>
           {!estado.cargando && filas.length > 0 && (
-            <p className="text-xs text-gray-600 mt-0.5 sin-imprimir">{filas.length} fila{filas.length !== 1 ? 's' : ''}</p>
+            <p className="text-xs text-slate-400 mt-0.5 sin-imprimir">{filas.length} fila{filas.length !== 1 ? 's' : ''}</p>
           )}
         </div>
 
-        {estado.error && <p className="text-sm text-rose-400 py-8 text-center">No se pudo cargar el reporte: {estado.error}</p>}
+        {estado.error && <p className="text-sm text-red-700 py-8 text-center">No se pudo cargar el reporte: {estado.error}</p>}
         {estado.cargando && !datos && (
-          <div className="space-y-2">{[0, 1, 2, 3, 4].map((i) => <div key={i} className="h-9 rounded-lg bg-white/[0.04] animate-pulse" />)}</div>
+          <div className="space-y-2">{[0, 1, 2, 3, 4].map((i) => <div key={i} className="h-9 rounded-lg bg-slate-50 animate-pulse" />)}</div>
         )}
         {datos && !estado.error && (
           <div className={estado.cargando ? 'opacity-50 transition-opacity' : 'transition-opacity'}>

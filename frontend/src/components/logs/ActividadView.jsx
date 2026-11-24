@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, History, Undo2, Search, CheckCircle2 } from 'lucide-react';
+import { Undo2, Search, CheckCircle2 } from 'lucide-react';
 import { fetchLogs, deshacerAccion } from '../../utils/api';
 import { useHabitacionesContext } from '../../Context/HabitacionesContext';
 import Paginacion from '../common/Paginacion';
+import { avisarError } from '../../utils/avisos';
 
 const POR_PAGINA = 10;
 
@@ -17,16 +17,16 @@ const TIPOS = [
 ];
 
 const ACCION = {
-  crear:         { label: 'Creó',           bg: 'rgba(16,185,129,0.12)', text: '#34d399' },
-  editar:        { label: 'Editó',          bg: 'rgba(59,130,246,0.12)', text: '#60a5fa' },
-  eliminar:      { label: 'Eliminó',        bg: 'rgba(244,63,94,0.12)',  text: '#fb7185' },
-  pago:          { label: 'Pago',           bg: 'rgba(13,148,136,0.14)', text: '#5eead4' },
-  mover:         { label: 'Movió',          bg: 'rgba(139,92,246,0.12)', text: '#a78bfa' },
-  deshacer:      { label: 'Deshizo',        bg: 'rgba(234,179,8,0.12)',  text: '#facc15' },
-  login:         { label: 'Inicio sesión',  bg: 'rgba(245,158,11,0.12)', text: '#fbbf24' },
-  login_fallido: { label: 'Acceso fallido', bg: 'rgba(248,113,113,0.14)', text: '#fca5a5' },
-  error:         { label: 'Error',          bg: 'rgba(248,113,113,0.16)', text: '#f87171' },
-  info:          { label: 'Sistema',        bg: 'rgba(125,211,252,0.12)', text: '#7dd3fc' },
+  crear:         { label: 'Creó',           codigo: 'NEW', bg: '#e7f6ef', text: '#047857' },
+  editar:        { label: 'Editó',          codigo: 'ED',  bg: '#e8f0fe', text: '#1d4ed8' },
+  eliminar:      { label: 'Eliminó',        codigo: 'DEL', bg: '#fdecec', text: '#b91c1c' },
+  pago:          { label: 'Pago',           codigo: '$',   bg: '#e6f4f1', text: '#0f766e' },
+  mover:         { label: 'Movió',          codigo: 'MV',  bg: '#f1edfd', text: '#6d28d9' },
+  deshacer:      { label: 'Deshizo',        codigo: 'UN',  bg: '#fdf3d7', text: '#92400e' },
+  login:         { label: 'Inicio de sesión', codigo: 'IN', bg: '#f1f5f9', text: '#334155' },
+  login_fallido: { label: 'Acceso fallido', codigo: '!',   bg: '#fdecec', text: '#b91c1c' },
+  error:         { label: 'Error',          codigo: 'ERR', bg: '#fdecec', text: '#b91c1c' },
+  info:          { label: 'Sistema',        codigo: 'SYS', bg: '#eef6fb', text: '#0369a1' },
 };
 
 const fechaCompleta = (fecha) =>
@@ -42,7 +42,6 @@ const fechaRelativa = (fecha) => {
 };
 
 const ActividadView = () => {
-  const navigate = useNavigate();
   const { recargarViajes } = useHabitacionesContext();
   const [logs, setLogs] = useState([]);
   const [total, setTotal] = useState(0);
@@ -102,70 +101,44 @@ const ActividadView = () => {
       await deshacerAccion(log.id);
       await Promise.all([cargar(pagina), recargarViajes()]);
     } catch (error) {
-      alert(`No se pudo deshacer: ${error.message}`);
+      avisarError(`No se pudo deshacer: ${error.message}`);
     } finally {
       setDeshaciendo(null);
     }
   };
 
   return (
-    <div className="min-h-screen" style={{ background: '#0f1117' }}>
-      <div className="fixed inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 0 }}>
-        <div className="orb w-[500px] h-[500px]"
-          style={{ top: '-150px', right: '-100px', background: '#0d9488', opacity: 0.04 }} />
-        <div className="orb-reverse w-[400px] h-[400px]"
-          style={{ bottom: '-100px', left: '-100px', background: '#8b5cf6', opacity: 0.04 }} />
-        <div className="bg-dot-grid absolute inset-0" />
+    <div className="space-y-6">
+      <div>
+        <h1 className="titulo-pagina">Registro de actividad</h1>
+        <p className="subtitulo-pagina">Quién hizo qué y cuándo. Los pagos y cambios se pueden deshacer.</p>
       </div>
 
-      <div className="relative z-10 container mx-auto px-4 py-6 max-w-4xl">
-        {/* Encabezado */}
-        <div className="flex items-center gap-4 mb-6">
-          <button
-            onClick={() => navigate('/')}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium text-gray-400 hover:text-white transition-colors"
-            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Volver
-          </button>
-          <div className="min-w-0">
-            <h1 className="text-xl font-bold gradient-text flex items-center gap-2">
-              <History className="h-5 w-5" />
-              Registro de Actividad
-            </h1>
-            <p className="text-xs text-gray-600 mt-0.5">Quién hizo qué y cuándo. Los pagos y cambios se pueden deshacer.</p>
-          </div>
-        </div>
-
+      <div className="tarjeta overflow-hidden">
         {/* Filtros */}
-        <div className="flex flex-col gap-3 mb-5">
-          <div className="flex gap-2 flex-wrap">
+        <div className="flex flex-col xl:flex-row gap-3 p-4 border-b border-slate-100">
+          <div className="segmentado overflow-x-auto shrink-0" role="tablist" aria-label="Tipo de actividad">
             {TIPOS.map((t) => (
-              <button key={t.valor || 'todo'} type="button" onClick={() => setTipo(t.valor)}
-                className={`px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
-                  tipo === t.valor
-                    ? 'bg-teal-500/15 text-teal-300 border-teal-500/40'
-                    : 'bg-white/5 text-gray-400 border-white/[0.07] hover:bg-white/10'
-                }`}>
+              <button key={t.valor || 'todo'} type="button" role="tab" aria-selected={tipo === t.valor}
+                onClick={() => setTipo(t.valor)}>
                 {t.label}
               </button>
             ))}
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-3 flex-1 min-w-0">
             <div className="relative flex-1 min-w-0">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-600" />
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
               <input
                 type="text"
                 value={busqueda}
                 onChange={(e) => setBusqueda(e.target.value)}
                 placeholder="Buscar persona, habitación, viaje..."
-                className="input-dark text-sm"
-                style={{ paddingLeft: '2.25rem' }}
+                aria-label="Buscar en la actividad"
+                className="campo-buscar"
               />
             </div>
-            <select value={usuario} onChange={(e) => setUsuario(e.target.value)}
-              className="input-dark text-sm shrink-0" style={{ width: 'auto' }}>
+            <select value={usuario} onChange={(e) => setUsuario(e.target.value)} aria-label="Filtrar por usuario"
+              className="input-dark !h-10 !py-0 !text-sm sm:!w-48 shrink-0">
               <option value="">Todos los usuarios</option>
               {usuarios.map((u) => <option key={u} value={u}>{u}</option>)}
             </select>
@@ -173,61 +146,65 @@ const ActividadView = () => {
         </div>
 
         {/* Lista */}
-        <div className="rounded-2xl overflow-hidden"
-          style={{ background: 'linear-gradient(135deg, #1a1f2e 0%, #1e2538 100%)', border: '1px solid rgba(255,255,255,0.07)' }}>
-          {logs.length === 0 && !loading && (
-            <p className="text-center py-12 text-gray-600 text-sm">No hay actividad con estos filtros.</p>
-          )}
+        {logs.length === 0 && !loading && (
+          <p className="text-center py-14 text-slate-500 text-sm">No hay actividad con estos filtros.</p>
+        )}
 
-          {logs.map((log) => {
-            const a = ACCION[log.accion] || { label: log.accion, bg: 'rgba(255,255,255,0.06)', text: '#9ca3af' };
-            const deshecho = !!log.deshechoAt;
-            return (
-              <div key={log.id}
-                className={`flex items-start gap-3 px-4 sm:px-5 py-3.5 border-b border-white/[0.04] last:border-b-0 ${deshecho ? 'opacity-55' : ''}`}>
-                <span className="shrink-0 mt-0.5 inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold whitespace-nowrap"
-                  style={{ background: a.bg, color: a.text }}>
-                  {a.label}
-                </span>
+        {logs.map((log) => {
+          const a = ACCION[log.accion] || { label: log.accion, bg: '#f1f5f9', text: '#334155', codigo: '•' };
+          const codigo = log.accion === 'pago' ? (log.descripcion.match(/([A-Z]{2,3})\$/)?.[1] || '$') : a.codigo;
+          const deshecho = !!log.deshechoAt;
+          return (
+            <div key={log.id}
+              className={`flex items-start gap-3.5 px-4 sm:px-5 py-3.5 border-b border-slate-100 ${deshecho ? 'opacity-55' : ''}`}>
+              <span className="shrink-0 h-9 w-9 rounded-lg flex items-center justify-center text-[11px] font-bold"
+                style={{ background: a.bg, color: a.text }}>
+                {codigo}
+              </span>
 
-                <div className="flex-1 min-w-0">
-                  <p className={`text-sm text-gray-200 break-words ${deshecho ? 'line-through decoration-gray-600' : ''}`}>
-                    {log.descripcion}
-                  </p>
-                  <p className="text-[11px] text-gray-500 mt-1 flex flex-wrap gap-x-2">
-                    <span className="font-medium text-gray-400">{log.usuario}</span>
-                    <span title={fechaCompleta(log.fecha)}>{fechaRelativa(log.fecha)}</span>
-                    {deshecho && (
-                      <span className="text-yellow-500/80 flex items-center gap-1">
-                        <CheckCircle2 className="h-3 w-3" />
-                        Deshecho por {log.deshechoPor} · {fechaRelativa(log.deshechoAt)}
-                      </span>
-                    )}
-                  </p>
-                </div>
-
-                {log.puedeDeshacer && (
-                  <button type="button" onClick={() => handleDeshacer(log)} disabled={deshaciendo === log.id}
-                    title="Revertir esta acción"
-                    className="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-yellow-300/90 border border-yellow-500/20 hover:bg-yellow-500/10 transition-colors disabled:opacity-50">
-                    <Undo2 className="h-3.5 w-3.5" />
-                    <span className="hidden sm:inline">{deshaciendo === log.id ? 'Deshaciendo...' : 'Deshacer'}</span>
-                  </button>
-                )}
+              <div className="flex-1 min-w-0">
+                <p className={`text-sm text-slate-900 break-words ${deshecho ? 'line-through decoration-slate-400' : ''}`}>
+                  <span className="inline-block mr-2 px-2 py-px rounded-full text-[11px] font-semibold align-[1px]"
+                    style={{ background: a.bg, color: a.text }}>
+                    {a.label}
+                  </span>
+                  {log.descripcion}
+                </p>
+                <p className="text-xs text-slate-500 mt-1 flex flex-wrap gap-x-1.5">
+                  <span>{log.usuario}</span>
+                  <span>·</span>
+                  <span title={fechaCompleta(log.fecha)}>{fechaRelativa(log.fecha)}</span>
+                  {deshecho && (
+                    <span className="text-amber-700 flex items-center gap-1 ml-1">
+                      <CheckCircle2 className="h-3 w-3" />
+                      Deshecho por {log.deshechoPor} · {fechaRelativa(log.deshechoAt)}
+                    </span>
+                  )}
+                </p>
               </div>
-            );
-          })}
 
-          {loading && <p className="text-center py-6 text-gray-600 text-sm">Cargando...</p>}
+              {log.puedeDeshacer && (
+                <button type="button" onClick={() => handleDeshacer(log)} disabled={deshaciendo === log.id}
+                  title="Revertir esta acción" className="btn btn-borde btn-sm shrink-0 !font-medium">
+                  <Undo2 className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">{deshaciendo === log.id ? 'Deshaciendo...' : 'Deshacer'}</span>
+                </button>
+              )}
+            </div>
+          );
+        })}
+
+        {loading && <p className="text-center py-6 text-slate-400 text-sm">Cargando...</p>}
+
+        <div className="px-4 sm:px-5 pb-4">
+          <Paginacion
+            pagina={pagina}
+            porPagina={POR_PAGINA}
+            total={total}
+            onCambiar={irAPagina}
+            disabled={loading}
+          />
         </div>
-
-        <Paginacion
-          pagina={pagina}
-          porPagina={POR_PAGINA}
-          total={total}
-          onCambiar={irAPagina}
-          disabled={loading}
-        />
       </div>
     </div>
   );

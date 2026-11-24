@@ -1,31 +1,30 @@
 import { ChevronRight } from 'lucide-react';
 
 // Tamaño que se adapta al ancho para que montos como RD$1,400,000 no se corten
-const TAMANO_MONTO = { fontSize: 'clamp(1.35rem, 1.1rem + 0.9vw, 1.9rem)' };
+const TAMANO_MONTO = { fontSize: 'clamp(1.35rem, 1.05rem + 0.75vw, 1.7rem)' };
 
-/** Tarjeta de monto: ícono, etiqueta, valor grande y pie opcional. */
-const MontoCard = ({ icono: Icono, label, value, color, acento, pie, onClick, indice = 0 }) => (
+/**
+ * Tarjeta de monto: etiqueta, ícono en cuadro de color, valor grande y pie opcional.
+ * acento: color "r,g,b" del ícono.
+ */
+const MontoCard = ({ icono: Icono, label, value, color = 'text-slate-900', acento = '100,116,139', pie, onClick, indice = 0 }) => (
   <div
     onClick={onClick}
-    className={`group relative overflow-hidden rounded-2xl p-5 border border-white/[0.07] animate-fade-in-up card-lift ${
-      onClick ? 'cursor-pointer hover:border-white/20' : ''
-    }`}
-    style={{ background: `linear-gradient(135deg, rgba(${acento},0.10) 0%, #1a1f2e 55%)`, animationDelay: `${indice * 70}ms` }}
+    className={`group relative tarjeta p-4 sm:p-5 animate-fade-in-up ${onClick ? 'cursor-pointer card-lift' : ''}`}
+    style={{ animationDelay: `${indice * 50}ms` }}
   >
-    <div className="absolute -top-10 -right-10 w-28 h-28 rounded-full pointer-events-none"
-      style={{ background: `radial-gradient(circle, rgba(${acento},0.25), transparent 70%)` }} />
-    <div className="relative flex items-center justify-between gap-2">
-      <span className="text-[11px] uppercase tracking-wider text-gray-400 font-semibold">{label}</span>
-      <span className="p-1.5 rounded-lg" style={{ background: `rgba(${acento},0.15)` }}>
-        <Icono className="h-4 w-4" style={{ color: `rgb(${acento})` }} />
+    <div className="flex items-center justify-between gap-2">
+      <span className="text-[13px] text-slate-600">{label}</span>
+      <span className="h-7 w-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: `rgba(${acento},0.12)` }}>
+        <Icono className="h-3.5 w-3.5" style={{ color: `rgb(${acento})` }} strokeWidth={2.2} />
       </span>
     </div>
-    <p className={`relative mt-3 font-bold tabular-nums leading-tight whitespace-nowrap ${color}`} style={TAMANO_MONTO}>
+    <p className={`mt-2.5 font-bold tabular-nums leading-tight whitespace-nowrap tracking-tight ${color}`} style={TAMANO_MONTO}>
       {value}
     </p>
-    {pie && <div className="relative mt-2">{pie}</div>}
+    {pie && <div className="mt-2.5">{pie}</div>}
     {onClick && (
-      <ChevronRight className="absolute bottom-4 right-4 h-4 w-4 text-gray-600 group-hover:text-gray-300 transition-colors" />
+      <ChevronRight className="absolute bottom-4 right-4 h-4 w-4 text-slate-300 group-hover:text-slate-500 transition-colors" />
     )}
   </div>
 );

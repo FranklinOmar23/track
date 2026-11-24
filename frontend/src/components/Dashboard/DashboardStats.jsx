@@ -1,6 +1,17 @@
-import { Wallet, CircleDollarSign, Hourglass, TrendingUp } from 'lucide-react';
+import { CreditCard, Check, Clock, TrendingUp } from 'lucide-react';
 import MontoCard from '../common/MontoCard';
 import { formatCurrency } from '../../utils/formatters';
+
+/** Barra de avance con el porcentaje a la derecha (tarjeta "Recaudado"). */
+export const BarraCobrado = ({ porcentaje }) => (
+  <div className="flex items-center gap-3">
+    <div className="barra flex-1">
+      <span className="bg-emerald-600"
+        style={{ width: `${Math.min(100, porcentaje)}%`, '--pw': `${Math.min(100, porcentaje)}%`, animation: 'progressFill 0.9s 0.2s cubic-bezier(0.23,1,0.32,1) both' }} />
+    </div>
+    <span className="text-xs font-semibold text-emerald-700 tabular-nums">{porcentaje}%</span>
+  </div>
+);
 
 /** Totales del dashboard: por cobrar, recaudado (con barra), pendiente y ganancia estimada. */
 export const DashboardStats = ({ totales, divisa }) => {
@@ -9,32 +20,21 @@ export const DashboardStats = ({ totales, divisa }) => {
   const porcentaje = porCobrar > 0 ? Math.min(100, Math.round((pagado / porCobrar) * 100)) : 0;
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
-      <MontoCard icono={Wallet} label="Total por cobrar" value={fmt(porCobrar)} color="text-white" acento="148,163,184"
-        pie={<p className="text-xs text-gray-500">{habitaciones} habitaciones · {personas} personas</p>} />
+    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <MontoCard icono={CreditCard} label="Total por cobrar" value={fmt(porCobrar)} acento="71,85,105"
+        pie={<p className="text-xs text-slate-500">{habitaciones} habitaciones · {personas} personas</p>} />
 
-      <MontoCard icono={CircleDollarSign} label="Recaudado" value={fmt(pagado)} color="text-emerald-400" acento="16,185,129" indice={1}
+      <MontoCard icono={Check} label="Recaudado" value={fmt(pagado)} color="text-emerald-700" acento="5,150,105" indice={1}
+        pie={<BarraCobrado porcentaje={porcentaje} />} />
+
+      <MontoCard icono={Clock} label="Pendiente" value={fmt(pendiente)} color="text-red-700" acento="220,38,38" indice={2}
+        pie={<p className="text-xs text-slate-500">{viajesConSaldo} viaje{viajesConSaldo !== 1 ? 's' : ''} con saldo pendiente</p>} />
+
+      <MontoCard icono={TrendingUp} label="Ganancia estimada" value={conGanancia ? fmt(ganancia) : '—'} acento="15,118,110" indice={3}
         pie={(
-          <div>
-            <div className="flex justify-between text-xs mb-1">
-              <span className="text-gray-500">Cobrado</span>
-              <span className="font-semibold text-emerald-400 tabular-nums">{porcentaje}%</span>
-            </div>
-            <div className="h-1.5 rounded-full bg-white/[0.07] overflow-hidden">
-              <div className="h-full rounded-full bg-emerald-500"
-                style={{ width: `${porcentaje}%`, '--pw': `${porcentaje}%`, animation: 'progressFill 1s 0.3s cubic-bezier(0.23,1,0.32,1) both' }} />
-            </div>
-          </div>
-        )} />
-
-      <MontoCard icono={Hourglass} label="Pendiente" value={fmt(pendiente)} color="text-rose-400" acento="244,63,94" indice={2}
-        pie={<p className="text-xs text-gray-500">{viajesConSaldo} viaje{viajesConSaldo !== 1 ? 's' : ''} con saldo pendiente</p>} />
-
-      <MontoCard icono={TrendingUp} label="Ganancia estimada" value={conGanancia ? fmt(ganancia) : '—'} color="text-teal-300" acento="45,212,191" indice={3}
-        pie={(
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-slate-500">
             {conGanancia
-              ? <>Cobrada <span className="text-teal-300 font-semibold">{fmt(gananciaCobrada)}</span></>
+              ? <>Cobrada <span className="text-emerald-700 font-semibold">{fmt(gananciaCobrada)}</span></>
               : 'Configura el margen al editar cada viaje'}
           </p>
         )} />

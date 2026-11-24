@@ -36,14 +36,14 @@ const ModalNumerosHabitaciones = ({ habitaciones, onClose }) => {
         <div className="overflow-y-auto" style={{ maxHeight: '90vh' }}>
           {/* Header */}
           <div className="sticky top-0 z-10 flex items-center justify-between px-6 pt-6 pb-4"
-            style={{ background: '#1a1f2e', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+            style={{ background: '#ffffff', borderBottom: '1px solid rgba(15,23,42,0.06)' }}>
             <div>
-              <h2 className="text-lg font-bold text-white">Habitaciones</h2>
-              <p className="text-xs text-gray-600 mt-0.5">
+              <h2 className="text-lg font-bold text-slate-900">Habitaciones</h2>
+              <p className="text-xs text-slate-400 mt-0.5">
                 {habitaciones.length} habitaciones {min !== null && `· rango ${min}–${max}`}
               </p>
             </div>
-            <button type="button" onClick={onClose} className="p-1.5 rounded-lg text-gray-500 hover:text-gray-200 hover:bg-white/[0.06] transition-colors">
+            <button type="button" onClick={onClose} className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors">
               <X className="h-4 w-4" />
             </button>
           </div>
@@ -52,15 +52,15 @@ const ModalNumerosHabitaciones = ({ habitaciones, onClose }) => {
             {faltantes.length > 0 && (
               <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl"
                 style={{ background: 'rgba(244,63,94,0.08)', border: '1px solid rgba(244,63,94,0.25)' }}>
-                <AlertTriangle className="h-4 w-4 text-rose-400 shrink-0" />
-                <span className="text-sm text-rose-300">
+                <AlertTriangle className="h-4 w-4 text-red-700 shrink-0" />
+                <span className="text-sm text-red-700">
                   Faltan {faltantes.length} número{faltantes.length !== 1 ? 's' : ''}: {faltantes.join(', ')}
                 </span>
               </div>
             )}
 
             {rango.length === 0 && (
-              <p className="text-sm text-gray-500 text-center py-6">No hay habitaciones numeradas.</p>
+              <p className="text-sm text-slate-500 text-center py-6">No hay habitaciones numeradas.</p>
             )}
 
             {rango.length > 0 && (
@@ -73,8 +73,8 @@ const ModalNumerosHabitaciones = ({ habitaciones, onClose }) => {
                       className="flex items-center justify-center rounded-lg py-2 text-sm font-semibold"
                       style={
                         existe
-                          ? { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.75)' }
-                          : { background: 'rgba(244,63,94,0.12)', border: '1px solid rgba(244,63,94,0.4)', color: '#fb7185' }
+                          ? { background: 'rgba(15,23,42,0.05)', border: '1px solid rgba(15,23,42,0.1)', color: 'rgba(15,23,42,0.75)' }
+                          : { background: 'rgba(244,63,94,0.12)', border: '1px solid rgba(244,63,94,0.4)', color: '#b91c1c' }
                       }
                     >
                       {n}
@@ -90,7 +90,7 @@ const ModalNumerosHabitaciones = ({ habitaciones, onClose }) => {
                 <div className="flex flex-wrap gap-2 mt-1.5">
                   {otras.map((o) => (
                     <span key={o} className="px-2.5 py-1 rounded-lg text-xs font-semibold"
-                      style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.75)' }}>
+                      style={{ background: 'rgba(15,23,42,0.05)', border: '1px solid rgba(15,23,42,0.1)', color: 'rgba(15,23,42,0.75)' }}>
                       {o}
                     </span>
                   ))}
@@ -98,7 +98,7 @@ const ModalNumerosHabitaciones = ({ habitaciones, onClose }) => {
               </div>
             )}
 
-            <div className="flex items-center justify-end pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+            <div className="flex items-center justify-end pt-2" style={{ borderTop: '1px solid rgba(15,23,42,0.05)' }}>
               <button type="button" className="btn-modal-secondary" onClick={onClose}>Cerrar</button>
             </div>
           </div>

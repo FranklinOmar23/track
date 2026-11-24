@@ -252,3 +252,6 @@ export const actualizarUsuario = (id, datos) =>
 
 export const restablecerPassword = (id, password) =>
   request(`/api/usuarios/${id}/password`, { method: 'PUT', body: JSON.stringify({ password }) });
+
+export const cambiarTitular = (personaId) =>
+  request(`/api/personas/${personaId}/titular`, { method: 'PATCH' });

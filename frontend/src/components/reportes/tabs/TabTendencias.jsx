@@ -1,108 +1,72 @@
-import { AreaChart, Area, LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { ChartPanel, EmptyChart, CustomTooltip } from '../ui';
+import { useMemo } from 'react';
+import Grafico from '../../common/Grafico';
+import { formatoCompacto } from '../../../utils/formatters';
+import { ChartPanel, EmptyChart } from '../ui';
 
-const TabTendencias = ({ datos, fmt }) => {
+const TabTendencias = ({ datos, fmt, divisa }) => {
   const { tendenciasData, proyeccionData, comparativaData } = datos;
+  const compacto = useMemo(() => formatoCompacto(divisa), [divisa]);
+  const dinero = (v) => fmt(v);
+
+  // Evolución: cobrado por mes (área) y acumulado (línea en su propio eje)
+  const evolucion = useMemo(() => ({
+    categorias: tendenciasData.map((d) => d.mes),
+    series: [
+      { name: 'Cobrado en el mes', type: 'area', color: '#059669', data: tendenciasData.map((d) => d.pagado), format: dinero },
+      {
+        name: 'Acumulado', type: 'line', color: '#6366f1', lineWidth: 2.5, data: tendenciasData.map((d) => d.acumulado), format: dinero,
+        yAxis: { opposite: true, format: compacto, zero: true },
+      },
+    ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [tendenciasData, compacto]);
+
+  // Proyección: real (sólida) y estimación (punteada); los null cortan cada línea
+  const proyeccion = useMemo(() => ({
+    categorias: proyeccionData.map((d) => d.mes),
+    series: [
+      { name: 'Real', type: 'line', color: '#059669', lineWidth: 2.5, data: proyeccionData.map((d) => d.actual), format: dinero, markers: { show: true, size: 4 } },
+      { name: 'Proyección', type: 'line', color: '#6366f1', dash: [6, 4], data: proyeccionData.map((d) => d.tendencia), format: dinero },
+    ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [proyeccionData]);
+
+  const comparativa = useMemo(() => ({
+    categorias: comparativaData.map((d) => d.name),
+    series: [
+      { name: 'Pagado', type: 'bar', color: '#059669', data: comparativaData.map((d) => d.pagado), format: dinero },
+      { name: 'Pendiente', type: 'bar', color: '#f4a9a3', data: comparativaData.map((d) => d.pendiente), format: dinero },
+    ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [comparativaData]);
+
+  const sinProyeccion = proyeccionData.every((d) => !d.actual && !d.tendencia);
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Evolución */}
-        <ChartPanel
-          title="Evolución de Recaudación"
-          subtitle="Dinero cobrado en cada mes (verde) y total acumulado (morado)"
-          orbColor="#0d9488"
-        >
+        <ChartPanel title="Evolución de recaudación" subtitle="Dinero cobrado en cada mes y total acumulado">
           {tendenciasData.length === 0 ? <EmptyChart /> : (
-            <div className="h-56">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={tendenciasData} margin={{ top: 5, right: 5, bottom: 0, left: 0 }}>
-                  <defs>
-                    <linearGradient id="gPagado" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%"  stopColor="#0d9488" stopOpacity={0.35} />
-                      <stop offset="95%" stopColor="#0d9488" stopOpacity={0}    />
-                    </linearGradient>
-                    <linearGradient id="gPendiente" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%"  stopColor="#f43f5e" stopOpacity={0.28} />
-                      <stop offset="95%" stopColor="#f43f5e" stopOpacity={0}    />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
-                  <XAxis dataKey="mes" tick={{ fontSize: 11, fill: '#4b5563' }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 11, fill: '#4b5563' }} axisLine={false} tickLine={false}
-                    tickFormatter={(v) => fmt(v, true)} width={44} />
-                  <Tooltip content={<CustomTooltip formatter={(v) => fmt(v)} />} />
-                  <Area type="monotone" dataKey="pagado"    stroke="#0d9488" fill="url(#gPagado)"    strokeWidth={2} name="Pagado"    isAnimationActive animationDuration={900} animationEasing="ease-out" />
-                  <Area type="monotone" dataKey="acumulado" stroke="#6366f1" fill="url(#gPendiente)" strokeWidth={2} name="Acumulado" isAnimationActive animationDuration={900} animationEasing="ease-out" />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
+            <Grafico type="area" height={240} categories={evolucion.categorias} series={evolucion.series}
+              y={{ format: compacto, zero: true }} legend={{ show: true }} tooltip={{ header: '{x}' }}
+              export={{ formats: ['png', 'pdf', 'xlsx'], filename: 'Evolución de recaudación' }} />
           )}
-          <div className="flex gap-5 mt-3">
-            <div className="flex items-center gap-2 text-xs text-gray-500">
-              <div className="w-2.5 h-2.5 rounded-full bg-teal-500" /> Pagado
-            </div>
-            <div className="flex items-center gap-2 text-xs text-gray-500">
-              <div className="w-2.5 h-2.5 rounded-full bg-rose-500" /> Pendiente
-            </div>
-          </div>
         </ChartPanel>
 
-        {/* Proyección */}
-        <ChartPanel
-          title="Proyección de Cobro"
-          subtitle="Línea sólida = cobros reales · Línea punteada = estimación si el ritmo continúa igual"
-          orbColor="#6366f1"
-        >
-          {proyeccionData.every((d) => !d.actual && !d.tendencia) ? <EmptyChart /> : (
-            <div className="h-56">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={proyeccionData} margin={{ top: 5, right: 5, bottom: 0, left: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
-                  <XAxis dataKey="mes" tick={{ fontSize: 11, fill: '#4b5563' }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 11, fill: '#4b5563' }} axisLine={false} tickLine={false}
-                    tickFormatter={(v) => fmt(v, true)} width={44} />
-                  <Tooltip content={<CustomTooltip formatter={(v) => v ? fmt(v) : '—'} />} />
-                  <Line type="monotone" dataKey="actual"    stroke="#0d9488" strokeWidth={2.5} dot={{ r: 3.5, fill: '#0d9488', strokeWidth: 0 }} name="Real"      connectNulls={false} isAnimationActive animationDuration={900} />
-                  <Line type="monotone" dataKey="tendencia" stroke="#6366f1" strokeWidth={2}   strokeDasharray="6 4" dot={false} name="Proyección" connectNulls isAnimationActive animationDuration={900} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
+        <ChartPanel title="Proyección de cobro" subtitle="Línea sólida = cobros reales · punteada = estimación si el ritmo sigue igual">
+          {sinProyeccion ? <EmptyChart /> : (
+            <Grafico type="line" height={240} categories={proyeccion.categorias} series={proyeccion.series}
+              y={{ format: compacto, zero: true }} legend={{ show: true }} tooltip={{ header: '{x}' }}
+              export={{ formats: ['png', 'pdf', 'xlsx'], filename: 'Proyección de cobro' }} />
           )}
-          <div className="flex gap-5 mt-3">
-            <div className="flex items-center gap-2 text-xs text-gray-500">
-              <div className="w-2.5 h-2.5 rounded-full bg-teal-500" /> Real
-            </div>
-            <div className="flex items-center gap-2 text-xs text-gray-500">
-              <div className="w-2.5 h-[2px] bg-indigo-400 self-center" style={{ borderTop: '2px dashed #6366f1' }} /> Proyección
-            </div>
-          </div>
         </ChartPanel>
       </div>
 
-      {/* Comparativa de viajes */}
       {comparativaData.length > 0 && (
-        <ChartPanel
-          title="Comparativa entre Viajes"
-          subtitle="Cuánto se ha cobrado (verde) y cuánto falta (rojo) en cada viaje — útil para ver cuál va mejor"
-          orbColor="#f97316"
-        >
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={comparativaData} margin={{ top: 5, right: 5, bottom: 0, left: 0 }} barGap={4}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
-                <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#4b5563' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: '#4b5563' }} axisLine={false} tickLine={false}
-                  tickFormatter={(v) => fmt(v, true)} width={44} />
-                <Tooltip content={<CustomTooltip formatter={(v) => fmt(v)} />} />
-                <Bar dataKey="pagado"    fill="#0d9488" radius={[5,5,0,0]} name="Pagado"    isAnimationActive animationDuration={700} animationEasing="ease-out" />
-                <Bar dataKey="pendiente" fill="#f43f5e" radius={[5,5,0,0]} name="Pendiente" isAnimationActive animationDuration={700} animationEasing="ease-out" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="flex gap-5 mt-3">
-            <div className="flex items-center gap-2 text-xs text-gray-500"><div className="w-2.5 h-2.5 rounded bg-teal-500" /> Pagado</div>
-            <div className="flex items-center gap-2 text-xs text-gray-500"><div className="w-2.5 h-2.5 rounded bg-rose-500" /> Pendiente</div>
-          </div>
+        <ChartPanel title="Comparativa entre viajes" subtitle="Cuánto se ha cobrado y cuánto falta en cada viaje">
+          <Grafico type="bar" height={280} categories={comparativa.categorias} series={comparativa.series}
+            y={{ format: compacto, zero: true }} bar={{ radius: 5, padding: 0.3 }} legend={{ show: true }} tooltip={{ header: '{x}' }}
+            export={{ formats: ['png', 'pdf', 'xlsx'], filename: 'Comparativa entre viajes' }} />
         </ChartPanel>
       )}
     </div>

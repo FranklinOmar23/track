@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Share2, Copy, Check, X, Clock, ListFilter } from 'lucide-react';
 import { generarLinkCompartir, desactivarLinkCompartir } from '../../utils/api';
+import { avisarError, avisarExito } from '../../utils/avisos';
 
 /** Genera, copia o desactiva el enlace público (solo lectura) de un viaje. */
 const ModalCompartir = ({ viajeId, viajeNombre, onClose }) => {
@@ -27,7 +28,7 @@ const ModalCompartir = ({ viajeId, viajeNombre, onClose }) => {
 
   const handleGenerarLink = async () => {
     if (!viajeId) {
-      alert('Primero selecciona un viaje');
+      avisarError('Primero selecciona un viaje');
       return;
     }
     setGenerando(true);
@@ -41,7 +42,7 @@ const ModalCompartir = ({ viajeId, viajeNombre, onClose }) => {
       });
     } catch (error) {
       console.error('Error:', error);
-      alert('Error al generar el enlace');
+      avisarError('Error al generar el enlace');
     } finally {
       setGenerando(false);
     }
@@ -59,9 +60,9 @@ const ModalCompartir = ({ viajeId, viajeNombre, onClose }) => {
       await desactivarLinkCompartir(viajeId);
       setLinkCompartir('');
       setExpiracionInfo(null);
-      alert('Enlace desactivado correctamente');
+      avisarExito('Enlace desactivado');
     } catch {
-      alert('Error al desactivar el enlace');
+      avisarError('Error al desactivar el enlace');
     }
   };
 
@@ -70,35 +71,35 @@ const ModalCompartir = ({ viajeId, viajeNombre, onClose }) => {
 
   return (
     <div
-      className="fixed inset-0 bg-black/70 flex items-center justify-center z-50"
+      className="fixed inset-0 bg-slate-900/45 backdrop-blur-[3px] flex items-center justify-center z-50 p-4"
       onClick={handleCerrarCompartir}
     >
       <div
-        className="bg-[#1a1f2e] border border-white/[0.07] rounded-xl shadow-2xl w-full max-w-md mx-4"
+        className="bg-white border border-slate-200 rounded-xl shadow-2xl w-full max-w-md mx-4"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="p-6">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-base font-semibold text-white">
+            <h3 className="text-base font-semibold text-slate-900">
               Compartir viaje
             </h3>
             <button
               onClick={handleCerrarCompartir}
-              className="text-gray-500 hover:text-gray-300 transition-colors"
+              className="text-slate-500 hover:text-slate-900 transition-colors"
             >
               <X className="h-5 w-5" />
             </button>
           </div>
 
-          <p className="text-sm text-gray-400 mb-4">
+          <p className="text-sm text-slate-500 mb-4">
             Comparte este enlace con consultores para que vean el estado del viaje{' '}
-            <strong className="text-gray-200">{viajeNombre}</strong> (solo lectura)
+            <strong className="text-slate-800">{viajeNombre}</strong> (solo lectura)
           </p>
 
           {!linkCompartir ? (
             <>
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-400 mb-2">
+                <label className="block text-sm font-medium text-slate-500 mb-2">
                   <ListFilter className="h-4 w-4 inline mr-1" />
                   Qué se comparte
                 </label>
@@ -110,21 +111,21 @@ const ModalCompartir = ({ viajeId, viajeNombre, onClose }) => {
                       onClick={() => setTipoCompartir(op.valor)}
                       className={`px-3 py-2 text-sm rounded-lg border transition-all ${
                         tipoCompartir === op.valor
-                          ? 'bg-teal-500 text-white border-teal-500'
-                          : 'bg-white/5 text-gray-300 border-white/[0.07] hover:border-white/20'
+                          ? 'bg-teal-700 text-white border-teal-700'
+                          : 'bg-slate-100 text-slate-700 border-slate-200 hover:border-slate-300'
                       }`}
                     >
                       {op.label}
                     </button>
                   ))}
                 </div>
-                <p className="text-xs text-gray-500 mt-2">
+                <p className="text-xs text-slate-500 mt-2">
                   {opcionesTipo.find(o => o.valor === tipoCompartir)?.descripcion}
                 </p>
               </div>
 
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-400 mb-2">
+                <label className="block text-sm font-medium text-slate-500 mb-2">
                   <Clock className="h-4 w-4 inline mr-1" />
                   Tiempo de vigencia del enlace
                 </label>
@@ -136,15 +137,15 @@ const ModalCompartir = ({ viajeId, viajeNombre, onClose }) => {
                       onClick={() => setDuracion(op.valor)}
                       className={`px-3 py-2 text-sm rounded-lg border transition-all ${
                         duracion === op.valor
-                          ? 'bg-teal-500 text-white border-teal-500'
-                          : 'bg-white/5 text-gray-300 border-white/[0.07] hover:border-white/20'
+                          ? 'bg-teal-700 text-white border-teal-700'
+                          : 'bg-slate-100 text-slate-700 border-slate-200 hover:border-slate-300'
                       }`}
                     >
                       {op.label}
                     </button>
                   ))}
                 </div>
-                <p className="text-xs text-gray-500 mt-2">
+                <p className="text-xs text-slate-500 mt-2">
                   {opcionesDuracion.find(o => o.valor === duracion)?.descripcion}
                 </p>
               </div>
@@ -152,11 +153,11 @@ const ModalCompartir = ({ viajeId, viajeNombre, onClose }) => {
               <button
                 onClick={handleGenerarLink}
                 disabled={generando}
-                className="w-full bg-teal-500 hover:bg-teal-600 text-white rounded-lg px-4 py-2 text-sm flex items-center justify-center gap-2 disabled:opacity-50 transition-colors"
+                className="w-full bg-teal-700 hover:bg-teal-800 text-white rounded-lg px-4 py-2 text-sm flex items-center justify-center gap-2 disabled:opacity-50 transition-colors"
               >
                 {generando ? (
                   <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-slate-200 border-t-transparent" />
                     Generando...
                   </>
                 ) : (
@@ -169,20 +170,20 @@ const ModalCompartir = ({ viajeId, viajeNombre, onClose }) => {
             </>
           ) : (
             <>
-              <div className="bg-black/30 rounded-lg p-3 mb-4 border border-white/[0.05]">
+              <div className="bg-slate-50 rounded-lg p-3 mb-4 border border-slate-200">
                 <div className="flex items-center justify-between mb-1">
-                  <p className="text-xs text-gray-500">Enlace generado:</p>
+                  <p className="text-xs text-slate-500">Enlace generado:</p>
                   <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${
                     tipoGenerado === 'pendientes'
-                      ? 'bg-amber-500/15 text-amber-400 border border-amber-500/25'
-                      : 'bg-teal-500/15 text-teal-400 border border-teal-500/25'
+                      ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                      : 'bg-teal-50 text-teal-700 border border-teal-200'
                   }`}>
                     {tipoGenerado === 'pendientes' ? 'Solo pendientes' : 'Viaje completo'}
                   </span>
                 </div>
-                <p className="text-sm font-mono break-all text-gray-200">{linkCompartir}</p>
+                <p className="text-sm font-mono break-all text-slate-800">{linkCompartir}</p>
                 {expiracionInfo && (
-                  <p className="text-xs text-amber-400 mt-2 flex items-center gap-1">
+                  <p className="text-xs text-amber-700 mt-2 flex items-center gap-1">
                     <Clock className="h-3 w-3" />
                     Válido hasta: {expiracionInfo.texto}
                   </p>
@@ -192,16 +193,16 @@ const ModalCompartir = ({ viajeId, viajeNombre, onClose }) => {
               <div className="flex gap-2 mb-3">
                 <button
                   onClick={handleCopiarLink}
-                  className="flex-1 border border-white/[0.07] text-gray-300 rounded-lg px-3 py-2 text-sm flex items-center justify-center gap-1 hover:bg-white/5 transition-colors"
+                  className="flex-1 border border-slate-200 text-slate-700 rounded-lg px-3 py-2 text-sm flex items-center justify-center gap-1 hover:bg-slate-100 transition-colors"
                 >
-                  {copiado ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
+                  {copiado ? <Check className="h-4 w-4 text-emerald-700" /> : <Copy className="h-4 w-4" />}
                   {copiado ? 'Copiado' : 'Copiar enlace'}
                 </button>
               </div>
 
               <button
                 onClick={handleDesactivarLink}
-                className="w-full border border-red-500/30 text-red-400 rounded-lg px-4 py-2 text-sm hover:bg-red-500/10 transition-colors"
+                className="w-full border border-red-200 text-red-700 rounded-lg px-4 py-2 text-sm hover:bg-red-50 transition-colors"
               >
                 Desactivar enlace
               </button>

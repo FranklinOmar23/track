@@ -1,13 +1,25 @@
 import { useState } from 'react';
 import { Flag, CheckCircle2 } from 'lucide-react';
 import { useHabitacionesContext } from '../../Context/HabitacionesContext';
+import { avisarError } from '../../utils/avisos';
 
 const fechaCorta = (f) => (f ? new Intl.DateTimeFormat('es-DO', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(f)) : '');
 
-/** Bloque "En revisión" del detalle de habitación: marcar con motivo o resolver. */
-const RevisionHabitacion = ({ habitacion, soloLectura }) => {
+/** Botón "Poner en revisión" (va junto al selector de centro). */
+export const BotonRevision = ({ onClick }) => (
+  <button type="button" onClick={onClick}
+    className="h-[2.65rem] shrink-0 inline-flex items-center justify-center gap-2 px-4 rounded-[0.6rem] text-sm font-semibold text-amber-900 bg-amber-50 border border-amber-200 hover:bg-amber-100 transition-colors">
+    <Flag className="h-4 w-4" /> Poner en revisión
+  </button>
+);
+
+/**
+ * Bloque de revisión del detalle de habitación.
+ * - Si la habitación está en revisión: muestra el motivo y permite resolverla.
+ * - Si `editando`: formulario para escribir el motivo.
+ */
+const RevisionHabitacion = ({ habitacion, soloLectura, editando, onCerrarEdicion }) => {
   const { marcarRevision } = useHabitacionesContext();
-  const [editando, setEditando] = useState(false);
   const [nota, setNota] = useState('');
   const [guardando, setGuardando] = useState(false);
 
@@ -15,10 +27,10 @@ const RevisionHabitacion = ({ habitacion, soloLectura }) => {
     setGuardando(true);
     try {
       await marcarRevision(habitacion.id, enRevision, enRevision ? nota : '');
-      setEditando(false);
       setNota('');
+      onCerrarEdicion?.();
     } catch (error) {
-      alert(`No se pudo actualizar la revisión: ${error.message}`);
+      avisarError(`No se pudo actualizar la revisión: ${error.message}`);
     } finally {
       setGuardando(false);
     }
@@ -26,14 +38,13 @@ const RevisionHabitacion = ({ habitacion, soloLectura }) => {
 
   if (habitacion.enRevision) {
     return (
-      <div className="rounded-xl p-3.5 animate-fade-in-up"
-        style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.28)' }}>
+      <div className="rounded-xl p-4 bg-amber-50 border border-amber-200 animate-fade-in-up">
         <div className="flex items-start gap-2.5">
-          <Flag className="h-4 w-4 text-amber-400 mt-0.5 shrink-0" />
+          <Flag className="h-4 w-4 text-amber-700 mt-0.5 shrink-0" />
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-amber-300">En revisión</p>
-            {habitacion.revisionNota && <p className="text-sm text-gray-300 mt-1 break-words">{habitacion.revisionNota}</p>}
-            <p className="text-[11px] text-gray-500 mt-1">
+            <p className="text-sm font-semibold text-amber-900">En revisión</p>
+            {habitacion.revisionNota && <p className="text-sm text-slate-700 mt-1 break-words">{habitacion.revisionNota}</p>}
+            <p className="text-xs text-slate-500 mt-1">
               {habitacion.revisionPor && `Marcada por ${habitacion.revisionPor}`}
               {habitacion.revisionAt && ` · ${fechaCorta(habitacion.revisionAt)}`}
             </p>
@@ -41,8 +52,8 @@ const RevisionHabitacion = ({ habitacion, soloLectura }) => {
         </div>
         {!soloLectura && (
           <button type="button" onClick={() => guardar(false)} disabled={guardando}
-            className="mt-3 w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold text-emerald-300 bg-emerald-500/10 border border-emerald-500/25 hover:bg-emerald-500/20 transition-colors disabled:opacity-50">
-            <CheckCircle2 className="h-3.5 w-3.5" />
+            className="mt-3 w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold text-emerald-800 bg-white border border-emerald-200 hover:bg-emerald-50 transition-colors disabled:opacity-50">
+            <CheckCircle2 className="h-4 w-4" />
             {guardando ? 'Guardando...' : 'Marcar como revisada'}
           </button>
         )}
@@ -50,22 +61,11 @@ const RevisionHabitacion = ({ habitacion, soloLectura }) => {
     );
   }
 
-  if (soloLectura) return null;
-
-  if (!editando) {
-    return (
-      <button type="button" onClick={() => setEditando(true)}
-        className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-amber-300/90 border border-dashed border-amber-500/30 hover:bg-amber-500/10 transition-colors">
-        <Flag className="h-3.5 w-3.5" />
-        Poner en revisión
-      </button>
-    );
-  }
+  if (soloLectura || !editando) return null;
 
   return (
-    <div className="rounded-xl p-3.5 space-y-2.5 animate-fade-in-up"
-      style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.22)' }}>
-      <label className="modal-section-label" htmlFor={`revision-${habitacion.id}`}>¿Qué hay que revisar?</label>
+    <div className="rounded-xl p-4 space-y-3 bg-amber-50 border border-amber-200 animate-fade-in-up">
+      <label className="modal-section-label !mb-0" htmlFor={`revision-${habitacion.id}`}>¿Qué hay que revisar?</label>
       <textarea
         id={`revision-${habitacion.id}`}
         className="input-dark resize-none"
@@ -78,12 +78,12 @@ const RevisionHabitacion = ({ habitacion, soloLectura }) => {
         disabled={guardando}
       />
       <div className="flex gap-2">
-        <button type="button" className="btn-modal-secondary flex-1" onClick={() => { setEditando(false); setNota(''); }} disabled={guardando}>
+        <button type="button" className="btn-modal-secondary flex-1" onClick={() => { setNota(''); onCerrarEdicion?.(); }} disabled={guardando}>
           Cancelar
         </button>
         <button type="button" onClick={() => guardar(true)} disabled={guardando}
-          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold text-black bg-amber-400 hover:bg-amber-300 transition-colors disabled:opacity-50">
-          <Flag className="h-3.5 w-3.5" />
+          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-[0.6rem] text-sm font-semibold text-white bg-amber-600 hover:bg-amber-700 transition-colors disabled:opacity-50">
+          <Flag className="h-4 w-4" />
           {guardando ? 'Guardando...' : 'Poner en revisión'}
         </button>
       </div>

@@ -5,6 +5,7 @@ import { EtiquetaFields, NinosFields, StackToggle, ChipStack } from './Habitacio
 import { capacidadPorTipo } from '../../utils/calculos';
 import InputMonto from '../common/InputMonto';
 import { useDivisa } from '../../hooks/useDivisa';
+import { avisarError } from '../../utils/avisos';
 
 const ModalEditarHabitacion = ({ habitacion, open, onClose }) => {
   const { guardarHabitacionCompleta, state } = useHabitacionesContext();
@@ -118,7 +119,7 @@ const ModalEditarHabitacion = ({ habitacion, open, onClose }) => {
       onClose();
     } catch (err) {
       console.error(err);
-      alert(`No se pudo guardar la habitación: ${err.message}`);
+      avisarError(`No se pudo guardar la habitación: ${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -135,12 +136,12 @@ const ModalEditarHabitacion = ({ habitacion, open, onClose }) => {
 
         {/* Header */}
         <div className="sticky top-0 z-10 flex items-center justify-between px-6 pt-6 pb-4"
-          style={{ background: '#1a1f2e', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+          style={{ background: '#ffffff', borderBottom: '1px solid rgba(15,23,42,0.06)' }}>
           <div>
-            <h2 className="text-lg font-bold text-white">Editar habitación</h2>
-            <p className="text-xs text-gray-600 mt-0.5">Hab. {habitacion.num}</p>
+            <h2 className="text-lg font-bold text-slate-900">Editar habitación</h2>
+            <p className="text-xs text-slate-400 mt-0.5">Hab. {habitacion.num}</p>
           </div>
-          <button type="button" onClick={onClose} className="p-1.5 rounded-lg text-gray-500 hover:text-gray-200 hover:bg-white/[0.06] transition-colors">
+          <button type="button" onClick={onClose} className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -194,7 +195,7 @@ const ModalEditarHabitacion = ({ habitacion, open, onClose }) => {
                   {personas[idx]?.nombre && (
                     <button type="button" onClick={() => quitarPersona(idx)} disabled={loading}
                       title="Quitar persona"
-                      className="p-1.5 rounded-lg text-rose-400 hover:bg-rose-500/10 transition-colors shrink-0">
+                      className="p-1.5 rounded-lg text-red-700 hover:bg-rose-50 transition-colors shrink-0">
                       <Minus className="h-3.5 w-3.5" />
                     </button>
                   )}

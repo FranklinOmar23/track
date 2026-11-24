@@ -1,200 +1,151 @@
 import { useState } from 'react';
+import { Tag } from 'lucide-react';
 import { useDivisa } from '../../hooks/useDivisa';
-import { calcularTotalHabitacion, calcularEstadisticas, filtrarHabitaciones } from '../../utils/calculos';
+import { calcularTotalHabitacion, calcularTotalPagado, calcularEstadisticas, filtrarHabitaciones } from '../../utils/calculos';
 import { useHabitacionesContext } from '../../Context/HabitacionesContext';
-import { HabitacionCard } from './HabitacionCard';
+import { HabitacionFila, COLUMNAS_HAB } from './HabitacionCard';
 import ModalDetallesHabitacion from '../Modals/ModalDetallesHabitacion';
-import { Tag, LayoutGrid } from 'lucide-react';
 
-const COLORES_ETIQUETA = [
-  { bg: 'bg-teal-900/40',   text: 'text-teal-400',   border: 'border-teal-600/40',   header: 'bg-teal-900/20 border-teal-700/30',   dot: '#0d9488' },
-  { bg: 'bg-violet-900/40', text: 'text-violet-400', border: 'border-violet-600/40', header: 'bg-violet-900/20 border-violet-700/30', dot: '#8b5cf6' },
-  { bg: 'bg-amber-900/40',  text: 'text-amber-400',  border: 'border-amber-600/40',  header: 'bg-amber-900/20 border-amber-700/30',  dot: '#f59e0b' },
-  { bg: 'bg-rose-900/40',   text: 'text-rose-400',   border: 'border-rose-600/40',   header: 'bg-rose-900/20 border-rose-700/30',   dot: '#f43f5e' },
-  { bg: 'bg-cyan-900/40',   text: 'text-cyan-400',   border: 'border-cyan-600/40',   header: 'bg-cyan-900/20 border-cyan-700/30',   dot: '#06b6d4' },
-  { bg: 'bg-orange-900/40', text: 'text-orange-400', border: 'border-orange-600/40', header: 'bg-orange-900/20 border-orange-700/30', dot: '#f97316' },
-];
+const LIMITE_INICIAL = 60;
 
-const getColorForEtiqueta = (etiqueta, etiquetasOrdenadas) => {
-  const idx = etiquetasOrdenadas.indexOf(etiqueta);
-  return COLORES_ETIQUETA[idx % COLORES_ETIQUETA.length];
+const ordenarHabitaciones = (habs) => [...habs].sort((a, b) => {
+  if (!!a.stack !== !!b.stack) return a.stack ? -1 : 1;
+  return String(a.num).localeCompare(String(b.num), undefined, { numeric: true, sensitivity: 'base' });
+});
+
+/** Botón de filtro por centro / etiqueta. */
+const ChipCentro = ({ activo, onClick, children }) => (
+  <button type="button" onClick={onClick} aria-pressed={activo}
+    className={`h-7 px-3 rounded-full text-xs font-medium border transition-colors whitespace-nowrap ${
+      activo ? 'bg-slate-900 border-slate-900 text-white' : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'
+    }`}>
+    {children}
+  </button>
+);
+
+/** Fila de grupo: nombre del centro y sus totales. */
+const EncabezadoGrupo = ({ nombre, habs, fmt }) => {
+  const total = habs.reduce((s, h) => s + calcularTotalHabitacion(h), 0);
+  const pagado = habs.reduce((s, h) => s + calcularTotalPagado(h), 0);
+  const pct = total > 0 ? Math.round((pagado / total) * 100) : 0;
+  // Pendiente por habitación (lo pagado de más en una no descuenta la deuda de otra), igual que el Excel
+  const pendiente = calcularEstadisticas(habs).pendiente;
+
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 sm:px-5 py-2.5 border-t border-slate-100"
+      style={{ background: '#eef7f5' }}>
+      <div className="flex items-center gap-2">
+        <Tag className="h-3.5 w-3.5 text-teal-700" />
+        <span className="text-[13px] font-semibold text-slate-900">{nombre}</span>
+        <span className="text-xs text-slate-500">{habs.length} hab.</span>
+      </div>
+      <div className="flex items-center gap-4 text-xs text-slate-600 tabular-nums">
+        <span>Recaudado <span className="font-semibold text-emerald-700">{fmt(pagado)}</span></span>
+        <span>Pendiente <span className="font-semibold text-red-700">{fmt(pendiente)}</span></span>
+        <span className="font-bold text-teal-700">{pct}%</span>
+      </div>
+    </div>
+  );
 };
 
 const HabitacionesList = () => {
-  const { fmt: formatCurrency } = useDivisa();
+  const { fmt } = useDivisa();
   const { state } = useHabitacionesContext();
   const { habitaciones, filtros } = state;
   const [selectedHabitacion, setSelectedHabitacion] = useState(null);
   const [etiquetaFiltro, setEtiquetaFiltro] = useState('todas');
+  const [verTodas, setVerTodas] = useState(false);
 
-  const etiquetasUnicas = [...new Set(
-    habitaciones.map((h) => h.etiqueta || '').filter(Boolean)
-  )].sort();
+  const etiquetasUnicas = [...new Set(habitaciones.map((h) => h.etiqueta || '').filter(Boolean))].sort();
+  const sinEtiqueta = habitaciones.filter((h) => !h.etiqueta).length;
 
   // Búsqueda y estado (pendiente / completo / en revisión) con la misma lógica de totales que el resto de la app
-  const habitacionesFiltradas = filtrarHabitaciones(habitaciones, filtros).filter((hab) =>
+  const filtradas = filtrarHabitaciones(habitaciones, filtros).filter((hab) =>
     etiquetaFiltro === 'todas' ? true : etiquetaFiltro === '__sin__' ? !hab.etiqueta : hab.etiqueta === etiquetaFiltro
   );
 
   const grupos = {};
-  habitacionesFiltradas.forEach((hab) => {
+  filtradas.forEach((hab) => {
     const clave = hab.etiqueta || '__sin__';
-    if (!grupos[clave]) grupos[clave] = [];
-    grupos[clave].push(hab);
+    (grupos[clave] ||= []).push(hab);
   });
+  Object.keys(grupos).forEach((c) => { grupos[c] = ordenarHabitaciones(grupos[c]); });
+  const claves = [...etiquetasUnicas.filter((e) => grupos[e]), ...(grupos.__sin__ ? ['__sin__'] : [])];
+  // Sin centros definidos no hace falta la fila de grupo
+  const mostrarGrupos = etiquetasUnicas.length > 0;
 
-  Object.keys(grupos).forEach((clave) => {
-    grupos[clave].sort((a, b) => {
-      if (!!a.stack !== !!b.stack) return a.stack ? -1 : 1;
-      return String(a.num).localeCompare(String(b.num), undefined, { numeric: true, sensitivity: 'base' });
-    });
-  });
-
-  const clavesOrdenadas = [
-    ...etiquetasUnicas.filter((e) => grupos[e]),
-    ...(grupos['__sin__'] ? ['__sin__'] : []),
-  ];
-
-  // Assign a global card index for stagger animation
-  let globalCardIndex = 0;
+  // Con muchas habitaciones se dibujan las primeras y el resto bajo demanda
+  const limite = verTodas ? Infinity : LIMITE_INICIAL;
+  const bloques = [];
+  claves.reduce((usadas, clave) => {
+    const visibles = grupos[clave].slice(0, Math.max(0, limite - usadas));
+    if (visibles.length) bloques.push({ clave, habs: grupos[clave], visibles });
+    return usadas + visibles.length;
+  }, 0);
+  const mostradas = Math.min(filtradas.length, limite);
 
   return (
     <>
-      {/* ── Etiqueta filter chips ── */}
+      {/* Filtro por centro */}
       {etiquetasUnicas.length > 0 && (
-        <div className="flex flex-wrap gap-2 mb-4 mt-2 animate-fade-in-up stagger-0">
-          <button
-            onClick={() => setEtiquetaFiltro('todas')}
-            className="btn-press flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold transition-all duration-200"
-            style={{
-              backgroundColor: etiquetaFiltro === 'todas' ? 'rgba(13,148,136,0.18)' : 'rgba(255,255,255,0.05)',
-              color: etiquetaFiltro === 'todas' ? '#2dd4bf' : 'rgba(255,255,255,0.45)',
-              border: `1px solid ${etiquetaFiltro === 'todas' ? 'rgba(13,148,136,0.4)' : 'rgba(255,255,255,0.08)'}`,
-            }}
-          >
-            <LayoutGrid className="h-3.5 w-3.5" />
+        <div className="flex items-center gap-2 px-4 sm:px-5 py-3 overflow-x-auto">
+          <span className="text-xs text-slate-500 shrink-0">Centro:</span>
+          <ChipCentro activo={etiquetaFiltro === 'todas'} onClick={() => setEtiquetaFiltro('todas')}>
             Todas ({habitaciones.length})
-          </button>
+          </ChipCentro>
+          {etiquetasUnicas.map((e) => (
+            <ChipCentro key={e} activo={etiquetaFiltro === e} onClick={() => setEtiquetaFiltro(etiquetaFiltro === e ? 'todas' : e)}>
+              {e} ({habitaciones.filter((h) => h.etiqueta === e).length})
+            </ChipCentro>
+          ))}
+          {sinEtiqueta > 0 && (
+            <ChipCentro activo={etiquetaFiltro === '__sin__'} onClick={() => setEtiquetaFiltro(etiquetaFiltro === '__sin__' ? 'todas' : '__sin__')}>
+              Sin centro ({sinEtiqueta})
+            </ChipCentro>
+          )}
+        </div>
+      )}
 
-          {etiquetasUnicas.map((etiqueta) => {
-            const color = getColorForEtiqueta(etiqueta, etiquetasUnicas);
-            const count = habitaciones.filter((h) => h.etiqueta === etiqueta).length;
-            const activa = etiquetaFiltro === etiqueta;
-            return (
-              <button
-                key={etiqueta}
-                onClick={() => setEtiquetaFiltro(activa ? 'todas' : etiqueta)}
-                className={`btn-press flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold transition-all duration-200 ${
-                  activa ? `${color.bg} ${color.text} ${color.border} border` : 'border border-white/[0.08] text-gray-500 hover:border-white/20 hover:text-gray-300'
-                }`}
-                style={{ backgroundColor: activa ? undefined : 'rgba(255,255,255,0.04)' }}
-              >
-                {activa && <div className="w-1.5 h-1.5 rounded-full" style={{ background: color.dot }} />}
-                <Tag className="h-3 w-3" />
-                {etiqueta} ({count})
-              </button>
-            );
-          })}
+      {/* Encabezado de columnas */}
+      <div className={`hidden md:grid px-4 sm:px-5 h-10 border-t border-slate-100 bg-slate-50/70 ${COLUMNAS_HAB}`}>
+        <span className="tabla-th">Hab.</span>
+        <span className="tabla-th">Huéspedes</span>
+        <span className="tabla-th text-right">Pagado</span>
+        <span className="tabla-th text-right">Pendiente</span>
+        <span className="tabla-th">Progreso</span>
+        <span />
+      </div>
 
-          {grupos['__sin__'] && (
-            <button
-              onClick={() => setEtiquetaFiltro(etiquetaFiltro === '__sin__' ? 'todas' : '__sin__')}
-              className="btn-press flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold border transition-all duration-200"
-              style={{
-                backgroundColor: etiquetaFiltro === '__sin__' ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.04)',
-                color: etiquetaFiltro === '__sin__' ? '#e2e8f0' : 'rgba(255,255,255,0.35)',
-                borderColor: etiquetaFiltro === '__sin__' ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.08)',
-              }}
-            >
-              Sin etiqueta ({grupos['__sin__'].length})
+      {claves.length === 0 ? (
+        <div className="border-t border-slate-100 text-center py-14 px-6">
+          <p className="text-slate-900 font-semibold">
+            {habitaciones.length ? 'No hay habitaciones que coincidan.' : 'Este viaje aún no tiene habitaciones.'}
+          </p>
+          {habitaciones.length > 0 && <p className="text-sm text-slate-500 mt-1">Prueba con otra búsqueda o filtro.</p>}
+        </div>
+      ) : (
+        bloques.map(({ clave, habs, visibles }) => (
+          <div key={clave}>
+            {mostrarGrupos && <EncabezadoGrupo nombre={clave === '__sin__' ? 'Sin centro' : clave} habs={habs} fmt={fmt} />}
+            {visibles.map((h) => <HabitacionFila key={h.id} habitacion={h} onSelect={setSelectedHabitacion} />)}
+          </div>
+        ))
+      )}
+
+      {/* Pie */}
+      {filtradas.length > 0 && (
+        <div className="flex items-center justify-between gap-3 px-4 sm:px-5 py-3.5 border-t border-slate-100 text-xs text-slate-500">
+          <span>Mostrando {mostradas} de {habitaciones.length} habitaciones</span>
+          {mostradas < filtradas.length && (
+            <button type="button" onClick={() => setVerTodas(true)} className="btn btn-borde btn-sm">
+              Mostrar todas ({filtradas.length})
             </button>
           )}
         </div>
       )}
 
-      {/* ── Grupos ── */}
-      {clavesOrdenadas.length === 0 ? (
-        <div className="text-center py-16 animate-fade-in">
-          <div className="text-4xl mb-3 animate-float inline-block">🏨</div>
-          <p className="text-gray-600 font-semibold mt-3">No hay habitaciones que coincidan.</p>
-        </div>
-      ) : (
-        <div className="space-y-8 mt-4">
-          {clavesOrdenadas.map((clave, groupIdx) => {
-            const habs = grupos[clave];
-            const esNombreada = clave !== '__sin__';
-            const color = esNombreada
-              ? getColorForEtiqueta(clave, etiquetasUnicas)
-              : { bg: 'bg-white/10', text: 'text-gray-400', border: 'border-white/10', header: 'bg-white/[0.03] border-white/[0.07]', dot: '#6b7280' };
-
-            const totalGrupo   = habs.reduce((s, h) => s + calcularTotalHabitacion(h), 0);
-            const pagadoGrupo  = habs.reduce(
-              (s, h) => s + h.personas.reduce(
-                (sp, p) => sp + (p.pagos?.reduce((sg, pg) => sg + pg.monto, 0) || 0), 0
-              ), 0
-            );
-            const pctGrupo = totalGrupo > 0 ? Math.round((pagadoGrupo / totalGrupo) * 100) : 0;
-            // Pendiente por habitación (lo pagado de más en una no descuenta la deuda de otra), igual que el Excel
-            const pendienteGrupo = calcularEstadisticas(habs).pendiente;
-
-            return (
-              <div key={clave} className="animate-fade-in-up" style={{ animationDelay: `${groupIdx * 60}ms` }}>
-                {/* Group header */}
-                <div
-                  className={`flex items-center justify-between px-4 py-3 rounded-xl border mb-4 ${color.header}`}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-2 h-2 rounded-full" style={{ background: color.dot }} />
-                    <span className={`font-bold text-sm ${color.text}`}>
-                      {esNombreada ? clave : 'Sin etiqueta'}
-                    </span>
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${color.bg} ${color.text} ${color.border} border font-semibold`}>
-                      {habs.length} hab.
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-5 text-xs">
-                    <div className="text-right hidden sm:block">
-                      <div className="text-gray-600 mb-0.5">Recaudado</div>
-                      <div className="font-bold text-emerald-400 tabular-nums">{formatCurrency(pagadoGrupo)}</div>
-                    </div>
-                    <div className="text-right hidden sm:block">
-                      <div className="text-gray-600 mb-0.5">Pendiente</div>
-                      <div className="font-bold text-rose-400 tabular-nums">{formatCurrency(pendienteGrupo)}</div>
-                    </div>
-                    <div
-                      className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold"
-                      style={{ backgroundColor: 'rgba(255,255,255,0.05)', color: pctGrupo >= 80 ? '#10b981' : pctGrupo >= 40 ? '#f59e0b' : '#f43f5e' }}
-                    >
-                      {pctGrupo}%
-                    </div>
-                  </div>
-                </div>
-
-                {/* Cards grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {habs.map((habitacion) => {
-                    const cardIdx = globalCardIndex++;
-                    return (
-                      <HabitacionCard
-                        key={habitacion.id}
-                        habitacion={habitacion}
-                        onSelect={setSelectedHabitacion}
-                        index={cardIdx}
-                      />
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
       {selectedHabitacion && (
-        <ModalDetallesHabitacion
-          habitacion={selectedHabitacion}
-          onClose={() => setSelectedHabitacion(null)}
-        />
+        <ModalDetallesHabitacion habitacion={selectedHabitacion} onClose={() => setSelectedHabitacion(null)} />
       )}
     </>
   );

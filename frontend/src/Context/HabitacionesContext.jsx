@@ -1,6 +1,14 @@
 import { createContext, useContext, useEffect, useReducer } from 'react';
 import * as api from '../utils/api';
 import { useAuthContext } from './AuthContext';
+import { avisarExito } from '../utils/avisos';
+
+/** Envuelve una acción para mostrar el check de "cambio realizado" cuando termina bien. */
+const conAviso = (fn, mensaje) => async (...args) => {
+  const resultado = await fn(...args);
+  avisarExito(typeof mensaje === 'function' ? mensaje(...args) : mensaje);
+  return resultado;
+};
 
 const HabitacionesContext = createContext();
 
@@ -331,6 +339,16 @@ export const HabitacionesProvider = ({ children }) => {
 
   const viajeActual = state.viajes.find((v) => v.id === state.selectedViajeId);
   const viajeCerrado = viajeActual?.estado === 'cerrado';
+  const cambiarTitular = async (personaId) => {
+    try {
+      await api.cambiarTitular(personaId);
+      await recargar();
+    } catch (error) {
+      console.error('Error cambiando el titular:', error);
+      throw error;
+    }
+  };
+
   // soloLectura: no puede editar (viaje cerrado o sin permiso). Los pagos tienen su propio permiso.
   const soloLectura = viajeCerrado || !puede('editar');
   const puedePagar = !viajeCerrado && puede('pagos');
@@ -342,24 +360,25 @@ export const HabitacionesProvider = ({ children }) => {
     viajeCerrado,
     recargarViajes: cargarViajes,
     cargarHabitaciones,
-    crearViaje,
-    editarViaje,
-    cambiarEstadoViaje,
-    eliminarViaje,
+    crearViaje: conAviso(crearViaje, 'Viaje creado'),
+    editarViaje: conAviso(editarViaje, 'Viaje actualizado'),
+    cambiarEstadoViaje: conAviso(cambiarEstadoViaje, (_id, estado) => (estado === 'cerrado' ? 'Viaje cerrado' : 'Viaje reabierto')),
+    eliminarViaje: conAviso(eliminarViaje, 'Viaje eliminado'),
     seleccionarViaje,
     abrirViaje,
-    guardarHabitacionCompleta,
-    agregarHabitacion,
-    editarHabitacion,
-    eliminarHabitacion,
-    registrarPago,
-    actualizarPago,
-    eliminarPago,
-    eliminarPersona,
-    moverPersona,
-    actualizarNota,
-    actualizarEtiqueta,
-    marcarRevision,
+    guardarHabitacionCompleta: conAviso(guardarHabitacionCompleta, 'Habitación guardada'),
+    agregarHabitacion: conAviso(agregarHabitacion, 'Habitación agregada'),
+    editarHabitacion: conAviso(editarHabitacion, 'Habitación actualizada'),
+    eliminarHabitacion: conAviso(eliminarHabitacion, 'Habitación eliminada'),
+    registrarPago: conAviso(registrarPago, 'Pago registrado'),
+    actualizarPago: conAviso(actualizarPago, 'Pago actualizado'),
+    eliminarPago: conAviso(eliminarPago, 'Pago eliminado'),
+    eliminarPersona: conAviso(eliminarPersona, 'Persona eliminada'),
+    moverPersona: conAviso(moverPersona, 'Persona movida'),
+    cambiarTitular: conAviso(cambiarTitular, 'Titular cambiado'),
+    actualizarNota: conAviso(actualizarNota, 'Nota guardada'),
+    actualizarEtiqueta: conAviso(actualizarEtiqueta, 'Centro actualizado'),
+    marcarRevision: conAviso(marcarRevision, (_id, enRevision) => (enRevision ? 'Puesta en revisión' : 'Revisión resuelta')),
     setFiltros,
   };
 
