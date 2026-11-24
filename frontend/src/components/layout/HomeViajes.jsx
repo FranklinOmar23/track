@@ -10,6 +10,7 @@ import ModalAgregarViaje from '../Modals/ModalAgregarViaje';
 import { DashboardFull } from '../Dashboard/DashboardFull';
 import { ViajeCard } from './ViajeCard';
 import { avisarError } from '../../utils/avisos';
+import { EsqueletoMisViajes } from '../common/Esqueleto';
 
 /** Orden de "Mis viajes": primero los que hay que cerrar, luego en curso, próximos por fecha y sin fecha al final. */
 const PESO = { terminado: 0, en_curso: 1, proximo: 2 };
@@ -59,9 +60,7 @@ const MisViajes = ({ onSelectViaje }) => {
       </div>
 
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {[0, 1, 2].map((i) => <div key={i} className="tarjeta h-52 animate-pulse" />)}
-        </div>
+        <EsqueletoMisViajes cantidad={Math.max(3, state.viajes.filter((v) => v.estado !== 'cerrado').length)} />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {activos.map((viaje, i) => (

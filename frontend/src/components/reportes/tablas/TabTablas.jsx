@@ -12,6 +12,7 @@ import { useGeneracionExcel } from '../../../hooks/useGeneracionExcel';
 import { CATEGORIAS, REPORTES } from './definiciones';
 import ReporteTabla from './ReporteTabla';
 import { armarFilas } from './tablaReporte';
+import { Hueso } from '../../common/Esqueleto';
 
 const ICONOS = { cobranza: Wallet, logistica: Truck, viajes: TrendingUp, control: ShieldCheck };
 const hoyISO = () => new Date().toISOString().slice(0, 10);
@@ -214,7 +215,7 @@ const TabTablas = ({ viajes, viajeIdInicial }) => {
 
         {estado.error && <p className="text-sm text-red-700 py-8 text-center">No se pudo cargar el reporte: {estado.error}</p>}
         {estado.cargando && !datos && (
-          <div className="space-y-2">{[0, 1, 2, 3, 4].map((i) => <div key={i} className="h-9 rounded-lg bg-slate-50 animate-pulse" />)}</div>
+          <div className="space-y-2">{[0, 1, 2, 3, 4, 5].map((i) => <Hueso key={i} className="h-9" />)}</div>
         )}
         {datos && !estado.error && (
           <div className={estado.cargando ? 'opacity-50 transition-opacity' : 'transition-opacity'}>

@@ -6,6 +6,7 @@ import { formatCurrency, formatoCompacto } from '../../utils/formatters';
 import { exportarGananciasExcel } from '../../utils/exportExcel';
 import { ChartPanel } from './ui';
 import { useGeneracionExcel } from '../../hooks/useGeneracionExcel';
+import { EsqueletoMontos, EsqueletoGrafico } from '../common/Esqueleto';
 
 const COLOR_ESTIMADA = '#a7d9c6';
 const COLOR_COBRADA  = '#059669';
@@ -84,7 +85,15 @@ const GananciasReporte = ({ viajeId }) => {
   }));
 
   if (loading) {
-    return <div className="rounded-2xl h-72 animate-pulse" style={{ background: 'rgba(15,23,42,0.04)' }} />;
+    return (
+      <div className="space-y-6">
+        <EsqueletoMontos />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <EsqueletoGrafico className="lg:col-span-2" />
+          <EsqueletoGrafico tipo="dona" alto={200} />
+        </div>
+      </div>
+    );
   }
   if (error) {
     return <p className="text-center text-red-700 py-12">Error cargando ganancias: {error}</p>;

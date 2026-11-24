@@ -5,6 +5,7 @@ import { useAuthContext } from '../../Context/AuthContext';
 import { useHabitacionesContext } from '../../Context/HabitacionesContext';
 import ModalUsuario from './ModalUsuario';
 import { PERMISOS_INFO } from './permisosInfo';
+import { EsqueletoLista } from '../common/Esqueleto';
 
 const fechaRelativa = (f) => {
   if (!f) return 'Nunca';
@@ -80,7 +81,9 @@ const UsuariosView = () => {
         {error && <p className="text-sm text-red-700 mb-4">{error}</p>}
 
         <div className="space-y-3">
-          {cargando && [0, 1, 2].map((i) => <div key={i} className="h-24 rounded-xl bg-slate-50 animate-pulse" />)}
+          {cargando && (
+            <div className="tarjeta overflow-hidden"><EsqueletoLista filas={4} /></div>
+          )}
           {usuarios.map((u, i) => (
             <div key={u.id} className={`rounded-xl p-4 border border-slate-200 bg-white animate-fade-in-up ${u.activo ? '' : 'opacity-55'}`}
               style={{ animationDelay: `${i * 50}ms` }}>

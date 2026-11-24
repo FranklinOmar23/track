@@ -9,17 +9,14 @@ import ViajePublico from './components/Dashboard/ViajePublico';
 import ViajeExpirado from './components/Dashboard/ViajeExpirado';
 import LoginView from './components/auth/LoginView';
 import './components/styles/global.css';
+import { EsqueletoPagina } from './components/common/Esqueleto';
 
 // Páginas pesadas (gráficas) se descargan solo al entrar: la app abre más rápido
 const ReportesView = lazy(() => import('./components/reportes/ReportesView'));
 const ActividadView = lazy(() => import('./components/logs/ActividadView'));
 const UsuariosView = lazy(() => import('./components/usuarios/UsuariosView'));
 
-const CargandoPagina = () => (
-  <div className="min-h-[60vh] flex items-center justify-center">
-    <div className="h-8 w-8 rounded-full border-2 border-teal-700/20 border-t-teal-700 animate-spin" />
-  </div>
-);
+const CargandoPagina = () => <EsqueletoPagina />;
 
 function RequireAuth({ children }) {
   const { isAuthenticated } = useAuthContext();

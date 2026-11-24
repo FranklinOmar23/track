@@ -380,6 +380,31 @@ select option { background-color: #fff; color: var(--tinta); }
   box-shadow: 0 0 0 2px #fff, 0 0 0 3px #e7c25a;
 }
 
+/* ── Esqueletos de carga (brillo que recorre el bloque) ── */
+@keyframes brilloEsqueleto {
+  0%   { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+.esqueleto {
+  display: block;
+  border-radius: 0.5rem;
+  background: linear-gradient(90deg, #eceff3 0%, #eceff3 38%, #f7f8fa 50%, #eceff3 62%, #eceff3 100%);
+  background-size: 200% 100%;
+  animation: brilloEsqueleto 1.4s ease-in-out infinite;
+}
+.esqueleto-redondo { border-radius: 999px; }
+
+/* ── Transición entre vistas ── */
+@keyframes paginaEntrada {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+/* backwards: al terminar no queda transform (si quedara, encerraría a los modales fixed) */
+.pagina-entrada { animation: paginaEntrada 0.32s cubic-bezier(0.22, 1, 0.36, 1) backwards; }
+
+/* Contenido que reemplaza a un esqueleto: aparece suave */
+.aparecer { animation: fadeIn 0.3s ease-out both; }
+
 /* Menú lateral en móvil */
 .lateral-movil { animation: slideInLeft 0.25s cubic-bezier(0.23, 1, 0.32, 1) both; }
 

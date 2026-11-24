@@ -5,6 +5,7 @@ import { FechasViajes } from './FechasViajes';
 import { useStatsViajes } from '../../hooks/useStatsViajes';
 import { divisaPrincipal } from '../../utils/formatters';
 import { calcularGananciaResumen } from '../../utils/calculos';
+import { EsqueletoDashboard } from '../common/Esqueleto';
 
 const fechaHoy = () => {
   const t = new Date().toLocaleDateString('es-DO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
@@ -41,10 +42,7 @@ export const DashboardFull = ({ onSelectViaje }) => {
     return (
       <div className="space-y-6">
         {encabezado}
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-          {[0, 1, 2, 3].map((i) => <div key={i} className="tarjeta h-[120px] animate-pulse" />)}
-        </div>
-        <div className="tarjeta h-72 animate-pulse" />
+        <EsqueletoDashboard />
       </div>
     );
   }
@@ -92,7 +90,7 @@ export const DashboardFull = ({ onSelectViaje }) => {
   return (
     <div className="space-y-5">
       {encabezado}
-      <div className="pt-1"><DashboardStats totales={totales} divisa={divisa} /></div>
+      <div className="pt-1 aparecer"><DashboardStats totales={totales} divisa={divisa} /></div>
       <ChartSection viajes={viajes} divisa={divisa} totales={totales} onSelectViaje={onSelectViaje} />
       <FechasViajes viajes={viajes} divisa={divisa} onSelectViaje={onSelectViaje} />
       <ViajesTable viajes={viajes} onSelectViaje={onSelectViaje} />

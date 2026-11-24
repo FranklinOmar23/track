@@ -202,7 +202,10 @@ const AppLayout = () => {
 
       <main className="lg:pl-[232px]">
         <div className="mx-auto w-full max-w-[1280px] px-4 sm:px-6 lg:px-9 py-6 lg:py-8">
-          <Outlet />
+          {/* La clave cambia con la ruta: cada vista entra con un fundido suave */}
+          <div key={pathname} className="pagina-entrada">
+            <Outlet />
+          </div>
         </div>
       </main>
 

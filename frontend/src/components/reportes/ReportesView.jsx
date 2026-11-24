@@ -17,6 +17,7 @@ import TabRendimiento from './tabs/TabRendimiento';
 import TabRankings from './tabs/TabRankings';
 import { Download } from 'lucide-react';
 import { useGeneracionExcel } from '../../hooks/useGeneracionExcel';
+import { EsqueletoReportes } from '../common/Esqueleto';
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 const ReportesView = () => {
@@ -139,9 +140,7 @@ const ReportesView = () => {
 
         {/* ── Content ───────────────────────────────────────────────────────── */}
         {loading ? (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {[0,1].map((i) => <div key={i} className="tarjeta h-72 animate-pulse" />)}
-          </div>
+          <EsqueletoReportes />
         ) : (
           <>
             {/* ── TENDENCIAS ──────────────────────────────────────────────────── */}

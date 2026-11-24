@@ -15,6 +15,7 @@ import ModalDesgloseGeneral from '../Modals/ModalDesgloseGeneral';
 import ModalCompartir from '../Modals/ModalCompartir';
 import ModalEditarViaje from '../Modals/ModalEditarViaje';
 import Portal from '../common/Portal';
+import { EsqueletoViaje } from '../common/Esqueleto';
 
 const ViajeView = () => {
   const { slug } = useParams();
@@ -50,16 +51,7 @@ const ViajeView = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]);
 
-  if (loading) return (
-    <div className="space-y-5">
-      <div className="h-4 w-40 rounded bg-slate-200 animate-pulse" />
-      <div className="h-8 w-72 rounded bg-slate-200 animate-pulse" />
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        {[0, 1, 2, 3].map((i) => <div key={i} className="tarjeta h-[110px] animate-pulse" />)}
-      </div>
-      <div className="tarjeta h-96 animate-pulse" />
-    </div>
-  );
+  if (loading) return <EsqueletoViaje />;
   if (!viajeCargado) return null;
 
   // Datos del viaje del contexto (se actualizan al editar) con lo cargado como respaldo
@@ -71,7 +63,7 @@ const ViajeView = () => {
   const meta = [rango, cuenta, viaje.divisa || 'USD'].filter(Boolean);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 aparecer">
       {/* Migas */}
       <nav className="flex items-center gap-1.5 text-xs text-slate-500" aria-label="Ruta">
         <Link to={cerrado ? '/historial' : '/viajes'} className="hover:text-slate-900 transition-colors">

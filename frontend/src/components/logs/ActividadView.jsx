@@ -4,6 +4,7 @@ import { fetchLogs, deshacerAccion } from '../../utils/api';
 import { useHabitacionesContext } from '../../Context/HabitacionesContext';
 import Paginacion from '../common/Paginacion';
 import { avisarError } from '../../utils/avisos';
+import { EsqueletoLista } from '../common/Esqueleto';
 
 const POR_PAGINA = 10;
 
@@ -150,7 +151,9 @@ const ActividadView = () => {
           <p className="text-center py-14 text-slate-500 text-sm">No hay actividad con estos filtros.</p>
         )}
 
-        {logs.map((log) => {
+        {loading && <EsqueletoLista filas={Math.max(4, Math.min(logs.length || POR_PAGINA, POR_PAGINA))} />}
+
+        {!loading && logs.map((log) => {
           const a = ACCION[log.accion] || { label: log.accion, bg: '#f1f5f9', text: '#334155', codigo: '•' };
           const codigo = log.accion === 'pago' ? (log.descripcion.match(/([A-Z]{2,3})\$/)?.[1] || '$') : a.codigo;
           const deshecho = !!log.deshechoAt;
@@ -194,7 +197,6 @@ const ActividadView = () => {
           );
         })}
 
-        {loading && <p className="text-center py-6 text-slate-400 text-sm">Cargando...</p>}
 
         <div className="px-4 sm:px-5 pb-4">
           <Paginacion
