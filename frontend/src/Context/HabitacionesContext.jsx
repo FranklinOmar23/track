@@ -86,6 +86,16 @@ function habitacionesReducer(state, action) {
       };
     }
 
+    // Enlace de una persona con su ficha de cliente
+    case 'PERSONA_CLIENTE':
+      return {
+        ...state,
+        habitaciones: state.habitaciones.map((h) => (h.personas?.some((p) => p.id === action.payload.personaId)
+          ? { ...h, personas: h.personas.map((p) => (p.id === action.payload.personaId
+            ? { ...p, clienteId: action.payload.clienteId, clienteFijo: !!action.payload.clienteFijo } : p)) }
+          : h)),
+      };
+
     case 'ELIMINAR_HABITACION':
       return {
         ...state,
@@ -352,6 +362,11 @@ export const HabitacionesProvider = ({ children }) => {
     dispatch({ type: 'PAGO_ACTUALIZADO', payload: { personaId, pago: { id: pagoId, comprobantes } } });
   };
 
+  /** Refleja en pantalla que una persona quedó enlazada (o no) a un cliente. */
+  const marcarClientePersona = (personaId, clienteId, clienteFijo = false) => {
+    dispatch({ type: 'PERSONA_CLIENTE', payload: { personaId, clienteId, clienteFijo } });
+  };
+
   const cambiarTitular = async (personaId) => {
     try {
       await api.cambiarTitular(personaId);
@@ -372,6 +387,7 @@ export const HabitacionesProvider = ({ children }) => {
     puedePagar,
     viajeCerrado,
     recargarViajes: cargarViajes,
+    marcarClientePersona,
     cargarHabitaciones,
     crearViaje: conAviso(crearViaje, 'Viaje creado'),
     editarViaje: conAviso(editarViaje, 'Viaje actualizado'),

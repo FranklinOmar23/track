@@ -26,7 +26,7 @@ const ModalUsuario = ({ usuario, viajes, esUnoMismo, onGuardado, onClose }) => {
   const [verPassword, setVerPassword] = useState(nuevo);
   const [esAdmin, setEsAdmin] = useState(!!usuario?.esAdmin);
   const [activo, setActivo] = useState(usuario ? usuario.activo : true);
-  const [permisos, setPermisos] = useState(usuario?.permisos || { editar: false, pagos: true, crear_viajes: false, reportes: false, actividad: false });
+  const [permisos, setPermisos] = useState(usuario?.permisos || { editar: false, pagos: true, crear_viajes: false, reportes: false, actividad: false, clientes: false, clientes_editar: false });
   const [todosViajes, setTodosViajes] = useState(usuario ? usuario.todosViajes : false);
   const [viajesSel, setViajesSel] = useState(new Set(usuario?.viajes || []));
   const [estado, setEstado] = useState({ guardando: false, error: '' });

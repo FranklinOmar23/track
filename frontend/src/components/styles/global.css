@@ -591,3 +591,16 @@ html.cambiando-tema *, html.cambiando-tema *::before, html.cambiando-tema *::aft
   .tabla-reporte .fila-total td { background: #dce6f1 !important; font-weight: 700; border-top: 2px solid #000 !important; }
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
+
+/* ── Gráficos (pocketchart): el tooltip se desliza entre puntos en vez de saltar ── */
+div.pc-tip {
+  scale: 0.94;
+  transition:
+    opacity 0.18s ease-out,
+    scale 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+div.pc-tip.pc-on { scale: 1; }
+@media (prefers-reduced-motion: reduce) {
+  div.pc-tip { transition: none; scale: 1; }
+}

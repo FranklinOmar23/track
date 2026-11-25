@@ -5,4 +5,6 @@ export const PERMISOS_INFO = [
   { clave: 'crear_viajes', titulo: 'Gestionar viajes', descripcion: 'Crear, cerrar y eliminar viajes' },
   { clave: 'reportes', titulo: 'Ver reportes', descripcion: 'Reportes, gráficas y exportar' },
   { clave: 'actividad', titulo: 'Ver actividad', descripcion: 'Registro de actividad y deshacer' },
+  { clave: 'clientes', titulo: 'Ver clientes', descripcion: 'Fichas, teléfonos y viajes de cada cliente' },
+  { clave: 'clientes_editar', titulo: 'Editar clientes', descripcion: 'Crear fichas y enlazar personas' },
 ];

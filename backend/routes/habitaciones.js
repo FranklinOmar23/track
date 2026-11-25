@@ -5,6 +5,7 @@ import { viajeBodyEditable, habitacionEditable } from '../utils/viajeCerrado.js'
 import { viajesPermitidos, rechazarSinAcceso } from '../utils/permisos.js';
 import { registrarLog } from '../utils/log.js';
 import { contextoHabitacion, fotoHabitacion, fmtMonto, firmaHabitacion } from '../utils/auditoria.js';
+import { clienteParaEnlazar } from '../utils/clientes.js';
 
 const CAMPOS_EDITABLES = 'SELECT numero, tipo, total, precio_nino, etiqueta, es_stack, nota FROM habitaciones WHERE id = ?';
 const normalizarFila = (r) => ({ ...r, total: Number(r.total), precio_nino: Number(r.precio_nino) });
@@ -49,6 +50,8 @@ const mapHabitaciones = (rows) => {
           esNino: !!row.es_nino,
           esGratis: !!row.es_gratis,
           esStack: !!row.persona_es_stack,
+          clienteId: row.cliente_id || null,
+          clienteFijo: !!row.cliente_fijo,
           pagos: [],
         };
         habitacion.personas.push(persona);
@@ -104,6 +107,8 @@ export const consultarHabitaciones = async ({ viajeId = null, slug = null, habit
       p.es_nino,
       p.es_gratis,
       COALESCE(p.es_stack, 0) AS persona_es_stack,
+      p.cliente_id,
+      COALESCE(cli.es_fijo, 0) AS cliente_fijo,
       pag.id AS pago_id,
       pag.mes,
       COALESCE(pag.anio, YEAR(pag.created_at)) AS anio,
@@ -113,6 +118,7 @@ export const consultarHabitaciones = async ({ viajeId = null, slug = null, habit
     FROM habitaciones h
     LEFT JOIN viajes v ON h.viaje_id = v.id
     LEFT JOIN personas p ON p.habitacion_id = h.id
+    LEFT JOIN clientes cli ON cli.id = p.cliente_id
     LEFT JOIN pagos pag ON pag.persona_id = p.id
     ${where}
     ORDER BY h.etiqueta, h.id, p.posicion, pag.id
@@ -154,9 +160,10 @@ router.post('/', viajeBodyEditable('editar'), async (req, res) => {
       const esNino = persona.esNino ? 1 : 0;
       const esGratis = (esNino && persona.esGratis) ? 1 : 0;
       const esStack = persona.esStack ? 1 : 0;
+      const clienteId = await clienteParaEnlazar(connection, req.auth, persona.clienteId);
       const [personaResult] = await connection.query(
-        'INSERT INTO personas (habitacion_id, nombre, posicion, es_nino, es_gratis, es_stack) VALUES (?, ?, ?, ?, ?, ?)',
-        [habitacionId, persona.n, index + 1, esNino, esGratis, esStack]
+        'INSERT INTO personas (habitacion_id, nombre, posicion, es_nino, es_gratis, es_stack, cliente_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [habitacionId, persona.n, index + 1, esNino, esGratis, esStack, clienteId]
       );
 
       personaRows.push({
@@ -166,6 +173,7 @@ router.post('/', viajeBodyEditable('editar'), async (req, res) => {
         esNino: !!persona.esNino,
         esGratis: !!(esNino && persona.esGratis),
         esStack: !!esStack,
+        clienteId,
         pagos: [],
       });
     }
@@ -248,6 +256,7 @@ router.put('/:id', habitacionEditable('editar'), async (req, res) => {
 router.post('/:id/personas', habitacionEditable('editar'), async (req, res) => {
   const habitacionId = Number(req.params.id);
   const { nombre, esNino, esGratis, esStack } = req.body;
+  const clienteId = await clienteParaEnlazar(pool, req.auth, req.body.clienteId);
 
   if (!nombre || !nombre.trim()) {
     return res.status(400).json({ error: 'Nombre es requerido.' });
@@ -264,8 +273,8 @@ router.post('/:id/personas', habitacionEditable('editar'), async (req, res) => {
   const esStackVal = esStack ? 1 : 0;
 
   const [result] = await pool.query(
-    'INSERT INTO personas (habitacion_id, nombre, posicion, es_nino, es_gratis, es_stack) VALUES (?, ?, ?, ?, ?, ?)',
-    [habitacionId, nombre.trim(), posicion, esNinoVal, esGratisVal, esStackVal]
+    'INSERT INTO personas (habitacion_id, nombre, posicion, es_nino, es_gratis, es_stack, cliente_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    [habitacionId, nombre.trim(), posicion, esNinoVal, esGratisVal, esStackVal, clienteId]
   );
 
   const ctx = await contextoHabitacion(pool, habitacionId);
@@ -273,7 +282,7 @@ router.post('/:id/personas', habitacionEditable('editar'), async (req, res) => {
     `${req.usuario} agregó a ${nombre.trim()} en la ${ctx}`,
     { op: 'persona.crear', personaId: result.insertId });
 
-  res.status(201).json({ id: result.insertId, n: nombre.trim(), posicion, esNino: !!esNino, esGratis: !!(esNino && esGratis), esStack: !!esStack, pagos: [] });
+  res.status(201).json({ id: result.insertId, n: nombre.trim(), posicion, esNino: !!esNino, esGratis: !!(esNino && esGratis), esStack: !!esStack, clienteId, pagos: [] });
 });
 
 router.delete('/:id', habitacionEditable('editar'), async (req, res) => {
@@ -427,10 +436,16 @@ router.put('/:id/completa', habitacionEditable('editar'), async (req, res) => {
             'UPDATE personas SET nombre = ?, es_nino = ?, es_gratis = ?, es_stack = ? WHERE id = ?',
             [nombre, esNino, esGratis, esStack, actual.id]);
         }
+        // Enlazar con un cliente a quien aún no tiene (cambiar un enlace existente se hace desde la ficha)
+        if (p.clienteId && !actual.cliente_id) {
+          const clienteId = await clienteParaEnlazar(connection, req.auth, p.clienteId);
+          if (clienteId) await connection.query('UPDATE personas SET cliente_id = ? WHERE id = ?', [clienteId, actual.id]);
+        }
       } else {
+        const clienteId = await clienteParaEnlazar(connection, req.auth, p.clienteId);
         await connection.query(
-          'INSERT INTO personas (habitacion_id, nombre, posicion, es_nino, es_gratis, es_stack) VALUES (?, ?, ?, ?, ?, ?)',
-          [habitacionId, nombre, siguientePos, esNino, esGratis, esStack]);
+          'INSERT INTO personas (habitacion_id, nombre, posicion, es_nino, es_gratis, es_stack, cliente_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+          [habitacionId, nombre, siguientePos, esNino, esGratis, esStack, clienteId]);
         siguientePos += 1;
       }
     }

@@ -201,6 +201,41 @@ export const initDb = async () => {
     console.error('No se pudieron preparar transferencias/comprobantes:', error.message);
   }
 
+  // Clientes y su enlace con las personas de cada habitación (ver migrations/011)
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS clientes (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        nombre VARCHAR(150) NOT NULL,
+        telefono VARCHAR(40) NULL,
+        whatsapp VARCHAR(40) NULL,
+        correo VARCHAR(150) NULL,
+        documento VARCHAR(40) NULL,
+        fecha_nacimiento DATE NULL,
+        ciudad VARCHAR(100) NULL,
+        direccion VARCHAR(255) NULL,
+        notas TEXT NULL,
+        es_fijo TINYINT(1) NOT NULL DEFAULT 0,
+        creado_por VARCHAR(50) NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME NULL,
+        INDEX idx_nombre (nombre),
+        INDEX idx_documento (documento)
+      )
+    `);
+    await pool.query('ALTER TABLE personas ADD COLUMN IF NOT EXISTS cliente_id INT NULL');
+    await pool.query('ALTER TABLE personas ADD INDEX IF NOT EXISTS idx_cliente (cliente_id)');
+    const [fk] = await pool.query(`
+      SELECT 1 FROM information_schema.TABLE_CONSTRAINTS
+      WHERE CONSTRAINT_SCHEMA = DATABASE() AND TABLE_NAME = 'personas' AND CONSTRAINT_NAME = 'fk_persona_cliente'`);
+    if (!fk.length) {
+      await pool.query(`ALTER TABLE personas ADD CONSTRAINT fk_persona_cliente
+        FOREIGN KEY (cliente_id) REFERENCES clientes(id) ON DELETE SET NULL`);
+    }
+  } catch (error) {
+    console.error('No se pudo preparar la tabla de clientes:', error.message);
+  }
+
   for (const usuario of leerUsuariosIniciales()) {
     const passwordHash = await bcrypt.hash(usuario.password, 10);
     await pool.query(

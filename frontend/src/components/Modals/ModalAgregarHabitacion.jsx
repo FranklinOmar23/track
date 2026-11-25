@@ -5,6 +5,7 @@ import { EtiquetaFields, NinosFields, StackToggle, ChipStack } from './Habitacio
 import InputMonto from '../common/InputMonto';
 import { useDivisa } from '../../hooks/useDivisa';
 import { avisarError } from '../../utils/avisos';
+import InputPersonaCliente from '../clientes/InputPersonaCliente';
 
 const ModalAgregarHabitacion = ({ open, onClose }) => {
   const { agregarHabitacion, state } = useHabitacionesContext();
@@ -15,6 +16,7 @@ const ModalAgregarHabitacion = ({ open, onClose }) => {
   const [persona2, setPersona2]       = useState('');
   const [persona3, setPersona3]       = useState('');
   const [stackPersonas, setStackPersonas] = useState([false, false, false]);
+  const [clientesPersonas, setClientesPersonas] = useState([null, null, null]);
   const [total, setTotal]             = useState('');
   const [precioNino, setPrecioNino]   = useState('');
   const [stackActivo, setStackActivo] = useState(false);
@@ -30,7 +32,7 @@ const ModalAgregarHabitacion = ({ open, onClose }) => {
 
   useEffect(() => {
     if (!open) {
-      setNumero(''); setTipo('Single'); setPersona1(''); setPersona2(''); setPersona3(''); setStackPersonas([false, false, false]);
+      setNumero(''); setTipo('Single'); setPersona1(''); setPersona2(''); setPersona3(''); setStackPersonas([false, false, false]); setClientesPersonas([null, null, null]);
       setTotal(''); setPrecioNino(''); setStackActivo(false); setEtiqueta('');
       setEtiquetaPersonalizada(''); setHayNinos(false); setNinos([{ nombre: '', edad: '', gratis: false }]);
     }
@@ -46,9 +48,9 @@ const ModalAgregarHabitacion = ({ open, onClose }) => {
       return;
     }
     const personas = [];
-    if (persona1.trim()) personas.push({ n: persona1.trim(), pagos: [], esStack: stackPersonas[0] });
-    if (persona2.trim()) personas.push({ n: persona2.trim(), pagos: [], esStack: stackPersonas[1] });
-    if (tipo === 'Triple' && persona3.trim()) personas.push({ n: persona3.trim(), pagos: [], esStack: stackPersonas[2] });
+    if (persona1.trim()) personas.push({ n: persona1.trim(), pagos: [], esStack: stackPersonas[0], clienteId: clientesPersonas[0] });
+    if (persona2.trim()) personas.push({ n: persona2.trim(), pagos: [], esStack: stackPersonas[1], clienteId: clientesPersonas[1] });
+    if (tipo === 'Triple' && persona3.trim()) personas.push({ n: persona3.trim(), pagos: [], esStack: stackPersonas[2], clienteId: clientesPersonas[2] });
     if (hayNinos) {
       ninos.filter((n) => n.nombre.trim()).forEach((n) => {
         const label = n.edad ? `${n.nombre.trim()} (${n.edad} años)` : n.nombre.trim();
@@ -129,8 +131,12 @@ const ModalAgregarHabitacion = ({ open, onClose }) => {
                 ...(tipo === 'Triple' ? [[persona3, setPersona3, 'Persona 3 (opcional)']] : []),
               ].map(([valor, setValor, placeholder], idx) => (
                 <div key={idx} className="flex items-center gap-2">
-                  <input className="input-dark flex-1" type="text" value={valor}
-                    onChange={(e) => setValor(e.target.value)} placeholder={placeholder} />
+                  <InputPersonaCliente className="flex-1" value={valor} placeholder={placeholder}
+                    clienteId={clientesPersonas[idx]}
+                    onChange={(nombre, clienteId) => {
+                      setValor(nombre);
+                      setClientesPersonas((prev) => prev.map((v, i) => (i === idx ? clienteId : v)));
+                    }} />
                   <ChipStack activo={stackPersonas[idx]} disabled={stackActivo}
                     onClick={() => setStackPersonas((prev) => prev.map((v, i) => (i === idx ? !v : v)))} />
                 </div>

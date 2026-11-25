@@ -295,3 +295,21 @@ export const descargarComprobante = async (id) => {
   }
   return response.blob();
 };
+
+// ─── CLIENTES ────────────────────────────────────────────────────────────────
+/** Listado paginado. Filtros: { q, esFijo, conDeuda, sinViajarDias, mesNacimiento, page, limit, ... }
+ *  → { data: { data: cliente[], isThereNextPage, page, limit } } */
+export const fetchClientes = (params = {}) => request(`/api/clientes${query(params)}`);
+/** Ficha con resumen y participaciones (viajes). */
+export const fetchCliente = (id) => request(`/api/clientes/${id}`);
+export const crearCliente = (datos) =>
+  request('/api/clientes', { method: 'POST', body: JSON.stringify(datos) });
+export const editarCliente = (id, datos) =>
+  request(`/api/clientes/${id}`, { method: 'PUT', body: JSON.stringify(datos) });
+export const eliminarCliente = (id) => request(`/api/clientes/${id}`, { method: 'DELETE' });
+export const vincularPersonasCliente = (id, personaIds) =>
+  request(`/api/clientes/${id}/vincular`, { method: 'POST', body: JSON.stringify({ personaIds }) });
+export const desvincularPersonaCliente = (id, personaId) =>
+  request(`/api/clientes/${id}/personas/${personaId}`, { method: 'DELETE' });
+/** Grupos de personas sin cliente cuyo nombre se repite en varios viajes (paginado). */
+export const fetchPosiblesClientes = (params = {}) => request(`/api/clientes/posibles${query(params)}`);

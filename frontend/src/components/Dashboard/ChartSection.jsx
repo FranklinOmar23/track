@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { formatCurrency } from '../../utils/formatters';
+import { formatCurrency, simboloDivisa } from '../../utils/formatters';
 import Grafico from '../common/Grafico';
 import { useTema } from '../../utils/tema';
 
@@ -72,8 +72,13 @@ const ResumenDona = ({ pagado, pendiente, divisa }) => {
   const total = pagado + pendiente;
   const pct = total > 0 ? Math.round((pagado / total) * 100) : 0;
   const tema = useTema();
-  const series = useMemo(() => [{ name: 'Total por cobrar', data: [pagado, pendiente], format: (v) => formatCurrency(v, divisa) }],
-    [pagado, pendiente, divisa]);
+  // En el centro de la dona va la cifra corta (RD$3.45 M) para que quepa en el hueco;
+  // los montos exactos están en la lista de abajo.
+  const series = useMemo(() => {
+    const nf = new Intl.NumberFormat('es-DO', { notation: 'compact', maximumFractionDigits: 2 });
+    const corto = (v) => `${simboloDivisa(divisa)}${nf.format(v)}`;
+    return [{ name: 'Total por cobrar', data: [pagado, pendiente], format: corto }];
+  }, [pagado, pendiente, divisa]);
 
   return (
     <div className="tarjeta p-5 sm:p-6 animate-fade-in-up flex flex-col" style={{ animationDelay: '200ms' }}>
@@ -83,7 +88,7 @@ const ResumenDona = ({ pagado, pendiente, divisa }) => {
 
       <div className="my-3">
         <Grafico type="donut" height={220} categories={CATEGORIAS_DONA} colors={COLORES_DONA[tema]}
-          series={series} legend={{ show: false }} donut={{ thickness: 0.34 }} export={false} />
+          series={series} legend={{ show: false }} donut={{ thickness: 0.26 }} export={false} />
       </div>
 
       <div className="space-y-2 mt-auto">

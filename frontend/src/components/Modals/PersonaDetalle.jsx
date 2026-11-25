@@ -1,5 +1,10 @@
-import { Plus, ArrowRightLeft, Gift, Layers, Crown, GripVertical, Paperclip } from 'lucide-react';
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Plus, ArrowRightLeft, Gift, Layers, Crown, GripVertical, Paperclip, Contact, Star, UserPlus } from 'lucide-react';
 import { calcularCuotaPersona, calcularPendientePersona, ninoDebePagar } from '../../utils/calculos';
+import { useAuthContext } from '../../Context/AuthContext';
+import { useHabitacionesContext } from '../../Context/HabitacionesContext';
+import ModalEnlazarPersona from '../clientes/ModalEnlazarPersona';
 
 
 /** Dato del pie de la tarjeta (CUOTA / PAGADO / PENDIENTE…). */
@@ -26,6 +31,9 @@ const PersonaDetalle = ({
   const esNino        = persona.esNino || /\(\d+ años\)/.test(persona.n || '');
   const esGratis      = esNino && (persona.esGratis || !ninoDebePagar(persona, habitacion.edadMinimaPago));
   const pagos         = persona.pagos || [];
+  const { puede } = useAuthContext();
+  const { marcarClientePersona } = useHabitacionesContext();
+  const [enlazando, setEnlazando] = useState(false);
 
   return (
     <div className="rounded-xl border border-slate-200 overflow-hidden">
@@ -52,6 +60,19 @@ const PersonaDetalle = ({
                 <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 rounded-full bg-violet-50 text-violet-700 leading-4">
                   <Layers className="h-2.5 w-2.5" /> stack
                 </span>
+              )}
+              {persona.clienteId && puede('clientes') && (
+                <Link to={`/clientes/${persona.clienteId}`} title="Ver ficha del cliente"
+                  className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 rounded-full bg-teal-50 text-teal-700 leading-4 hover:bg-teal-100">
+                  {persona.clienteFijo ? <Star className="h-2.5 w-2.5 fill-current" /> : <Contact className="h-2.5 w-2.5" />}
+                  {persona.clienteFijo ? 'cliente fijo' : 'cliente'}
+                </Link>
+              )}
+              {!persona.clienteId && puede('clientes_editar') && persona.id && (
+                <button type="button" onClick={() => setEnlazando(true)} title="Enlazar con la ficha de un cliente"
+                  className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 rounded-full border border-dashed border-slate-300 text-slate-500 leading-4 hover:border-teal-400 hover:text-teal-700">
+                  <UserPlus className="h-2.5 w-2.5" /> cliente
+                </button>
               )}
               {esGratis && (
                 <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 rounded-full bg-emerald-50 text-emerald-700 leading-4">
@@ -137,6 +158,10 @@ const PersonaDetalle = ({
           </div>
         )}
       </div>
+      {enlazando && (
+        <ModalEnlazarPersona persona={persona} onClose={() => setEnlazando(false)}
+          onEnlazada={(c) => { marcarClientePersona(persona.id, c.id, c.esFijo); setEnlazando(false); }} />
+      )}
     </div>
   );
 };

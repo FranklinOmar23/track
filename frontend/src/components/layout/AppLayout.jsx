@@ -3,6 +3,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutGrid, Briefcase, Archive, BarChart3, Clock, Users, Plus, Menu, X,
   ChevronDown, KeyRound, LogOut, ShieldCheck,
+  Contact,
 } from 'lucide-react';
 import { useHabitacionesContext } from '../../Context/HabitacionesContext';
 import { useAuthContext } from '../../Context/AuthContext';
@@ -134,6 +135,7 @@ const Lateral = ({ onNuevoViaje, onNavegar }) => {
         <ItemMenu to="/viajes" icono={Briefcase} label="Mis viajes" contador={activos} onNavegar={onNavegar}
           activo={enViaje || pathname === '/viajes'} />
         <ItemMenu to="/historial" icono={Archive} label="Historial" contador={cerrados} onNavegar={onNavegar} />
+        {puede('clientes') && <ItemMenu to="/clientes" icono={Contact} label="Clientes" onNavegar={onNavegar} activo={pathname.startsWith('/clientes')} />}
         {puede('reportes') && <ItemMenu to="/reportes" icono={BarChart3} label="Reportes" onNavegar={onNavegar} />}
         {puede('actividad') && <ItemMenu to="/actividad" icono={Clock} label="Actividad" onNavegar={onNavegar} />}
         {esAdmin && <ItemMenu to="/usuarios" icono={Users} label="Usuarios" onNavegar={onNavegar} />}

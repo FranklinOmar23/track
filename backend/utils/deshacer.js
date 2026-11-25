@@ -31,8 +31,9 @@ const viajeAbiertoPorViaje = (conn, viajeId) => viajeAbierto(conn,
   'SELECT estado FROM viajes WHERE id = ?', [viajeId]);
 
 const insertarPersona = (conn, p) => conn.query(
-  'INSERT INTO personas (id, habitacion_id, nombre, posicion, es_nino, es_gratis, es_stack) VALUES (?, ?, ?, ?, ?, ?, ?)',
-  [p.id, p.habitacion_id, p.nombre, p.posicion, p.es_nino, p.es_gratis, p.es_stack || 0]);
+  `INSERT INTO personas (id, habitacion_id, nombre, posicion, es_nino, es_gratis, es_stack, cliente_id)
+   VALUES (?, ?, ?, ?, ?, ?, ?, (SELECT c.id FROM clientes c WHERE c.id = ?))`,
+  [p.id, p.habitacion_id, p.nombre, p.posicion, p.es_nino, p.es_gratis, p.es_stack || 0, p.cliente_id || null]);
 const insertarPago = (conn, p) => conn.query(
   'INSERT INTO pagos (id, persona_id, mes, anio, monto, fecha_recibido, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
   [p.id, p.persona_id, p.mes, p.anio, p.monto,
@@ -163,6 +164,58 @@ export const OPERACIONES = {
     await conn.query(
       'INSERT INTO transferencias (id, viaje_id, fecha, monto, corte, referencia, nota, creado_por, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
       [t.id, t.viaje_id, t.fecha, t.monto, t.corte, t.referencia, t.nota, t.creado_por, fecha(t.created_at)]);
+  },
+
+  // ── Clientes ──
+  'cliente.crear': async (conn, d) => {
+    if (!(await existe(conn, 'clientes', d.clienteId))) throw new ErrorDeshacer('El cliente ya no existe.');
+    const [rows] = await conn.query('SELECT id FROM personas WHERE cliente_id = ?', [d.clienteId]);
+    const propias = new Set((d.personas || []).map((p) => p.id));
+    if (rows.some((r) => !propias.has(r.id))) {
+      throw new ErrorDeshacer('Después se enlazaron más viajes a este cliente. Deshaz primero esos cambios.');
+    }
+    await conn.query('DELETE FROM clientes WHERE id = ?', [d.clienteId]);
+    for (const p of d.personas || []) {
+      if (p.antes) await conn.query('UPDATE personas SET cliente_id = (SELECT c.id FROM clientes c WHERE c.id = ?) WHERE id = ? AND cliente_id IS NULL', [p.antes, p.id]);
+    }
+  },
+
+  'cliente.editar': async (conn, d) => {
+    const [rows] = await conn.query('SELECT * FROM clientes WHERE id = ?', [d.clienteId]);
+    if (!rows[0]) throw new ErrorDeshacer('El cliente ya no existe.');
+    if (!mismosCampos(rows[0], d.despues)) throw new ErrorDeshacer(CAMBIO_POSTERIOR);
+    const columnas = Object.keys(d.antes);
+    await conn.query(`UPDATE clientes SET ${columnas.map((c) => `${c} = ?`).join(', ')}, updated_at = NOW() WHERE id = ?`,
+      [...columnas.map((c) => d.antes[c]), d.clienteId]);
+  },
+
+  'cliente.eliminar': async (conn, d) => {
+    const c = d.cliente;
+    if (await existe(conn, 'clientes', c.id)) throw new ErrorDeshacer('El cliente ya fue restaurado.');
+    await conn.query(
+      `INSERT INTO clientes (id, nombre, telefono, whatsapp, correo, documento, fecha_nacimiento, ciudad, direccion,
+         notas, es_fijo, creado_por, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [c.id, c.nombre, c.telefono, c.whatsapp, c.correo, c.documento,
+        c.fecha_nacimiento ? String(c.fecha_nacimiento).slice(0, 10) : null, c.ciudad, c.direccion,
+        c.notas, c.es_fijo || 0, c.creado_por, fecha(c.created_at), fecha(c.updated_at)]);
+    if (d.personaIds?.length) {
+      await conn.query('UPDATE personas SET cliente_id = ? WHERE id IN (?) AND cliente_id IS NULL', [c.id, d.personaIds]);
+    }
+  },
+
+  'cliente.vincular': async (conn, d) => {
+    for (const p of d.personas) {
+      await conn.query(
+        'UPDATE personas SET cliente_id = (SELECT c.id FROM clientes c WHERE c.id = ?) WHERE id = ? AND cliente_id = ?',
+        [p.antes || 0, p.id, d.clienteId]);
+    }
+  },
+
+  'cliente.desvincular': async (conn, d) => {
+    if (!(await existe(conn, 'clientes', d.clienteId))) throw new ErrorDeshacer('El cliente ya no existe.');
+    const actual = await personaActual(conn, d.personaId);
+    if (!actual) throw new ErrorDeshacer('La persona ya no existe.');
+    await conn.query('UPDATE personas SET cliente_id = ? WHERE id = ? AND cliente_id IS NULL', [d.clienteId, d.personaId]);
   },
 
   'persona.titular': async (conn, d) => {

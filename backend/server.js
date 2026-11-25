@@ -10,6 +10,7 @@ import logsRoutes from './routes/logs.js';
 import usuariosRoutes from './routes/usuarios.js';
 import transferenciasRoutes from './routes/transferencias.js';
 import comprobantesRoutes from './routes/comprobantes.js';
+import clientesRoutes from './routes/clientes.js';
 import { requierePermiso, requiereAdmin } from './utils/permisos.js';
 import { registrarError, registrarLog } from './utils/log.js';
 import { programarLimpiezaLogs } from './utils/logRetencion.js';
@@ -180,6 +181,7 @@ app.use('/api/logs', requireAuth, requierePermiso('actividad'), logsRoutes);
 app.use('/api/usuarios', requireAuth, requiereAdmin, usuariosRoutes);
 app.use('/api/transferencias', requireAuth, transferenciasRoutes);
 app.use('/api/comprobantes', requireAuth, comprobantesRoutes);
+app.use('/api/clientes', requireAuth, clientesRoutes);
 
 app.use((err, req, res, next) => {
   res.locals.errorRegistrado = true;

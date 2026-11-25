@@ -6,6 +6,7 @@ import { capacidadPorTipo } from '../../utils/calculos';
 import InputMonto from '../common/InputMonto';
 import { useDivisa } from '../../hooks/useDivisa';
 import { avisarError } from '../../utils/avisos';
+import InputPersonaCliente from '../clientes/InputPersonaCliente';
 
 const ModalEditarHabitacion = ({ habitacion, open, onClose }) => {
   const { guardarHabitacionCompleta, state } = useHabitacionesContext();
@@ -43,7 +44,7 @@ const ModalEditarHabitacion = ({ habitacion, open, onClose }) => {
       const adultos = todasPersonas.filter((p) => !p.esNino && !/\(\d+ años\)/.test(p.n));
 
       const slots = capacidadPorTipo(habActual.tipo);
-      const loaded = adultos.map((p) => ({ id: p.id, nombre: p.n, esStack: !!p.esStack }));
+      const loaded = adultos.map((p) => ({ id: p.id, nombre: p.n, esStack: !!p.esStack, clienteId: p.clienteId || null, clienteOriginal: p.clienteId || null }));
       while (loaded.length < slots) loaded.push({ nombre: '' });
       setPersonas(loaded);
 
@@ -69,9 +70,11 @@ const ModalEditarHabitacion = ({ habitacion, open, onClose }) => {
   const numSlots = capacidadPorTipo(tipo);
 
   const etiquetaFinal    = etiqueta === '__nueva__' ? etiquetaNueva.trim() : etiqueta;
-  const actualizarPersona = (idx, valor) => setPersonas((prev) => {
+  // Quien ya estaba enlazado a un cliente lo sigue estando (el enlace se cambia desde la ficha)
+  const actualizarPersona = (idx, valor, clienteId = null) => setPersonas((prev) => {
     const copy = [...prev];
-    copy[idx] = { ...(copy[idx] || {}), nombre: valor };
+    const actual = copy[idx] || {};
+    copy[idx] = { ...actual, nombre: valor, clienteId: actual.clienteOriginal || clienteId };
     return copy;
   });
   const quitarPersona = (idx) => setPersonas((prev) => {
@@ -98,7 +101,7 @@ const ModalEditarHabitacion = ({ habitacion, open, onClose }) => {
       // Lista completa de personas deseadas: adultos (con stack) + niños (nombre con edad, gratis)
       const adultos = personas
         .filter((p) => p.nombre.trim())
-        .map((p) => ({ id: p.id, nombre: p.nombre.trim(), esNino: false, esStack: !!p.esStack }));
+        .map((p) => ({ id: p.id, nombre: p.nombre.trim(), esNino: false, esStack: !!p.esStack, clienteId: p.clienteId || null }));
       const ninosLista = (hayNinos ? ninos.filter((n) => n.nombre.trim()) : []).map((n) => ({
         id: n.id,
         nombre: n.edad ? `${n.nombre.trim()} (${n.edad} años)` : n.nombre.trim(),
@@ -178,11 +181,12 @@ const ModalEditarHabitacion = ({ habitacion, open, onClose }) => {
             <div className="space-y-2">
               {Array.from({ length: numInputs }).map((_, idx) => (
                 <div key={personas[idx]?.id ?? `nuevo-${idx}`} className="flex items-center gap-2">
-                  <input
-                    className="input-dark flex-1"
-                    type="text"
+                  <InputPersonaCliente
+                    className="flex-1"
                     value={personas[idx]?.nombre ?? ''}
-                    onChange={(e) => actualizarPersona(idx, e.target.value)}
+                    clienteId={personas[idx]?.clienteId || null}
+                    sinQuitar={!!personas[idx]?.clienteOriginal}
+                    onChange={(nombre, clienteId) => actualizarPersona(idx, nombre, clienteId)}
                     placeholder={`Persona ${idx + 1}${idx === 0 ? ' (obligatorio)' : ' (opcional)'}`}
                     disabled={loading}
                   />

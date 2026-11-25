@@ -15,6 +15,8 @@ import { EsqueletoPagina } from './components/common/Esqueleto';
 const ReportesView = lazy(() => import('./components/reportes/ReportesView'));
 const ActividadView = lazy(() => import('./components/logs/ActividadView'));
 const UsuariosView = lazy(() => import('./components/usuarios/UsuariosView'));
+const ClientesView = lazy(() => import('./components/clientes/ClientesView'));
+const ClienteFicha = lazy(() => import('./components/clientes/ClienteFicha'));
 
 const CargandoPagina = () => <EsqueletoPagina />;
 
@@ -42,6 +44,8 @@ function AppContent() {
         <Route path="/" element={<HomeViajes vista="dashboard" />} />
         <Route path="/viajes" element={<HomeViajes vista="viajes" />} />
         <Route path="/historial" element={<HomeViajes vista="historial" />} />
+        <Route path="/clientes" element={<RequierePermiso permiso="clientes"><Diferida><ClientesView /></Diferida></RequierePermiso>} />
+        <Route path="/clientes/:id" element={<RequierePermiso permiso="clientes"><Diferida><ClienteFicha /></Diferida></RequierePermiso>} />
         <Route path="/reportes" element={<RequierePermiso permiso="reportes"><Diferida><ReportesView /></Diferida></RequierePermiso>} />
         <Route path="/actividad" element={<RequierePermiso permiso="actividad"><Diferida><ActividadView /></Diferida></RequierePermiso>} />
         <Route path="/usuarios" element={<RequierePermiso admin><Diferida><UsuariosView /></Diferida></RequierePermiso>} />

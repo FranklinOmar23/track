@@ -46,7 +46,7 @@ export const fotoPago = async (conn, pagoId) => {
 
 export const fotoPersona = async (conn, personaId) => {
   const [rows] = await conn.query(
-    'SELECT id, habitacion_id, nombre, posicion, es_nino, COALESCE(es_gratis, 0) AS es_gratis, COALESCE(es_stack, 0) AS es_stack FROM personas WHERE id = ?',
+    'SELECT id, habitacion_id, nombre, posicion, es_nino, COALESCE(es_gratis, 0) AS es_gratis, COALESCE(es_stack, 0) AS es_stack, cliente_id FROM personas WHERE id = ?',
     [personaId]);
   if (!rows[0]) return null;
   const [pagos] = await conn.query(
@@ -63,7 +63,7 @@ export const fotoHabitacion = async (conn, habitacionId) => {
               en_revision, revision_nota, revision_por, revision_at
        FROM habitaciones WHERE id = ?`, [habitacionId]),
     conn.query(
-      'SELECT id, habitacion_id, nombre, posicion, es_nino, COALESCE(es_gratis, 0) AS es_gratis, COALESCE(es_stack, 0) AS es_stack FROM personas WHERE habitacion_id = ?',
+      'SELECT id, habitacion_id, nombre, posicion, es_nino, COALESCE(es_gratis, 0) AS es_gratis, COALESCE(es_stack, 0) AS es_stack, cliente_id FROM personas WHERE habitacion_id = ?',
       [habitacionId]),
     conn.query(
       `SELECT pg.id, pg.persona_id, pg.mes, pg.anio, pg.monto, pg.fecha_recibido, pg.created_at

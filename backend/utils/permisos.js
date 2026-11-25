@@ -3,7 +3,7 @@
 // - Resto: permisos sueltos + viajes que puede ver ("todos" o una lista).
 import pool from '../db.js';
 
-export const PERMISOS = ['editar', 'pagos', 'crear_viajes', 'reportes', 'actividad'];
+export const PERMISOS = ['editar', 'pagos', 'crear_viajes', 'reportes', 'actividad', 'clientes', 'clientes_editar'];
 export const PERMISOS_TODOS = Object.fromEntries(PERMISOS.map((p) => [p, true]));
 
 export const MENSAJES = {
@@ -12,6 +12,8 @@ export const MENSAJES = {
   crear_viajes: 'No tienes permiso para gestionar viajes.',
   reportes: 'No tienes permiso para ver reportes.',
   actividad: 'No tienes permiso para ver la actividad.',
+  clientes: 'No tienes permiso para ver los clientes.',
+  clientes_editar: 'No tienes permiso para editar clientes.',
   admin: 'Solo un administrador puede hacer esto.',
   viaje: 'No tienes acceso a este viaje.',
 };
