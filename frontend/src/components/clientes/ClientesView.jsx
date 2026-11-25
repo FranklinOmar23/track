@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, UserPlus, Users, Star, Phone, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
+import { Search, UserPlus, Users, Star, Phone, ChevronLeft, ChevronRight, Sparkles, UsersRound } from 'lucide-react';
 import { fetchClientes } from '../../utils/api';
 import { useAuthContext } from '../../Context/AuthContext';
 import { EsqueletoLista } from '../common/Esqueleto';
 import ModalCliente from './ModalCliente';
 import ModalRepetidos from './ModalRepetidos';
+import ModalImportarClientes from './ModalImportarClientes';
 import { montosPorDivisa, haceCuanto, iniciales } from './util';
 
 const POR_PAGINA = 25;
@@ -33,6 +34,7 @@ const ClientesView = () => {
   const [resultado, setResultado] = useState({ lista: [], hayMas: false, cargando: true, error: '' });
   const [nuevo, setNuevo] = useState(false);
   const [repetidos, setRepetidos] = useState(false);
+  const [importar, setImportar] = useState(false);
 
   // La búsqueda espera a que se deje de escribir
   useEffect(() => {
@@ -67,6 +69,9 @@ const ClientesView = () => {
         </div>
         {puedeEditar && (
           <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={() => setImportar(true)} className="btn btn-borde h-10 px-4">
+              <UsersRound className="h-4 w-4" /> Crear desde viajes
+            </button>
             <button type="button" onClick={() => setRepetidos(true)} className="btn btn-borde h-10 px-4">
               <Sparkles className="h-4 w-4" /> Encontrar repetidos
             </button>
@@ -198,6 +203,7 @@ const ClientesView = () => {
         <ModalCliente onClose={() => setNuevo(false)}
           onGuardado={(c) => { setNuevo(false); navigate(`/clientes/${c.id}`); }} />
       )}
+      {importar && <ModalImportarClientes onClose={() => setImportar(false)} onListo={() => { setImportar(false); recargar(); }} />}
       {repetidos && <ModalRepetidos onClose={() => { setRepetidos(false); recargar(); }} />}
     </div>
   );

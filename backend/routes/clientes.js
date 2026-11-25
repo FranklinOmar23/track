@@ -5,7 +5,7 @@ import pool from '../db.js';
 import { requierePermiso, viajesPermitidos, puedeVerViaje, MENSAJES } from '../utils/permisos.js';
 import { registrarLog } from '../utils/log.js';
 import {
-  normalizarCliente, aCliente, cargarParticipaciones, resumirParticipaciones, claveNombre,
+  normalizarCliente, aCliente, cargarParticipaciones, resumirParticipaciones, claveNombre, planImportacion,
 } from '../utils/clientes.js';
 
 const router = asyncRouter();
@@ -197,6 +197,59 @@ router.get('/posibles', requierePermiso('clientes'), async (req, res) => {
   res.json(paginado(lista.slice(offset, offset + limit + 1), page, limit));
 });
 
+/**
+ * POST /api/clientes/importar — crea clientes desde los viajes: todos los adultos sin cliente que
+ * tienen nombre y apellido (los niños y los nombres sueltos se omiten). El mismo nombre en varios
+ * viajes queda como un solo cliente; si ya hay un cliente con ese nombre se enlazan a él.
+ * Con `{ simular: true }` solo devuelve lo que haría. Se puede deshacer desde Actividad.
+ */
+router.post('/importar', puedeEditar, async (req, res) => {
+  const simular = !!req.body?.simular;
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    const { grupos, omitidas } = await planImportacion(connection, req.auth);
+    const nuevos = grupos.filter((g) => !g.clienteId);
+    const aExistentes = grupos.filter((g) => g.clienteId);
+    const resumen = {
+      clientesNuevos: nuevos.length,
+      enlazadosAExistentes: aExistentes.length,
+      personas: grupos.reduce((s, g) => s + g.personaIds.length, 0),
+      variosViajes: grupos.filter((g) => g.viajes > 1).length,
+      omitidas,
+      ejemplos: [...grupos].sort((a, b) => b.viajes - a.viajes || a.nombre.localeCompare(b.nombre, 'es'))
+        .slice(0, 8).map((g) => ({ nombre: g.nombre, viajes: g.viajes, existente: !!g.clienteId })),
+    };
+    if (simular || !grupos.length) {
+      await connection.rollback();
+      return res.json({ ...resumen, simulado: true });
+    }
+
+    const creados = [];
+    for (const g of nuevos) {
+      const [r] = await connection.query('INSERT INTO clientes (nombre, creado_por) VALUES (?, ?)', [g.nombre, req.usuario]);
+      await connection.query('UPDATE personas SET cliente_id = ? WHERE id IN (?) AND cliente_id IS NULL', [r.insertId, g.personaIds]);
+      creados.push({ clienteId: r.insertId, personaIds: g.personaIds });
+    }
+    const enlazados = [];
+    for (const g of aExistentes) {
+      await connection.query('UPDATE personas SET cliente_id = ? WHERE id IN (?) AND cliente_id IS NULL', [g.clienteId, g.personaIds]);
+      enlazados.push({ clienteId: g.clienteId, personaIds: g.personaIds });
+    }
+    await connection.commit();
+
+    registrarLog(req.usuario, 'crear', 'cliente', null,
+      `${req.usuario} creó ${creados.length} cliente(s) desde los viajes${enlazados.length ? ` y enlazó viajes a ${enlazados.length} cliente(s) existentes` : ''} (${resumen.personas} persona(s))`,
+      { op: 'cliente.importar', creados, enlazados });
+    res.json({ ...resumen, simulado: false });
+  } catch (e) {
+    await connection.rollback();
+    throw e;
+  } finally {
+    connection.release();
+  }
+});
+
 const leerCliente = async (conn, id) => {
   const [rows] = await conn.query('SELECT * FROM clientes WHERE id = ?', [id]);
   return rows[0] || null;
@@ -312,6 +365,59 @@ router.post('/:id/vincular', puedeEditar, async (req, res) => {
     `${req.usuario} enlazó a ${nombres} con el cliente ${cliente.nombre} (${cambiar.length} viaje(s))`,
     { op: 'cliente.vincular', clienteId: id, personas: cambiar.map((p) => ({ id: p.id, antes: p.cliente_id })) });
   res.json({ ok: true, enlazadas: cambiar.length });
+});
+
+/**
+ * POST /api/clientes/:id/unir { otroId } — junta dos fichas de la misma persona: los viajes del otro
+ * pasan a este, los datos que aquí estén vacíos se toman del otro (las notas se suman) y el otro se borra.
+ */
+router.post('/:id/unir', puedeEditar, async (req, res) => {
+  const id = Number(req.params.id);
+  const otroId = Number(req.body?.otroId);
+  if (!otroId || otroId === id) return res.status(400).json({ error: 'Elige otro cliente para unir.' });
+
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    const [filas] = await connection.query('SELECT * FROM clientes WHERE id IN (?) FOR UPDATE', [[id, otroId]]);
+    const cliente = filas.find((f) => f.id === id);
+    const otro = filas.find((f) => f.id === otroId);
+    if (!cliente || !otro) {
+      await connection.rollback();
+      return res.status(404).json({ error: 'Alguno de los dos clientes ya no existe.' });
+    }
+
+    const vacio = (v) => v === null || v === undefined || String(v).trim() === '';
+    const cambios = {};
+    for (const c of ['telefono', 'whatsapp', 'correo', 'documento', 'fecha_nacimiento', 'ciudad', 'direccion']) {
+      if (vacio(cliente[c]) && !vacio(otro[c])) cambios[c] = otro[c];
+    }
+    if (!vacio(otro.notas) && String(otro.notas).trim() !== String(cliente.notas || '').trim()) {
+      cambios.notas = vacio(cliente.notas) ? otro.notas : `${cliente.notas}\n\n${otro.notas}`.slice(0, 5000);
+    }
+    if (otro.es_fijo && !cliente.es_fijo) cambios.es_fijo = 1;
+    const columnas = Object.keys(cambios);
+    const antes = Object.fromEntries(columnas.map((c) => [c, cliente[c] ?? null]));
+    if (columnas.length) {
+      await connection.query(`UPDATE clientes SET ${columnas.map((c) => `${c} = ?`).join(', ')}, updated_at = NOW() WHERE id = ?`,
+        [...columnas.map((c) => cambios[c]), id]);
+    }
+    const [personas] = await connection.query('SELECT id FROM personas WHERE cliente_id = ?', [otroId]);
+    const personaIds = personas.map((p) => p.id);
+    if (personaIds.length) await connection.query('UPDATE personas SET cliente_id = ? WHERE id IN (?)', [id, personaIds]);
+    await connection.query('DELETE FROM clientes WHERE id = ?', [otroId]);
+    await connection.commit();
+
+    registrarLog(req.usuario, 'editar', 'cliente', id,
+      `${req.usuario} unió al cliente ${otro.nombre} con ${cliente.nombre} (${personaIds.length} viaje(s) movidos)`,
+      { op: 'cliente.unir', clienteId: id, otro, personaIds, antes, despues: cambios });
+    res.json({ ok: true, movidas: personaIds.length, cliente: aCliente(await leerCliente(pool, id)) });
+  } catch (e) {
+    await connection.rollback();
+    throw e;
+  } finally {
+    connection.release();
+  }
 });
 
 /** DELETE /api/clientes/:id/personas/:personaId — quita el enlace de una persona con el cliente. */

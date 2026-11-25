@@ -40,6 +40,13 @@ const insertarPago = (conn, p) => conn.query(
     p.fecha_recibido ? String(p.fecha_recibido).slice(0, 10) : null,
     fecha(p.created_at)]);
 
+const insertarCliente = (conn, c) => conn.query(
+  `INSERT INTO clientes (id, nombre, telefono, whatsapp, correo, documento, fecha_nacimiento, ciudad, direccion,
+     notas, es_fijo, creado_por, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  [c.id, c.nombre, c.telefono, c.whatsapp, c.correo, c.documento,
+    c.fecha_nacimiento ? String(c.fecha_nacimiento).slice(0, 10) : null, c.ciudad, c.direccion,
+    c.notas, c.es_fijo || 0, c.creado_por, fecha(c.created_at), fecha(c.updated_at)]);
+
 const existe = async (conn, tabla, id) => {
   const [rows] = await conn.query(`SELECT id FROM ${tabla} WHERE id = ?`, [id]);
   return rows.length > 0;
@@ -180,6 +187,23 @@ export const OPERACIONES = {
     }
   },
 
+  'cliente.importar': async (conn, d) => {
+    const ids = (d.creados || []).map((c) => c.clienteId);
+    if (ids.length) {
+      const propias = new Set(d.creados.flatMap((c) => c.personaIds));
+      const [enlazadas] = await conn.query('SELECT id FROM personas WHERE cliente_id IN (?)', [ids]);
+      if (enlazadas.some((r) => !propias.has(r.id))) {
+        throw new ErrorDeshacer('Después se enlazaron más viajes a estos clientes. Deshaz primero esos cambios.');
+      }
+      const [editados] = await conn.query('SELECT id FROM clientes WHERE id IN (?) AND updated_at IS NOT NULL', [ids]);
+      if (editados.length) throw new ErrorDeshacer('Algunos de estos clientes ya se editaron (teléfono, notas…). No se pueden borrar todos de una vez.');
+      await conn.query('DELETE FROM clientes WHERE id IN (?)', [ids]);
+    }
+    for (const e of d.enlazados || []) {
+      await conn.query('UPDATE personas SET cliente_id = NULL WHERE id IN (?) AND cliente_id = ?', [e.personaIds, e.clienteId]);
+    }
+  },
+
   'cliente.editar': async (conn, d) => {
     const [rows] = await conn.query('SELECT * FROM clientes WHERE id = ?', [d.clienteId]);
     if (!rows[0]) throw new ErrorDeshacer('El cliente ya no existe.');
@@ -192,14 +216,25 @@ export const OPERACIONES = {
   'cliente.eliminar': async (conn, d) => {
     const c = d.cliente;
     if (await existe(conn, 'clientes', c.id)) throw new ErrorDeshacer('El cliente ya fue restaurado.');
-    await conn.query(
-      `INSERT INTO clientes (id, nombre, telefono, whatsapp, correo, documento, fecha_nacimiento, ciudad, direccion,
-         notas, es_fijo, creado_por, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [c.id, c.nombre, c.telefono, c.whatsapp, c.correo, c.documento,
-        c.fecha_nacimiento ? String(c.fecha_nacimiento).slice(0, 10) : null, c.ciudad, c.direccion,
-        c.notas, c.es_fijo || 0, c.creado_por, fecha(c.created_at), fecha(c.updated_at)]);
+    await insertarCliente(conn, c);
     if (d.personaIds?.length) {
       await conn.query('UPDATE personas SET cliente_id = ? WHERE id IN (?) AND cliente_id IS NULL', [c.id, d.personaIds]);
+    }
+  },
+
+  'cliente.unir': async (conn, d) => {
+    const [rows] = await conn.query('SELECT * FROM clientes WHERE id = ?', [d.clienteId]);
+    if (!rows[0]) throw new ErrorDeshacer('El cliente ya no existe.');
+    if (await existe(conn, 'clientes', d.otro.id)) throw new ErrorDeshacer('El cliente unido ya fue restaurado.');
+    if (!mismosCampos(rows[0], d.despues)) throw new ErrorDeshacer(CAMBIO_POSTERIOR);
+    await insertarCliente(conn, d.otro);
+    const columnas = Object.keys(d.antes);
+    if (columnas.length) {
+      await conn.query(`UPDATE clientes SET ${columnas.map((c) => `${c} = ?`).join(', ')} WHERE id = ?`,
+        [...columnas.map((c) => d.antes[c]), d.clienteId]);
+    }
+    if (d.personaIds?.length) {
+      await conn.query('UPDATE personas SET cliente_id = ? WHERE id IN (?) AND cliente_id = ?', [d.otro.id, d.personaIds, d.clienteId]);
     }
   },
 

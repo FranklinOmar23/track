@@ -313,3 +313,9 @@ export const desvincularPersonaCliente = (id, personaId) =>
   request(`/api/clientes/${id}/personas/${personaId}`, { method: 'DELETE' });
 /** Grupos de personas sin cliente cuyo nombre se repite en varios viajes (paginado). */
 export const fetchPosiblesClientes = (params = {}) => request(`/api/clientes/posibles${query(params)}`);
+/** Crea clientes desde los viajes (adultos con nombre y apellido). `simular: true` solo cuenta. */
+export const importarClientes = (simular = false) =>
+  request('/api/clientes/importar', { method: 'POST', body: JSON.stringify({ simular }) });
+/** Junta la ficha `otroId` con la `id` (sus viajes pasan a `id` y la otra se borra). */
+export const unirClientes = (id, otroId) =>
+  request(`/api/clientes/${id}/unir`, { method: 'POST', body: JSON.stringify({ otroId }) });

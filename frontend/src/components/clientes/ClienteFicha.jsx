@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   ChevronRight, Phone, MessageCircle, Mail, IdCard, Cake, MapPin, Pencil, Trash2, Star, Crown, Link2, Unlink,
-  Plane, StickyNote,
+  Plane, StickyNote, Merge, BellRing,
 } from 'lucide-react';
 import { fetchCliente, eliminarCliente, desvincularPersonaCliente, editarCliente } from '../../utils/api';
 import { useAuthContext } from '../../Context/AuthContext';
@@ -13,7 +13,8 @@ import { rutaViaje } from '../../utils/rutas';
 import { Hueso, EsqueletoFilas } from '../common/Esqueleto';
 import ModalCliente from './ModalCliente';
 import ModalEnlazarViajes from './ModalEnlazarViajes';
-import { montosPorDivisa, enlaceWhatsapp, iniciales, fechaCorta, edad, haceCuanto } from './util';
+import ModalUnirCliente from './ModalUnirCliente';
+import { montosPorDivisa, enlaceWhatsapp, mensajeCobro, iniciales, fechaCorta, edad, haceCuanto } from './util';
 
 const Dato = ({ icono: Icono, label, children }) => (
   <div className="flex items-start gap-3 py-2.5">
@@ -53,6 +54,7 @@ const ClienteFicha = () => {
   const [version, setVersion] = useState(0);
   const [editando, setEditando] = useState(false);
   const [enlazando, setEnlazando] = useState(false);
+  const [uniendo, setUniendo] = useState(false);
 
   useEffect(() => {
     let vigente = true;
@@ -77,6 +79,7 @@ const ClienteFicha = () => {
   const r = cliente.resumen;
   const whatsapp = enlaceWhatsapp(cliente.whatsapp || cliente.telefono);
   const anios = edad(cliente.fechaNacimiento);
+  const cobro = r.conDeuda ? enlaceWhatsapp(cliente.whatsapp || cliente.telefono, mensajeCobro(cliente)) : null;
 
   const borrar = async () => {
     const ok = await confirmar({
@@ -158,10 +161,19 @@ const ClienteFicha = () => {
               <MessageCircle className="h-4 w-4" /> WhatsApp
             </a>
           )}
+          {cobro && (
+            <a href={cobro} target="_blank" rel="noreferrer" className="btn btn-borde h-10 px-3.5 text-emerald-700"
+              title="Abre WhatsApp con el mensaje de lo que tiene pendiente, listo para enviar">
+              <BellRing className="h-4 w-4" /> Recordar pago
+            </a>
+          )}
           {puedeEditar && (
             <>
               <button type="button" onClick={alternarFijo} className="btn btn-borde h-10 px-3.5" title={cliente.esFijo ? 'Quitar cliente fijo' : 'Marcar como cliente fijo'}>
                 <Star className={`h-4 w-4 ${cliente.esFijo ? 'fill-amber-400 text-amber-500' : ''}`} /> {cliente.esFijo ? 'Fijo' : 'Marcar fijo'}
+              </button>
+              <button type="button" onClick={() => setUniendo(true)} className="btn btn-borde h-10 px-3.5" title="Juntar con otra ficha de la misma persona">
+                <Merge className="h-4 w-4" /> Unir
               </button>
               <button type="button" onClick={() => setEditando(true)} className="btn btn-primario h-10 px-3.5"><Pencil className="h-4 w-4" /> Editar</button>
               <button type="button" onClick={borrar} aria-label="Eliminar cliente" title="Eliminar cliente"
@@ -290,6 +302,10 @@ const ClienteFicha = () => {
       {editando && (
         <ModalCliente cliente={cliente} onClose={() => setEditando(false)}
           onGuardado={(c) => { setEditando(false); setCliente((prev) => ({ ...prev, ...c })); }} />
+      )}
+      {uniendo && (
+        <ModalUnirCliente cliente={cliente} onClose={() => setUniendo(false)}
+          onUnidos={() => { setUniendo(false); recargar(); }} />
       )}
       {enlazando && (
         <ModalEnlazarViajes cliente={cliente} onClose={() => setEnlazando(false)}

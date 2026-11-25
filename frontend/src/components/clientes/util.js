@@ -10,10 +10,26 @@ export const montosPorDivisa = (totales = [], campo = 'pagado') => {
 export const soloDigitos = (tel) => String(tel || '').replace(/\D/g, '');
 
 /** Enlace de WhatsApp. Los números dominicanos de 10 dígitos (809/829/849) llevan el 1 delante. */
-export const enlaceWhatsapp = (tel) => {
+export const enlaceWhatsapp = (tel, texto = '') => {
   let n = soloDigitos(tel);
   if (n.length === 10) n = `1${n}`;
-  return n ? `https://wa.me/${n}` : null;
+  if (!n) return null;
+  return `https://wa.me/${n}${texto ? `?text=${encodeURIComponent(texto)}` : ''}`;
+};
+
+/** Mensaje de recordatorio de pago con lo que falta en cada viaje (solo viajes con deuda). */
+export const mensajeCobro = (cliente) => {
+  const conDeuda = (cliente.participaciones || []).filter((p) => p.pendiente > 0.009);
+  if (!conDeuda.length) return '';
+  const nombre = cliente.nombre.trim().split(/\s+/)[0];
+  const lineas = conDeuda.map((p) => `• ${p.viaje.nombre}: ${formatCurrency(p.pendiente, p.viaje.divisa)}`);
+  return [
+    `Hola ${nombre}, te saludamos de Sadoj Tours.`,
+    conDeuda.length === 1
+      ? `Te recordamos que del viaje ${conDeuda[0].viaje.nombre} tienes pendiente ${formatCurrency(conDeuda[0].pendiente, conDeuda[0].viaje.divisa)}.`
+      : `Te recordamos lo que tienes pendiente:\n${lineas.join('\n')}`,
+    'Cualquier duda estamos a la orden. ¡Gracias!',
+  ].join('\n\n');
 };
 
 export const iniciales = (nombre = '') => nombre.trim().split(/\s+/).slice(0, 2).map((p) => p[0]?.toUpperCase() || '').join('') || '?';

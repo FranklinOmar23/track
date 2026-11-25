@@ -83,6 +83,66 @@ export const claveNombre = (nombre) => String(nombre || '')
   .toLowerCase().replace(/[^a-zñ0-9 ]/g, ' ')
   .replace(/\s+/g, ' ').trim();
 
+const RE_EDAD = /\(\s*\d+\s*años?\s*\)/i;
+// Nombres de relleno que no son una persona real ("Persona 2", "Acompañante", "Por definir"…)
+const GENERICOS = new Set(['persona', 'adulto', 'adulta', 'acompanante', 'invitado', 'invitada', 'pendiente',
+  'por', 'sin', 'nombre', 'cliente', 'nino', 'nina', 'bebe', 'huesped', 'tbd', 'na', 'xx', 'xxx', 'otro', 'otra']);
+
+/** true si el nombre tiene nombre y apellido (dos palabras de 2+ letras) y no es de relleno. */
+export const tieneNombreYApellido = (nombre) => {
+  const palabras = claveNombre(nombre).split(' ').filter((w) => w.length >= 2 && /[a-zñ]/.test(w) && !/\d/.test(w));
+  return palabras.length >= 2 && !GENERICOS.has(palabras[0]) && !GENERICOS.has(palabras[1]);
+};
+
+/**
+ * Plan para crear clientes desde los viajes: adultos sin cliente con nombre y apellido,
+ * agrupados por nombre (el mismo nombre en varios viajes = un solo cliente). Si ya existe
+ * un cliente con ese nombre se enlazan a él; si hay varios con el mismo nombre no se toca.
+ */
+export const planImportacion = async (conn, auth) => {
+  const permitidos = viajesPermitidos(auth);
+  const [personas] = await conn.query(`
+    SELECT p.id, p.nombre, COALESCE(p.es_nino, 0) AS es_nino, h.viaje_id
+    FROM personas p JOIN habitaciones h ON h.id = p.habitacion_id
+    WHERE p.cliente_id IS NULL ${permitidos ? 'AND h.viaje_id IN (?)' : ''}
+    ORDER BY p.id`, permitidos ? [permitidos.length ? permitidos : [0]] : []);
+  const [clientes] = await conn.query('SELECT id, nombre FROM clientes');
+  const existentes = new Map();
+  for (const c of clientes) {
+    const k = claveNombre(c.nombre);
+    existentes.set(k, [...(existentes.get(k) || []), c]);
+  }
+
+  const omitidas = { ninos: 0, sinApellido: 0, repetidosEnClientes: 0 };
+  const grupos = new Map();
+  for (const p of personas) {
+    if (p.es_nino || RE_EDAD.test(p.nombre || '')) { omitidas.ninos += 1; continue; }
+    if (!tieneNombreYApellido(p.nombre)) { omitidas.sinApellido += 1; continue; }
+    const k = claveNombre(p.nombre);
+    if ((existentes.get(k) || []).length > 1) { omitidas.repetidosEnClientes += 1; continue; }
+    if (!grupos.has(k)) grupos.set(k, { clave: k, personas: [], viajes: new Set(), nombres: new Map() });
+    const g = grupos.get(k);
+    g.personas.push(p.id);
+    g.viajes.add(p.viaje_id);
+    const n = p.nombre.trim().replace(/\s+/g, ' ');
+    g.nombres.set(n, (g.nombres.get(n) || 0) + 1);
+  }
+
+  return {
+    grupos: [...grupos.values()].map((g) => {
+      const cliente = (existentes.get(g.clave) || [])[0] || null;
+      return {
+        // El nombre que más se repite tal como se escribió
+        nombre: cliente ? cliente.nombre : [...g.nombres.entries()].sort((a, b) => b[1] - a[1])[0][0].slice(0, 150),
+        clienteId: cliente ? cliente.id : null,
+        personaIds: g.personas,
+        viajes: g.viajes.size,
+      };
+    }),
+    omitidas,
+  };
+};
+
 /**
  * Participaciones de los clientes en viajes: una por cada persona enlazada, con su cuota,
  * lo pagado y lo pendiente. Solo viajes que el usuario puede ver.
