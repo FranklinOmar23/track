@@ -1,9 +1,10 @@
 import { useMemo } from 'react';
 import { formatCurrency } from '../../utils/formatters';
 import Grafico from '../common/Grafico';
+import { useTema } from '../../utils/tema';
 
 const CATEGORIAS_DONA = ['Pagado', 'Pendiente'];
-const COLORES_DONA = ['#059669', '#f4c7c3'];
+const COLORES_DONA = { claro: ['#059669', '#f4c7c3'], oscuro: ['#10b981', '#7f3b40'] };
 
 /** Encabezado de tarjeta: título, subtítulo y algo opcional a la derecha. */
 export const EncabezadoTarjeta = ({ titulo, subtitulo, children }) => (
@@ -70,6 +71,7 @@ const ResumenDona = ({ pagado, pendiente, divisa }) => {
   const fmt = (n) => formatCurrency(n, divisa);
   const total = pagado + pendiente;
   const pct = total > 0 ? Math.round((pagado / total) * 100) : 0;
+  const tema = useTema();
   const series = useMemo(() => [{ name: 'Total por cobrar', data: [pagado, pendiente], format: (v) => formatCurrency(v, divisa) }],
     [pagado, pendiente, divisa]);
 
@@ -80,7 +82,7 @@ const ResumenDona = ({ pagado, pendiente, divisa }) => {
       </EncabezadoTarjeta>
 
       <div className="my-3">
-        <Grafico type="donut" height={220} categories={CATEGORIAS_DONA} colors={COLORES_DONA}
+        <Grafico type="donut" height={220} categories={CATEGORIAS_DONA} colors={COLORES_DONA[tema]}
           series={series} legend={{ show: false }} donut={{ thickness: 0.34 }} export={false} />
       </div>
 

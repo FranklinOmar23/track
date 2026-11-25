@@ -32,7 +32,7 @@ const TabMapaCalor = ({ datos, fmt, divisa }) => {
           <span>Menos</span>
           {[10,30,55,75,92].map((v) => {
             const c = heatColor(v);
-            return <div key={v} className="w-5 h-5 rounded" style={{ background: c.bg, border: '1px solid rgba(15,23,42,0.06)' }} />;
+            return <div key={v} className="w-5 h-5 rounded" style={{ background: c.bg, border: '1px solid rgba(var(--tinta-rgb),0.06)' }} />;
           })}
           <span>Más</span>
         </div>
@@ -58,7 +58,7 @@ const TabMapaCalor = ({ datos, fmt, divisa }) => {
                         <td key={mes} className="px-1 py-1">
                           <div className="rounded-lg text-center py-2 px-1 font-semibold min-w-[56px] text-[11px] transition-all duration-200"
                             title={`${viaje} · ${mes}: ${fmt(monto)}`}
-                            style={{ background: c.bg, color: c.text, border: '1px solid rgba(15,23,42,0.04)' }}>
+                            style={{ background: c.bg, color: c.text, border: '1px solid rgba(var(--tinta-rgb),0.04)' }}>
                             {monto > 0 ? fmt(monto, true) : '—'}
                           </div>
                         </td>

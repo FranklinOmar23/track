@@ -158,6 +158,49 @@ export const initDb = async () => {
     console.error('No se pudieron agregar columnas de ganancia/estado a viajes:', error.message);
   }
 
+  // Transferencias al hotel, fecha real de cada pago, comprobantes y saldo del banco (ver migrations/010)
+  try {
+    await pool.query('ALTER TABLE pagos ADD COLUMN IF NOT EXISTS fecha_recibido DATE NULL');
+    // Sin relleno automático: los pagos viejos quedan "sin fecha" hasta que alguien la ponga
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS transferencias (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        viaje_id INT NOT NULL,
+        fecha DATE NOT NULL,
+        monto DECIMAL(12,2) NOT NULL,
+        corte DATE NULL,
+        referencia VARCHAR(100) NULL,
+        nota VARCHAR(255) NULL,
+        creado_por VARCHAR(50) NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_viaje_fecha (viaje_id, fecha),
+        CONSTRAINT fk_transferencia_viaje FOREIGN KEY (viaje_id) REFERENCES viajes(id) ON DELETE CASCADE
+      )
+    `);
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS comprobantes (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        entidad VARCHAR(20) NOT NULL,
+        entidad_id INT NOT NULL,
+        nombre VARCHAR(200) NOT NULL,
+        mime VARCHAR(100) NOT NULL,
+        tamano INT NOT NULL,
+        datos MEDIUMBLOB NOT NULL,
+        subido_por VARCHAR(50) NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_entidad (entidad, entidad_id)
+      )
+    `);
+    await pool.query(`
+      ALTER TABLE viajes
+        ADD COLUMN IF NOT EXISTS saldo_banco DECIMAL(12,2) NULL,
+        ADD COLUMN IF NOT EXISTS saldo_banco_at DATETIME NULL,
+        ADD COLUMN IF NOT EXISTS saldo_banco_por VARCHAR(50) NULL
+    `);
+  } catch (error) {
+    console.error('No se pudieron preparar transferencias/comprobantes:', error.message);
+  }
+
   for (const usuario of leerUsuariosIniciales()) {
     const passwordHash = await bcrypt.hash(usuario.password, 10);
     await pool.query(

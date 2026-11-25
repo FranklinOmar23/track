@@ -117,21 +117,21 @@ router.post('/:id/pagos', async (req, res) => {
   if (pago.error) {
     return res.status(400).json({ error: pago.error });
   }
-  const { mes, monto, anio } = pago;
+  const { mes, monto, anio, fechaRecibido } = pago;
 
   const ctx = await contextoPersona(pool, personaId);
   if (rechazarSiNoEditable(req, res, ctx)) return;
 
   const [result] = await pool.query(
-    'INSERT INTO pagos (persona_id, mes, monto, anio) VALUES (?, ?, ?, ?)',
-    [personaId, mes, monto, anio]
+    'INSERT INTO pagos (persona_id, mes, monto, anio, fecha_recibido) VALUES (?, ?, ?, ?, ?)',
+    [personaId, mes, monto, anio, fechaRecibido]
   );
 
   registrarLog(req.usuario, 'pago', 'pago', result.insertId,
     `${req.usuario} registró un pago de ${fmtMonto(monto, ctx.divisa)} (${mes} ${anio}) a ${ctx.texto}`,
-    { op: 'pago.crear', pagoId: result.insertId, despues: { mes, anio, monto } });
+    { op: 'pago.crear', pagoId: result.insertId, despues: { mes, anio, monto, fecha_recibido: fechaRecibido } });
 
-  res.status(201).json({ id: result.insertId, personaId, mes, monto, anio });
+  res.status(201).json({ id: result.insertId, personaId, mes, monto, anio, fechaRecibido, comprobantes: 0 });
 });
 
 router.put('/:id/pagos/:pagoId', async (req, res) => {
@@ -141,7 +141,7 @@ router.put('/:id/pagos/:pagoId', async (req, res) => {
   if (pago.error) {
     return res.status(400).json({ error: pago.error });
   }
-  const { mes, monto, anio } = pago;
+  const { mes, monto, anio, fechaRecibido } = pago;
 
   const [antes, ctx] = await Promise.all([fotoPago(pool, pagoId), contextoPersona(pool, personaId)]);
   if (rechazarSiNoEditable(req, res, ctx)) return;
@@ -149,18 +149,19 @@ router.put('/:id/pagos/:pagoId', async (req, res) => {
     return res.status(404).json({ error: 'Pago no encontrado.' });
   }
 
-  await pool.query('UPDATE pagos SET mes = ?, monto = ?, anio = ? WHERE id = ?', [mes, monto, anio, pagoId]);
+  await pool.query('UPDATE pagos SET mes = ?, monto = ?, anio = ?, fecha_recibido = ? WHERE id = ?',
+    [mes, monto, anio, fechaRecibido, pagoId]);
 
   registrarLog(req.usuario, 'editar', 'pago', pagoId,
     `${req.usuario} editó un pago de ${ctx.texto}: ${fmtMonto(antes.monto, ctx.divisa)} ${periodo(antes)} → ${fmtMonto(monto, ctx.divisa)} ${mes} ${anio}`,
     {
       op: 'pago.editar',
       pagoId,
-      antes: { mes: antes.mes, anio: antes.anio, monto: antes.monto },
-      despues: { mes, anio, monto },
+      antes: { mes: antes.mes, anio: antes.anio, monto: antes.monto, fecha_recibido: antes.fecha_recibido },
+      despues: { mes, anio, monto, fecha_recibido: fechaRecibido },
     });
 
-  res.json({ id: pagoId, personaId, mes, monto, anio });
+  res.json({ id: pagoId, personaId, mes, monto, anio, fechaRecibido });
 });
 
 router.delete('/:id/pagos/:pagoId', async (req, res) => {

@@ -66,7 +66,7 @@ export const RankingList = ({ title, subtitle, items, orbColor = '#0f766e', valu
             <div key={it.label} className="flex items-center gap-3">
               <div
                 className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-[11px] font-bold"
-                style={idx < 3 ? { background: MEDALLA[idx].bg, color: MEDALLA[idx].text } : { background: '#f1f5f9', color: '#64748b' }}
+                style={idx < 3 ? { background: MEDALLA[idx].bg, color: MEDALLA[idx].text } : { background: 'var(--suave)', color: 'var(--tinta-3)' }}
               >
                 {idx + 1}
               </div>

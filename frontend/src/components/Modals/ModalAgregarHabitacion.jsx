@@ -82,7 +82,7 @@ const ModalAgregarHabitacion = ({ open, onClose }) => {
 
         {/* Header */}
         <div className="sticky top-0 z-10 flex items-center justify-between px-6 pt-6 pb-4"
-          style={{ background: '#ffffff', borderBottom: '1px solid rgba(15,23,42,0.06)' }}>
+          style={{ background: 'var(--superficie)', borderBottom: '1px solid rgba(var(--tinta-rgb),0.06)' }}>
           <div>
             <h2 className="text-lg font-bold text-slate-900">Nueva habitación</h2>
             <p className="text-xs text-slate-400 mt-0.5">Completa los datos</p>

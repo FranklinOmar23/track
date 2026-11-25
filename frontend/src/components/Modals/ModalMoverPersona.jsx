@@ -43,7 +43,7 @@ const TarjetaPersona = ({ persona, lado, destacada, moviendo, onArrastrar, onMov
     <span className="flex-1 min-w-0">
       <span className="block text-sm font-medium text-slate-900 truncate">{persona.n}</span>
       <span className="flex gap-1 mt-0.5">
-        {titular && <span className="text-[10px] font-semibold px-1.5 rounded-full leading-4" style={{ background: '#fbf1d3', color: '#8a5a00' }}>titular</span>}
+        {titular && <span className="text-[10px] font-semibold px-1.5 rounded-full leading-4" style={{ background: 'var(--titular-fondo)', color: 'var(--titular-texto)' }}>titular</span>}
         {esNino(persona) && <span className="text-[10px] font-semibold px-1.5 rounded-full bg-amber-50 text-amber-800 leading-4">niño</span>}
         {persona.esStack && <span className="text-[10px] font-semibold px-1.5 rounded-full bg-violet-50 text-violet-700 leading-4">stack</span>}
         {(persona.pagos?.length || 0) > 0 && (

@@ -1,6 +1,7 @@
 // Exportaciones a Excel con formato (ExcelJS se carga solo al exportar, para no pesar en la app).
 import { calcularCuotaPersona, calcularTotalHabitacion, calcularPendientesHabitacion, ninoDebePagar } from './calculos';
 import { clavePeriodo, etiquetaPeriodo } from './formatters';
+import { avisarError } from './avisos';
 
 const cargarExcelJS = async () => (await import('exceljs')).default;
 
@@ -99,7 +100,7 @@ const filaSeparador = (ws, numFila, columnas) => {
 
 // ═══ Excel rápido: total por habitación y cuánto han pagado ═══════════════
 export const exportarExcelRapido = async (habitaciones, viaje) => {
-  if (!habitaciones.length) { alert('No hay habitaciones para exportar.'); return; }
+  if (!habitaciones.length) { avisarError('No hay habitaciones para exportar.'); return; }
   const ExcelJS = await cargarExcelJS();
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet('Rápido', { views: [{ state: 'frozen', ySplit: 4 }] });
@@ -175,7 +176,7 @@ export const exportarExcelRapido = async (habitaciones, viaje) => {
 
 // ═══ Excel detallado: cada persona, su cuota y lo pagado por mes ══════════
 export const exportarExcelDetallado = async (habitaciones, viaje) => {
-  if (!habitaciones.length) { alert('No hay habitaciones para exportar.'); return; }
+  if (!habitaciones.length) { avisarError('No hay habitaciones para exportar.'); return; }
   const ExcelJS = await cargarExcelJS();
 
   // Columnas de meses: todos los periodos (mes + año) con pagos en el viaje, en orden
@@ -293,7 +294,7 @@ export const exportarHabitacionesExcel = async (habitaciones, viaje) => {
       filas.push([hab.num, hab.etiqueta || '', p.n, p.posicion || idx + 1]);
     });
   }));
-  if (!filas.length) { alert('No hay personas registradas para exportar.'); return; }
+  if (!filas.length) { avisarError('No hay personas registradas para exportar.'); return; }
 
   const ExcelJS = await cargarExcelJS();
   const wb = new ExcelJS.Workbook();
@@ -315,7 +316,7 @@ const describirGanancia = (v) =>
       : 'Sin configurar';
 
 export const exportarGananciasExcel = async (filas, nombre = 'reporte-ganancias') => {
-  if (!filas.length) { alert('No hay viajes para exportar.'); return; }
+  if (!filas.length) { avisarError('No hay viajes para exportar.'); return; }
   const ExcelJS = await cargarExcelJS();
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet('Ganancias', { views: [{ state: 'frozen', ySplit: 1 }] });

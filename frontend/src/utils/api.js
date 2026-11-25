@@ -255,3 +255,43 @@ export const restablecerPassword = (id, password) =>
 
 export const cambiarTitular = (personaId) =>
   request(`/api/personas/${personaId}/titular`, { method: 'PATCH' });
+
+// ─── TRANSFERENCIAS AL HOTEL ─────────────────────────────────────────────────
+export const fetchTransferencias = (viajeId) => request(`/api/transferencias?viajeId=${viajeId}`);
+
+export const crearTransferencia = (datos) =>
+  request('/api/transferencias', { method: 'POST', body: JSON.stringify(datos) });
+
+export const editarTransferencia = (id, datos) =>
+  request(`/api/transferencias/${id}`, { method: 'PUT', body: JSON.stringify(datos) });
+
+export const eliminarTransferencia = (id) =>
+  request(`/api/transferencias/${id}`, { method: 'DELETE' });
+
+export const guardarSaldoBanco = (viajeId, saldo) =>
+  request('/api/transferencias/saldo-banco', { method: 'PUT', body: JSON.stringify({ viajeId, saldo }) });
+
+// ─── COMPROBANTES (vouchers) ─────────────────────────────────────────────────
+export const fetchComprobantes = (entidad, entidadId) =>
+  request(`/api/comprobantes?entidad=${entidad}&entidadId=${entidadId}`);
+
+export const subirComprobante = (datos) =>
+  request('/api/comprobantes', { method: 'POST', body: JSON.stringify(datos) });
+
+export const eliminarComprobante = (id) =>
+  request(`/api/comprobantes/${id}`, { method: 'DELETE' });
+
+/** Descarga el archivo de un comprobante (con la sesión) y devuelve un Blob. */
+export const descargarComprobante = async (id) => {
+  const token = localStorage.getItem(TOKEN_KEY);
+  const baseUrl = (API_BASE || window.location.origin).replace(/\/+$|\s+/g, '');
+  const response = await fetch(`${baseUrl}${normalizeApiPath(`/api/comprobantes/${id}`)}`, {
+    mode: 'cors',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.error || 'No se pudo abrir el comprobante');
+  }
+  return response.blob();
+};

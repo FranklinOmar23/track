@@ -67,7 +67,7 @@ const MenuExportarExcel = ({ habitaciones, viaje }) => {
       {abierto && (
         <div role="menu"
           className="absolute right-0 mt-2 w-72 rounded-xl overflow-hidden z-30 animate-fade-in-scale origin-top-right"
-          style={{ background: '#ffffff', border: '1px solid rgba(15,23,42,0.1)', boxShadow: '0 16px 36px -12px rgba(15,23,42,0.25)' }}>
+          style={{ background: 'var(--superficie)', border: '1px solid rgba(15,23,42,0.1)', boxShadow: '0 16px 36px -12px rgba(15,23,42,0.25)' }}>
           {OPCIONES.map((op) => (
             <button key={op.id} type="button" role="menuitem" onClick={() => exportar(op)}
               className="w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-b-0">

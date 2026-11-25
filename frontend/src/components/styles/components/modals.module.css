@@ -5,7 +5,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(15,23,42,0.45);
+  background-color: rgba(var(--tinta-rgb),0.45);
   backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
@@ -16,8 +16,8 @@
 
 /* Contenedor principal del modal - dark */
 .modal {
-  background-color: #ffffff;
-  border: 1px solid rgba(15,23,42,0.07);
+  background-color: var(--superficie);
+  border: 1px solid rgba(var(--tinta-rgb),0.07);
   border-radius: 1.5rem;
   box-shadow: 0 25px 50px -12px rgba(15,23,42,0.3);
   width: 100%;
@@ -27,7 +27,7 @@
   padding: 1.75rem;
   position: relative;
   animation: fadeInUp 0.2s ease-out;
-  color: #0f172a;
+  color: var(--tinta);
 }
 
 /* Modal más ancho para detalles de habitación */
@@ -54,7 +54,7 @@
   font-size: 1.5rem;
   font-weight: 600;
   margin: 0 0 1.25rem 0;
-  color: #0f172a;
+  color: var(--tinta);
   letter-spacing: -0.01em;
 }
 
@@ -71,7 +71,7 @@
   color: #64748b;
   margin: 0 0 0.75rem 0;
   padding-bottom: 0.25rem;
-  border-bottom: 1px solid rgba(15,23,42,0.07);
+  border-bottom: 1px solid rgba(var(--tinta-rgb),0.07);
 }
 
 /* Grupos de formulario */
@@ -93,11 +93,11 @@
 .formRow select,
 .formRow textarea {
   padding: 0.65rem 0.85rem;
-  border: 1px solid rgba(15,23,42,0.1);
+  border: 1px solid rgba(var(--tinta-rgb),0.1);
   border-radius: 0.75rem;
   font-size: 0.9rem;
-  background-color: rgba(15,23,42,0.05);
-  color: #0f172a;
+  background-color: rgba(var(--tinta-rgb),0.05);
+  color: var(--tinta);
   transition: all 0.2s;
   font-family: inherit;
 }
@@ -108,8 +108,8 @@
 }
 
 .formRow select option {
-  background-color: #ffffff;
-  color: #0f172a;
+  background-color: var(--superficie);
+  color: var(--tinta);
 }
 
 .formRow input:focus,
@@ -122,10 +122,10 @@
 
 .formRow input:disabled,
 .formRow select:disabled {
-  background-color: rgba(15,23,42,0.02);
+  background-color: rgba(var(--tinta-rgb),0.02);
   cursor: not-allowed;
   color: #94a3b8;
-  border-color: rgba(15,23,42,0.04);
+  border-color: rgba(var(--tinta-rgb),0.04);
 }
 
 /* Filas de dos columnas (fechas) */
@@ -143,7 +143,7 @@
   gap: 0.75rem;
   margin-top: 1.75rem;
   padding-top: 0.75rem;
-  border-top: 1px solid rgba(15,23,42,0.07);
+  border-top: 1px solid rgba(var(--tinta-rgb),0.07);
 }
 
 /* Estilos base para botones */
@@ -155,14 +155,14 @@
   font-size: 0.85rem;
   cursor: pointer;
   transition: all 0.2s;
-  border: 1px solid rgba(15,23,42,0.1);
-  background-color: rgba(15,23,42,0.07);
+  border: 1px solid rgba(var(--tinta-rgb),0.1);
+  background-color: rgba(var(--tinta-rgb),0.07);
   color: #334155;
 }
 
 .modalActions button:hover,
 .button:hover {
-  background-color: rgba(15,23,42,0.12);
+  background-color: rgba(var(--tinta-rgb),0.12);
   transform: translateY(-1px);
 }
 
@@ -188,9 +188,9 @@
 }
 
 .button-secondary {
-  background-color: rgba(15,23,42,0.05);
+  background-color: rgba(var(--tinta-rgb),0.05);
   color: #64748b;
-  border: 1px solid rgba(15,23,42,0.1);
+  border: 1px solid rgba(var(--tinta-rgb),0.1);
 }
 
 /* Toggle STACK */
@@ -202,8 +202,8 @@
 }
 
 .stackToggle button {
-  background-color: rgba(15,23,42,0.07);
-  border: 1px solid rgba(15,23,42,0.1);
+  background-color: rgba(var(--tinta-rgb),0.07);
+  border: 1px solid rgba(var(--tinta-rgb),0.1);
   padding: 0.5rem 1rem;
   border-radius: 2rem;
   font-weight: 500;
@@ -258,29 +258,29 @@
 }
 
 .closeBtn:hover {
-  background-color: rgba(15,23,42,0.07);
-  color: #0f172a;
+  background-color: rgba(var(--tinta-rgb),0.07);
+  color: var(--tinta);
 }
 
 /* Tarjeta de persona dentro del modal */
 .personaCard {
-  background-color: rgba(15,23,42,0.03);
+  background-color: rgba(var(--tinta-rgb),0.03);
   border-radius: 1rem;
   padding: 1rem;
   margin-bottom: 1rem;
-  border: 1px solid rgba(15,23,42,0.07);
+  border: 1px solid rgba(var(--tinta-rgb),0.07);
   box-shadow: none;
   transition: border-color 0.2s;
 }
 
 .personaCard:hover {
-  border-color: rgba(15,23,42,0.12);
+  border-color: rgba(var(--tinta-rgb),0.12);
 }
 
 .personaName {
   font-weight: 600;
   margin-bottom: 0.5rem;
-  color: #0f172a;
+  color: var(--tinta);
 }
 
 .pagosList {
@@ -291,11 +291,11 @@
 }
 
 .pagoItem {
-  background: rgba(15,23,42,0.05);
+  background: rgba(var(--tinta-rgb),0.05);
   padding: 0.2rem 0.6rem;
   border-radius: 1rem;
   font-size: 0.75rem;
-  border: 1px solid rgba(15,23,42,0.08);
+  border: 1px solid rgba(var(--tinta-rgb),0.08);
   color: #334155;
 }
 
@@ -324,8 +324,8 @@
 }
 
 .personaActions button:hover {
-  background-color: rgba(15,23,42,0.07);
-  color: #0f172a;
+  background-color: rgba(var(--tinta-rgb),0.07);
+  color: var(--tinta);
 }
 
 /* Totales de habitación */
@@ -333,11 +333,11 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1rem;
-  background-color: rgba(15,23,42,0.03);
+  background-color: rgba(var(--tinta-rgb),0.03);
   padding: 1rem;
   border-radius: 1rem;
   margin-top: 0.5rem;
-  border: 1px solid rgba(15,23,42,0.05);
+  border: 1px solid rgba(var(--tinta-rgb),0.05);
 }
 
 .totalItem {
@@ -354,7 +354,7 @@
 .totalValue {
   font-size: 1.1rem;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--tinta);
 }
 
 .totalValueDanger {
@@ -378,8 +378,8 @@
 
 /* Estilo para los botones de pago (cada pago individual) */
 .pagoItemButton {
-  background-color: rgba(15,23,42,0.05);
-  border: 1px solid rgba(15,23,42,0.08);
+  background-color: rgba(var(--tinta-rgb),0.05);
+  border: 1px solid rgba(var(--tinta-rgb),0.08);
   padding: 0.25rem 0.75rem;
   border-radius: 9999px;
   font-size: 0.75rem;
@@ -391,8 +391,8 @@
 }
 
 .pagoItemButton:hover {
-  background-color: rgba(15,23,42,0.1);
-  border-color: rgba(15,23,42,0.15);
+  background-color: rgba(var(--tinta-rgb),0.1);
+  border-color: rgba(var(--tinta-rgb),0.15);
   transform: translateY(-1px);
 }
 

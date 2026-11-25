@@ -10,6 +10,8 @@ import { rutaViaje } from '../../utils/rutas';
 import ModalAgregarViaje from '../Modals/ModalAgregarViaje';
 import { ModalCambiarPassword } from '../common/MenuUsuario';
 import AvisosExito from '../common/AvisosExito';
+import InterruptorTema from '../common/InterruptorTema';
+import DialogoConfirmacion from '../common/DialogoConfirmacion';
 
 /** Logo de la marca: cuadro verde con la inicial + nombre. */
 export const Marca = ({ claro = true }) => (
@@ -20,7 +22,7 @@ export const Marca = ({ claro = true }) => (
     </span>
     <span className="leading-tight">
       <span className={`block text-[15px] font-semibold ${claro ? 'text-white' : 'text-slate-900'}`}>Sadoj Tours</span>
-      <span className={`block text-xs ${claro ? 'text-slate-400' : 'text-slate-500'}`}>Control de pagos</span>
+      <span className={`block text-xs ${claro ? 'text-white/55' : 'text-slate-500'}`}>Control de pagos</span>
     </span>
   </div>
 );
@@ -33,14 +35,14 @@ const ItemMenu = ({ to, icono: Icono, label, contador, activo, onNavegar }) => (
     className={({ isActive }) => {
       const on = activo ?? isActive;
       return `flex items-center gap-3 px-3 h-10 rounded-lg text-sm transition-colors ${
-        on ? 'bg-white/10 text-white font-semibold' : 'text-slate-300 hover:bg-white/5 hover:text-white'
+        on ? 'bg-white/10 text-white font-semibold' : 'text-white/70 hover:bg-white/5 hover:text-white'
       }`;
     }}
   >
     <Icono className="h-[18px] w-[18px] shrink-0" strokeWidth={1.8} />
     <span className="flex-1">{label}</span>
     {contador > 0 && (
-      <span className="min-w-[1.5rem] h-5 px-1.5 rounded-full bg-white/10 text-[11px] font-semibold text-slate-200 flex items-center justify-center tabular-nums">
+      <span className="min-w-[1.5rem] h-5 px-1.5 rounded-full bg-white/10 text-[11px] font-semibold text-white/85 flex items-center justify-center tabular-nums">
         {contador}
       </span>
     )}
@@ -95,17 +97,17 @@ const UsuarioMenu = ({ onNavegar }) => {
       )}
       <button type="button" onClick={() => setAbierto((v) => !v)} aria-haspopup="menu" aria-expanded={abierto}
         className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/[0.06] hover:bg-white/10 border border-white/[0.06] transition-colors text-left">
-        <span className="h-8 w-8 rounded-full bg-slate-700/70 text-white text-xs font-bold flex items-center justify-center shrink-0">
+        <span className="h-8 w-8 rounded-full bg-white/15 text-white text-xs font-bold flex items-center justify-center shrink-0">
           {nombre.charAt(0).toUpperCase()}
         </span>
         <span className="flex-1 min-w-0 leading-tight">
           <span className="flex items-center gap-1 text-sm font-semibold text-white truncate">
             {nombre}
-            {esAdmin && <ShieldCheck className="h-3.5 w-3.5 text-teal-300 shrink-0" aria-label="Administrador" />}
+            {esAdmin && <ShieldCheck className="h-3.5 w-3.5 text-[#5eead4] shrink-0" aria-label="Administrador" />}
           </span>
-          <span className="block text-xs text-slate-400">Sesión activa</span>
+          <span className="block text-xs text-white/50">Sesión activa</span>
         </span>
-        <ChevronDown className={`h-4 w-4 text-slate-400 transition-transform ${abierto ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`h-4 w-4 text-white/50 transition-transform ${abierto ? 'rotate-180' : ''}`} />
       </button>
       {cambiando && <ModalCambiarPassword onClose={() => setCambiando(false)} />}
     </div>
@@ -126,7 +128,7 @@ const Lateral = ({ onNuevoViaje, onNavegar }) => {
     <div className="h-full flex flex-col px-4 py-5" style={{ background: 'var(--lateral)' }}>
       <div className="px-1"><Marca /></div>
 
-      <p className="mt-8 mb-2 px-3 text-[11px] font-semibold tracking-wider text-slate-500">MENÚ</p>
+      <p className="mt-8 mb-2 px-3 text-[11px] font-semibold tracking-wider text-white/40">MENÚ</p>
       <nav className="space-y-1">
         <ItemMenu to="/" icono={LayoutGrid} label="Dashboard" onNavegar={onNavegar} />
         <ItemMenu to="/viajes" icono={Briefcase} label="Mis viajes" contador={activos} onNavegar={onNavegar}
@@ -145,7 +147,8 @@ const Lateral = ({ onNuevoViaje, onNavegar }) => {
         </button>
       )}
 
-      <div className="mt-auto pt-6">
+      <div className="mt-auto pt-6 space-y-2">
+        <InterruptorTema />
         <UsuarioMenu onNavegar={onNavegar} />
       </div>
     </div>
@@ -183,7 +186,7 @@ const AppLayout = () => {
         style={{ background: 'var(--lateral)' }}>
         <Marca />
         <button type="button" onClick={() => setMenuMovil(true)} aria-label="Abrir menú"
-          className="p-2 -mr-2 rounded-lg text-slate-200 hover:bg-white/10">
+          className="p-2 -mr-2 rounded-lg text-white/85 hover:bg-white/10">
           <Menu className="h-5 w-5" />
         </button>
       </header>
@@ -192,7 +195,7 @@ const AppLayout = () => {
           <div className="absolute inset-0 bg-slate-900/50 animate-fade-in" onClick={() => setMenuMovil(false)} />
           <div className="absolute inset-y-0 left-0 w-[260px] lateral-movil shadow-2xl">
             <button type="button" onClick={() => setMenuMovil(false)} aria-label="Cerrar menú"
-              className="absolute top-5 right-3 p-1.5 rounded-lg text-slate-300 hover:bg-white/10 z-10">
+              className="absolute top-5 right-3 p-1.5 rounded-lg text-white/70 hover:bg-white/10 z-10">
               <X className="h-4 w-4" />
             </button>
             <Lateral onNuevoViaje={abrirNuevoViaje} onNavegar={() => setMenuMovil(false)} />
@@ -211,6 +214,7 @@ const AppLayout = () => {
 
       <ModalAgregarViaje open={nuevoViaje} onClose={() => setNuevoViaje(false)} onCreate={alCrear} />
       <AvisosExito />
+      <DialogoConfirmacion />
     </div>
   );
 };

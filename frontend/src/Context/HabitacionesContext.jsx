@@ -259,7 +259,11 @@ export const HabitacionesProvider = ({ children }) => {
   const registrarPago = async (personaId, pago) => {
     try {
       const creado = await api.registrarPago(personaId, pago);
-      dispatch({ type: 'PAGO_AGREGADO', payload: { personaId, pago: { id: creado.id, mes: creado.mes, anio: creado.anio, monto: Number(creado.monto) } } });
+      dispatch({ type: 'PAGO_AGREGADO', payload: { personaId, pago: {
+        id: creado.id, mes: creado.mes, anio: creado.anio, monto: Number(creado.monto),
+        fechaRecibido: creado.fechaRecibido || null, comprobantes: 0,
+      } } });
+      return creado;
     } catch (error) {
       console.error('Error registrando pago:', error);
       throw error;
@@ -269,7 +273,11 @@ export const HabitacionesProvider = ({ children }) => {
   const actualizarPago = async (personaId, pagoId, pago) => {
     try {
       const actualizado = await api.actualizarPago(personaId, pagoId, pago);
-      dispatch({ type: 'PAGO_ACTUALIZADO', payload: { personaId, pago: { id: pagoId, mes: actualizado.mes, anio: actualizado.anio, monto: Number(actualizado.monto) } } });
+      dispatch({ type: 'PAGO_ACTUALIZADO', payload: { personaId, pago: {
+        id: pagoId, mes: actualizado.mes, anio: actualizado.anio, monto: Number(actualizado.monto),
+        fechaRecibido: actualizado.fechaRecibido || null,
+      } } });
+      return actualizado;
     } catch (error) {
       console.error('Error actualizando pago:', error);
       throw error;
@@ -339,6 +347,11 @@ export const HabitacionesProvider = ({ children }) => {
 
   const viajeActual = state.viajes.find((v) => v.id === state.selectedViajeId);
   const viajeCerrado = viajeActual?.estado === 'cerrado';
+  /** Actualiza cuántos comprobantes tiene un pago (al subir o borrar uno). */
+  const contarComprobantesPago = (personaId, pagoId, comprobantes) => {
+    dispatch({ type: 'PAGO_ACTUALIZADO', payload: { personaId, pago: { id: pagoId, comprobantes } } });
+  };
+
   const cambiarTitular = async (personaId) => {
     try {
       await api.cambiarTitular(personaId);
@@ -376,6 +389,7 @@ export const HabitacionesProvider = ({ children }) => {
     eliminarPersona: conAviso(eliminarPersona, 'Persona eliminada'),
     moverPersona: conAviso(moverPersona, 'Persona movida'),
     cambiarTitular: conAviso(cambiarTitular, 'Titular cambiado'),
+    contarComprobantesPago,
     actualizarNota: conAviso(actualizarNota, 'Nota guardada'),
     actualizarEtiqueta: conAviso(actualizarEtiqueta, 'Centro actualizado'),
     marcarRevision: conAviso(marcarRevision, (_id, enRevision) => (enRevision ? 'Puesta en revisión' : 'Revisión resuelta')),

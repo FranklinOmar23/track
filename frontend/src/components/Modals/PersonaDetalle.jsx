@@ -1,4 +1,4 @@
-import { Plus, ArrowRightLeft, Gift, Layers, Crown, GripVertical } from 'lucide-react';
+import { Plus, ArrowRightLeft, Gift, Layers, Crown, GripVertical, Paperclip } from 'lucide-react';
 import { calcularCuotaPersona, calcularPendientePersona, ninoDebePagar } from '../../utils/calculos';
 
 
@@ -29,13 +29,13 @@ const PersonaDetalle = ({
 
   return (
     <div className="rounded-xl border border-slate-200 overflow-hidden">
-      <div className="p-4">
+      <div className="p-3.5">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
             {arrastrable && (
               <GripVertical className="h-4 w-4 text-slate-400 shrink-0 -mr-1.5 cursor-grab" aria-hidden="true" />
             )}
-            <span className={`h-9 w-9 rounded-full bg-slate-200 text-slate-600 text-sm font-semibold flex items-center justify-center shrink-0 ${titular ? 'avatar-titular' : ''}`}
+            <span className={`h-8 w-8 rounded-full bg-slate-200 text-slate-600 text-sm font-semibold flex items-center justify-center shrink-0 ${titular ? 'avatar-titular' : ''}`}
               title={titular ? 'Titular de la habitación' : undefined}>
               {persona.n?.charAt(0).toUpperCase()}
             </span>
@@ -43,7 +43,7 @@ const PersonaDetalle = ({
               <span className="text-[15px] font-semibold text-slate-900 truncate">{persona.n}</span>
               {titular && (
                 <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 rounded-full leading-4"
-                  style={{ background: '#fbf1d3', color: '#8a5a00' }}>
+                  style={{ background: 'var(--titular-fondo)', color: 'var(--titular-texto)' }}>
                   <Crown className="h-2.5 w-2.5" /> titular
                 </span>
               )}
@@ -64,17 +64,17 @@ const PersonaDetalle = ({
             <div className="flex items-center gap-2 shrink-0">
               {!soloLectura && !titular && onHacerTitular && (
                 <button type="button" onClick={onHacerTitular} title="Hacer titular" aria-label={`Hacer titular a ${persona.n}`}
-                  className="btn btn-borde !px-2.5 text-amber-700 hover:!border-amber-300 hover:!bg-amber-50">
+                  className="btn btn-borde btn-sm !px-2 text-amber-700 hover:!border-amber-300 hover:!bg-amber-50">
                   <Crown className="h-4 w-4" />
                 </button>
               )}
               {!soloLectura && (
-                <button type="button" onClick={() => onMover()} className="btn btn-borde !font-medium">
+                <button type="button" onClick={() => onMover()} className="btn btn-borde btn-sm !font-medium">
                   <ArrowRightLeft className="h-3.5 w-3.5" /> Mover
                 </button>
               )}
               {puedePagar && (
-                <button type="button" onClick={() => onPago(null)} className="btn btn-primario">
+                <button type="button" onClick={() => onPago(null)} className="btn btn-primario btn-sm">
                   <Plus className="h-4 w-4" /> Pago
                 </button>
               )}
@@ -83,20 +83,26 @@ const PersonaDetalle = ({
         </div>
 
         {/* Pagos */}
-        <div className="flex flex-wrap gap-2 mt-3.5">
+        <div className="flex flex-wrap gap-1.5 mt-2.5">
           {pagos.map((pago, idx) => (
             <button
               key={pago.id ?? idx}
               type="button"
               onClick={() => puedePagar && onPago(pago)}
               disabled={!puedePagar}
-              className={`inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-[13px] border border-emerald-200 bg-emerald-50/70 text-emerald-800 transition-colors ${
+              className={`inline-flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-xs border border-emerald-200 bg-emerald-50/70 text-emerald-800 transition-colors ${
                 puedePagar ? 'hover:bg-emerald-100 hover:border-emerald-300 cursor-pointer' : 'cursor-default'
               }`}
-              title={puedePagar ? 'Clic para editar o eliminar el pago' : undefined}
+              title={[
+                pago.fechaRecibido
+                  ? `Llegó el ${new Date(`${String(pago.fechaRecibido).slice(0, 10)}T00:00:00`).toLocaleDateString('es-DO', { day: 'numeric', month: 'short', year: 'numeric' })}`
+                  : 'Sin fecha de llegada',
+                puedePagar ? 'Clic para editar o eliminar' : null,
+              ].filter(Boolean).join(' · ')}
             >
               <span className="font-semibold">{pago.mes}{pago.anio ? ` ${pago.anio}` : ''}</span>
               <span className="tabular-nums">{fmt(pago.monto)}</span>
+              {pago.comprobantes > 0 && <Paperclip className="h-3 w-3 text-emerald-700" aria-label="Con comprobante" />}
             </button>
           ))}
           {pagos.length === 0 && <span className="text-sm text-slate-400 italic">Sin pagos registrados</span>}
@@ -104,7 +110,7 @@ const PersonaDetalle = ({
       </div>
 
       {/* Totales de la persona */}
-      <div className="px-4 py-3 bg-slate-50 border-t border-slate-200">
+      <div className="px-3.5 py-2 bg-slate-50 border-t border-slate-200">
         {persona.esStack ? (
           <p className="flex items-center gap-1.5 text-sm font-semibold text-violet-700">
             <Layers className="h-4 w-4" /> Stack · no paga su parte

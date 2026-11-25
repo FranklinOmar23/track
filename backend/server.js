@@ -8,6 +8,8 @@ import { requireAuth } from './middleware/auth.js';
 import authRoutes from './routes/auth.js';
 import logsRoutes from './routes/logs.js';
 import usuariosRoutes from './routes/usuarios.js';
+import transferenciasRoutes from './routes/transferencias.js';
+import comprobantesRoutes from './routes/comprobantes.js';
 import { requierePermiso, requiereAdmin } from './utils/permisos.js';
 import { registrarError, registrarLog } from './utils/log.js';
 import { programarLimpiezaLogs } from './utils/logRetencion.js';
@@ -50,6 +52,8 @@ app.use(medirPeticion);
 app.use(compression());
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
+// Comprobantes (fotos/PDF en base64): límite mayor solo en esa ruta; el resto conserva el límite normal
+app.use('/api/comprobantes', express.json({ limit: '8mb' }));
 app.use(express.json());
 // También aceptar bodies form-urlencoded para compatibilidad con proxies
 // que puedan transformar la petición (Hostinger, formularios, etc.).
@@ -174,6 +178,8 @@ app.use('/api/viajes', requireAuth, viajesRoutes);
 app.use('/api/stats', requireAuth, statsRoutes); // 👈 NUEVA
 app.use('/api/logs', requireAuth, requierePermiso('actividad'), logsRoutes);
 app.use('/api/usuarios', requireAuth, requiereAdmin, usuariosRoutes);
+app.use('/api/transferencias', requireAuth, transferenciasRoutes);
+app.use('/api/comprobantes', requireAuth, comprobantesRoutes);
 
 app.use((err, req, res, next) => {
   res.locals.errorRegistrado = true;

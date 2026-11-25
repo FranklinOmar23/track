@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthContext } from '../../Context/AuthContext';
 import { Marca } from '../layout/AppLayout';
+import InterruptorTema from '../common/InterruptorTema';
 
 const LoginView = () => {
   const navigate = useNavigate();
@@ -34,15 +35,16 @@ const LoginView = () => {
           <h1 className="text-[2.1rem] leading-tight font-bold text-white tracking-tight">
             Todos tus viajes y cobros, en un solo lugar.
           </h1>
-          <p className="mt-4 text-[15px] leading-relaxed text-slate-300">
+          <p className="mt-4 text-[15px] leading-relaxed text-white/70">
             Registra pagos por habitación, da seguimiento a lo pendiente y genera reportes para el hotel y el bus.
           </p>
         </div>
-        <p className="text-xs text-slate-500">{window.location.host}</p>
+        <p className="text-xs text-white/40">{window.location.host}</p>
       </div>
 
       {/* Formulario */}
-      <div className="flex flex-col items-center justify-center px-6 py-12">
+      <div className="relative flex flex-col items-center justify-center px-6 py-12">
+        <div className="absolute top-5 right-5"><InterruptorTema variante="boton" /></div>
         <div className="lg:hidden mb-10 self-center rounded-xl px-4 py-3" style={{ background: 'var(--lateral)' }}>
           <Marca />
         </div>

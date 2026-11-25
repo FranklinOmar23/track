@@ -11,6 +11,7 @@ import { DashboardFull } from '../Dashboard/DashboardFull';
 import { ViajeCard } from './ViajeCard';
 import { avisarError } from '../../utils/avisos';
 import { EsqueletoMisViajes } from '../common/Esqueleto';
+import { confirmar } from '../../utils/confirmar';
 
 /** Orden de "Mis viajes": primero los que hay que cerrar, luego en curso, próximos por fecha y sin fecha al final. */
 const PESO = { terminado: 0, en_curso: 1, proximo: 2 };
@@ -91,7 +92,12 @@ const Historial = ({ onSelectViaje }) => {
   const cerrados = state.viajes.filter((v) => v.estado === 'cerrado');
 
   const handleReabrir = async (viaje) => {
-    if (!window.confirm(`¿Reabrir "${viaje.nombre}"? Volverá a la lista de viajes activos y se podrá editar.`)) return;
+    const ok = await confirmar({
+      titulo: `¿Reabrir "${viaje.nombre}"?`,
+      mensaje: 'Volverá a la lista de viajes activos y se podrá editar de nuevo.',
+      textoConfirmar: 'Sí, reabrir',
+    });
+    if (!ok) return;
     try {
       await cambiarEstadoViaje(viaje.id, 'activo');
     } catch (error) {

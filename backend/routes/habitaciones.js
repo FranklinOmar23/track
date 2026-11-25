@@ -60,6 +60,8 @@ const mapHabitaciones = (rows) => {
           mes: row.mes,
           anio: row.anio,
           monto: Number(row.monto),
+          fechaRecibido: row.fecha_recibido || null,
+          comprobantes: Number(row.pago_comprobantes) || 0,
         });
       }
     }
@@ -105,7 +107,9 @@ export const consultarHabitaciones = async ({ viajeId = null, slug = null, habit
       pag.id AS pago_id,
       pag.mes,
       COALESCE(pag.anio, YEAR(pag.created_at)) AS anio,
-      pag.monto
+      pag.monto,
+      pag.fecha_recibido,
+      (SELECT COUNT(*) FROM comprobantes c WHERE c.entidad = 'pago' AND c.entidad_id = pag.id) AS pago_comprobantes
     FROM habitaciones h
     LEFT JOIN viajes v ON h.viaje_id = v.id
     LEFT JOIN personas p ON p.habitacion_id = h.id

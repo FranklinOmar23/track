@@ -33,7 +33,7 @@ const EncabezadoGrupo = ({ nombre, habs, fmt }) => {
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 sm:px-5 py-2.5 border-t border-slate-100"
-      style={{ background: '#eef7f5' }}>
+      style={{ background: 'var(--grupo-fondo)' }}>
       <div className="flex items-center gap-2">
         <Tag className="h-3.5 w-3.5 text-teal-700" />
         <span className="text-[13px] font-semibold text-slate-900">{nombre}</span>

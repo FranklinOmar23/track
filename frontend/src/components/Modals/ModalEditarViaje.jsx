@@ -8,6 +8,7 @@ import TipoViajeSelector from './TipoViajeSelector';
 import Portal from '../common/Portal';
 import { DIVISAS } from '../../utils/viajeOpciones';
 import { avisarError } from '../../utils/avisos';
+import { confirmar } from '../../utils/confirmar';
 
 
 const ModalEditarViaje = ({ viaje, open, onClose, onEliminado }) => {
@@ -67,7 +68,19 @@ const ModalEditarViaje = ({ viaje, open, onClose, onEliminado }) => {
 
   const handleCambiarEstado = async () => {
     const accion = cerrado ? 'reabrir' : 'cerrar';
-    if (!window.confirm(`¿Seguro que quieres ${accion} "${viaje.nombre}"?`)) return;
+    const ok = await confirmar(cerrado
+      ? {
+        titulo: `¿Reabrir "${viaje.nombre}"?`,
+        mensaje: 'Volverá a la lista de viajes activos y se podrá editar de nuevo.',
+        textoConfirmar: 'Sí, reabrir',
+      }
+      : {
+        titulo: `¿Cerrar "${viaje.nombre}"?`,
+        mensaje: 'Pasará al historial y quedará en solo lectura. Lo puedes reabrir cuando quieras.',
+        textoConfirmar: 'Sí, cerrar',
+        tono: 'aviso',
+      });
+    if (!ok) return;
     setLoading(true);
     try {
       await cambiarEstadoViaje(viaje.id, cerrado ? 'activo' : 'cerrado');
@@ -173,8 +186,8 @@ const ModalEditarViaje = ({ viaje, open, onClose, onEliminado }) => {
             <button type="button" onClick={handleCambiarEstado} disabled={loading}
               className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold transition-colors"
               style={cerrado
-                ? { background: 'rgba(13,148,136,0.1)', border: '1px solid rgba(13,148,136,0.3)', color: '#0f766e' }
-                : { background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)', color: '#b45309' }}>
+                ? { background: 'rgba(13,148,136,0.1)', border: '1px solid rgba(13,148,136,0.3)', color: 'var(--marca-texto)' }
+                : { background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)', color: 'var(--ambar-texto)' }}>
               {cerrado ? <LockOpen className="h-3.5 w-3.5" /> : <Lock className="h-3.5 w-3.5" />}
               {cerrado ? 'Reabrir viaje' : 'Cerrar viaje (ya terminó)'}
             </button>

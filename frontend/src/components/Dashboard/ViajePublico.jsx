@@ -169,9 +169,9 @@ const ViajePublico = () => {
               onClick={() => setEtiquetaFiltro('todas')}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold transition-colors"
               style={{
-                backgroundColor: etiquetaFiltro === 'todas' ? 'rgba(13,148,136,0.18)' : 'rgba(15,23,42,0.05)',
-                color: etiquetaFiltro === 'todas' ? '#0f766e' : 'rgba(15,23,42,0.45)',
-                border: `1px solid ${etiquetaFiltro === 'todas' ? 'rgba(13,148,136,0.4)' : 'rgba(15,23,42,0.08)'}`,
+                backgroundColor: etiquetaFiltro === 'todas' ? 'rgba(13,148,136,0.18)' : 'rgba(var(--tinta-rgb),0.05)',
+                color: etiquetaFiltro === 'todas' ? '#0f766e' : 'rgba(var(--tinta-rgb),0.45)',
+                border: `1px solid ${etiquetaFiltro === 'todas' ? 'rgba(13,148,136,0.4)' : 'rgba(var(--tinta-rgb),0.08)'}`,
               }}
             >
               <LayoutGrid className="h-3.5 w-3.5" />
@@ -187,9 +187,9 @@ const ViajePublico = () => {
                   onClick={() => setEtiquetaFiltro(activa ? 'todas' : etiqueta)}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold transition-colors"
                   style={{
-                    backgroundColor: activa ? 'rgba(13,148,136,0.18)' : 'rgba(15,23,42,0.05)',
-                    color: activa ? '#0f766e' : 'rgba(15,23,42,0.45)',
-                    border: `1px solid ${activa ? 'rgba(13,148,136,0.4)' : 'rgba(15,23,42,0.08)'}`,
+                    backgroundColor: activa ? 'rgba(13,148,136,0.18)' : 'rgba(var(--tinta-rgb),0.05)',
+                    color: activa ? '#0f766e' : 'rgba(var(--tinta-rgb),0.45)',
+                    border: `1px solid ${activa ? 'rgba(13,148,136,0.4)' : 'rgba(var(--tinta-rgb),0.08)'}`,
                   }}
                 >
                   <Tag className="h-3 w-3" />
@@ -203,9 +203,9 @@ const ViajePublico = () => {
                 onClick={() => setEtiquetaFiltro(etiquetaFiltro === '__sin__' ? 'todas' : '__sin__')}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold transition-colors"
                 style={{
-                  backgroundColor: etiquetaFiltro === '__sin__' ? 'rgba(15,23,42,0.12)' : 'rgba(15,23,42,0.05)',
+                  backgroundColor: etiquetaFiltro === '__sin__' ? 'rgba(var(--tinta-rgb),0.12)' : 'rgba(var(--tinta-rgb),0.05)',
                   color: etiquetaFiltro === '__sin__' ? '#0f172a' : '#64748b',
-                  border: `1px solid ${etiquetaFiltro === '__sin__' ? 'rgba(15,23,42,0.25)' : 'rgba(15,23,42,0.08)'}`,
+                  border: `1px solid ${etiquetaFiltro === '__sin__' ? 'rgba(var(--tinta-rgb),0.25)' : 'rgba(var(--tinta-rgb),0.08)'}`,
                 }}
               >
                 Sin etiqueta ({habitacionesBase.filter((h) => !h.etiqueta).length})

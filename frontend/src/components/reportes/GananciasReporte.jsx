@@ -15,7 +15,7 @@ const COLOR_TOUR     = '#6366f1';
 
 const Kpi = ({ label, value, sub, icon: Icon, color }) => (
   <div className="rounded-2xl p-5"
-    style={{ background: 'linear-gradient(135deg, #ffffff 0%, #ffffff 100%)', border: '1px solid rgba(15,23,42,0.07)' }}>
+    style={{ background: 'var(--superficie)', border: '1px solid rgba(var(--tinta-rgb),0.07)' }}>
     <div className="flex items-center justify-between mb-3">
       <span className="text-[11px] uppercase tracking-wide text-slate-500 font-semibold">{label}</span>
       <Icon className="h-4 w-4" style={{ color }} />

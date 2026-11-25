@@ -71,11 +71,11 @@ const ModalCompartir = ({ viajeId, viajeNombre, onClose }) => {
 
   return (
     <div
-      className="fixed inset-0 bg-slate-900/45 backdrop-blur-[3px] flex items-center justify-center z-50 p-4"
+      className="modal-overlay-dark"
       onClick={handleCerrarCompartir}
     >
       <div
-        className="bg-white border border-slate-200 rounded-xl shadow-2xl w-full max-w-md mx-4"
+        className="modal-card-dark w-full max-w-md"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="p-6">

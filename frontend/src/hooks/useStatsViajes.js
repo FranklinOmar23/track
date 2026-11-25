@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { fetchDashboardStats } from '../utils/api';
 import { useHabitacionesContext } from '../Context/HabitacionesContext';
 
-const VACIO = { total_por_cobrar: 0, total_pagado: 0, pendiente: 0, total_habitaciones: 0, total_personas: 0, personas_pagan: 0 };
+const VACIO = { total_por_cobrar: 0, total_pagado: 0, pendiente: 0, total_habitaciones: 0, total_personas: 0, personas_pagan: 0, total_transferido: 0, en_cuenta: 0 };
 
 /**
  * Viajes del contexto (reactivos a ediciones) + totales del API (cobrado, pendiente, habitaciones…).
@@ -28,6 +28,8 @@ export const useStatsViajes = () => {
             total_habitaciones: Number(v.total_habitaciones) || 0,
             total_personas: Number(v.total_personas) || 0,
             personas_pagan: Number(v.personas_pagan) || 0,
+            total_transferido: Number(v.total_transferido) || 0,
+            en_cuenta: Number(v.en_cuenta ?? v.total_pagado) || 0,
           };
         });
         setStatsMap(mapa);

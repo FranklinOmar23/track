@@ -10,14 +10,14 @@ const PoliticaNinosFields = ({ edadMinimaPago, onChange, tipo, disabled }) => (
         onClick={() => onChange(0)}
         className="flex items-center gap-2.5 w-full px-3.5 py-2.5 rounded-xl transition-all duration-200 text-left"
         style={{
-          background: edadMinimaPago === 0 ? 'rgba(13,148,136,0.1)' : '#ffffff',
-          border: `1px solid ${edadMinimaPago === 0 ? 'rgba(13,148,136,0.3)' : '#e2e8f0'}`,
+          background: edadMinimaPago === 0 ? 'rgba(13,148,136,0.1)' : 'var(--superficie)',
+          border: `1px solid ${edadMinimaPago === 0 ? 'rgba(13,148,136,0.3)' : 'var(--linea)'}`,
         }}>
         <div className="w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0"
-          style={{ borderColor: edadMinimaPago === 0 ? '#0d9488' : 'rgba(15,23,42,0.2)' }}>
+          style={{ borderColor: edadMinimaPago === 0 ? '#0d9488' : 'rgba(var(--tinta-rgb),0.2)' }}>
           {edadMinimaPago === 0 && <div className="w-2 h-2 rounded-full bg-teal-700" />}
         </div>
-        <span className="text-sm" style={{ color: edadMinimaPago === 0 ? '#0f766e' : '#475569' }}>
+        <span className="text-sm" style={{ color: edadMinimaPago === 0 ? 'var(--marca-texto)' : 'var(--tinta-2)' }}>
           Todos los niños pagan
         </span>
       </button>
@@ -25,14 +25,14 @@ const PoliticaNinosFields = ({ edadMinimaPago, onChange, tipo, disabled }) => (
         onClick={() => onChange(edadMinimaPago === 0 ? 3 : edadMinimaPago)}
         className="flex items-center gap-2.5 w-full px-3.5 py-2.5 rounded-xl transition-all duration-200 text-left"
         style={{
-          background: edadMinimaPago > 0 ? 'rgba(245,158,11,0.1)' : '#ffffff',
-          border: `1px solid ${edadMinimaPago > 0 ? 'rgba(245,158,11,0.3)' : '#e2e8f0'}`,
+          background: edadMinimaPago > 0 ? 'rgba(245,158,11,0.1)' : 'var(--superficie)',
+          border: `1px solid ${edadMinimaPago > 0 ? 'rgba(245,158,11,0.3)' : 'var(--linea)'}`,
         }}>
         <div className="w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0"
-          style={{ borderColor: edadMinimaPago > 0 ? '#f59e0b' : 'rgba(15,23,42,0.2)' }}>
+          style={{ borderColor: edadMinimaPago > 0 ? '#f59e0b' : 'rgba(var(--tinta-rgb),0.2)' }}>
           {edadMinimaPago > 0 && <div className="w-2 h-2 rounded-full bg-amber-600" />}
         </div>
-        <span className="text-sm" style={{ color: edadMinimaPago > 0 ? '#b45309' : '#475569' }}>
+        <span className="text-sm" style={{ color: edadMinimaPago > 0 ? 'var(--ambar-texto)' : 'var(--tinta-2)' }}>
           Niños de X años en adelante pagan
         </span>
       </button>
@@ -45,9 +45,9 @@ const PoliticaNinosFields = ({ edadMinimaPago, onChange, tipo, disabled }) => (
                 onClick={() => onChange(edad)}
                 className="w-8 h-8 rounded-lg text-xs font-bold transition-all duration-150"
                 style={{
-                  background: edadMinimaPago === edad ? 'rgba(245,158,11,0.25)' : 'rgba(15,23,42,0.05)',
-                  color: edadMinimaPago === edad ? '#b45309' : '#64748b',
-                  border: `1px solid ${edadMinimaPago === edad ? 'rgba(245,158,11,0.4)' : '#e2e8f0'}`,
+                  background: edadMinimaPago === edad ? 'rgba(245,158,11,0.25)' : 'rgba(var(--tinta-rgb),0.05)',
+                  color: edadMinimaPago === edad ? 'var(--ambar-texto)' : 'var(--tinta-3)',
+                  border: `1px solid ${edadMinimaPago === edad ? 'rgba(245,158,11,0.4)' : 'var(--linea)'}`,
                 }}>
                 {edad}
               </button>
@@ -57,7 +57,7 @@ const PoliticaNinosFields = ({ edadMinimaPago, onChange, tipo, disabled }) => (
         </div>
       )}
       {edadMinimaPago > 0 && (
-        <p className="text-[11px] pl-1" style={{ color: '#64748b' }}>
+        <p className="text-[11px] pl-1" style={{ color: 'var(--tinta-3)' }}>
           Niños menores de {edadMinimaPago} año{edadMinimaPago !== 1 ? 's' : ''} entran gratis · Los de {edadMinimaPago}+ pagan {tipo === 'tour' ? 'cuota normal' : 'precio niño'}
         </p>
       )}

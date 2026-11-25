@@ -3,16 +3,16 @@ import { calcularTotalPagado, calcularPorcentaje, calcularRankingPersonas } from
 
 // Estilos compartidos de gráficas
 export const DARK_TOOLTIP = {
-  backgroundColor: '#ffffff',
-  border: '1px solid rgba(15,23,42,0.1)',
+  backgroundColor: 'var(--superficie)',
+  border: '1px solid rgba(var(--tinta-rgb),0.1)',
   borderRadius: '10px',
-  color: '#334155',
+  color: 'var(--tinta-2)',
   fontSize: '12px',
   boxShadow: '0 10px 28px -10px rgba(15,23,42,0.25)',
 };
 
 export const heatColor = (pct) => {
-  if (pct === 0) return { bg: 'rgba(15,23,42,0.03)', text: '#374151' };
+  if (pct === 0) return { bg: 'rgba(var(--tinta-rgb),0.03)', text: 'var(--tinta-2)' };
   if (pct < 30)  return { bg: 'rgba(13,148,136,0.15)',  text: '#0f766e' };
   if (pct < 50)  return { bg: 'rgba(13,148,136,0.3)',   text: '#0f766e' };
   if (pct < 70)  return { bg: 'rgba(13,148,136,0.5)',   text: '#134e4a' };

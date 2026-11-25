@@ -5,6 +5,7 @@ import { useHabitacionesContext } from '../../Context/HabitacionesContext';
 import Paginacion from '../common/Paginacion';
 import { avisarError } from '../../utils/avisos';
 import { EsqueletoLista } from '../common/Esqueleto';
+import { confirmar } from '../../utils/confirmar';
 
 const POR_PAGINA = 10;
 
@@ -96,7 +97,14 @@ const ActividadView = () => {
   };
 
   const handleDeshacer = async (log) => {
-    if (!window.confirm(`¿Deshacer esta acción?\n\n${log.descripcion}`)) return;
+    const ok = await confirmar({
+      titulo: '¿Deshacer esta acción?',
+      mensaje: 'Se revertirá el cambio y quedará registrado en la actividad.',
+      detalle: log.descripcion,
+      textoConfirmar: 'Sí, deshacer',
+      tono: 'aviso',
+    });
+    if (!ok) return;
     setDeshaciendo(log.id);
     try {
       await deshacerAccion(log.id);

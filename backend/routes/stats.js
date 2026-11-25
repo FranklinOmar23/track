@@ -27,11 +27,18 @@ const cargarViajesYHabitaciones = async () => {
 // ─── DASHBOARD EXISTENTE ────────────────────────────────────────────────────
 
 router.get('/dashboard', async (req, res) => {
-  const [viajes, habsPorViaje] = await cargarViajesYHabitaciones();
+  const [[viajes, habsPorViaje], [transferidoRows]] = await Promise.all([
+    cargarViajesYHabitaciones(),
+    pool.query('SELECT viaje_id, SUM(monto) AS total FROM transferencias GROUP BY viaje_id'),
+  ]);
+  const transferidoPorViaje = new Map(transferidoRows.map((t) => [t.viaje_id, Number(t.total) || 0]));
 
   const viajesConTotales = filtrarPorViaje(req.auth, viajes).map((v) => {
     const r = sumarResumenes(habsPorViaje.get(v.id) || [], v.edad_minima_pago);
+    const transferido = transferidoPorViaje.get(v.id) || 0;
     return {
+      total_transferido: redondear(transferido),
+      en_cuenta: redondear(r.pagado - transferido),
       ...v,
       ganancia_valor: Number(v.ganancia_valor) || 0,
       total_por_cobrar: redondear(r.totalPorCobrar),

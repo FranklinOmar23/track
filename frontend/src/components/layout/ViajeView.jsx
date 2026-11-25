@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ChevronRight, Share2, Pencil, Lock, Eye } from 'lucide-react';
+import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
+import { ChevronRight, Share2, Pencil, Lock, Eye, BedDouble, Landmark } from 'lucide-react';
 import { useHabitacionesContext } from '../../Context/HabitacionesContext';
 import { useAuthContext } from '../../Context/AuthContext';
 import { rutaViaje } from '../../utils/rutas';
@@ -15,6 +15,7 @@ import ModalDesgloseGeneral from '../Modals/ModalDesgloseGeneral';
 import ModalCompartir from '../Modals/ModalCompartir';
 import ModalEditarViaje from '../Modals/ModalEditarViaje';
 import Portal from '../common/Portal';
+import CuentaViaje from '../cuenta/CuentaViaje';
 import { EsqueletoViaje } from '../common/Esqueleto';
 
 const ViajeView = () => {
@@ -27,6 +28,10 @@ const ViajeView = () => {
   const [isCompartirOpen, setIsCompartirOpen] = useState(false);
   const [isEditarOpen, setIsEditarOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  // Pestaña en la URL (?vista=cuenta) para que se conserve al recargar o compartir el enlace
+  const [params, setParams] = useSearchParams();
+  const vista = params.get('vista') === 'cuenta' ? 'cuenta' : 'habitaciones';
+  const cambiarVista = (v) => setParams(v === 'cuenta' ? { vista: 'cuenta' } : {}, { replace: true });
   const [viajeCargado, setViajeCargado] = useState(null);
 
   // Recargar cada vez que cambia el slug (p. ej. al elegir otro viaje en el selector).
@@ -124,13 +129,33 @@ const ViajeView = () => {
 
       <StatsGrid />
 
-      <div className="tarjeta animate-fade-in-up" style={{ animationDelay: '200ms' }}>
-        <Toolbar
-          onOpenAgregar={() => setIsAgregarOpen(true)}
-          onOpenDesglose={() => setIsDesgloseOpen(true)}
-        />
-        <HabitacionesList />
+      {/* Pestañas del viaje */}
+      <div className="flex gap-1 border-b border-slate-200" role="tablist" aria-label="Secciones del viaje">
+        {[
+          { id: 'habitaciones', label: 'Habitaciones', icono: BedDouble },
+          { id: 'cuenta', label: 'Cuenta y transferencias', icono: Landmark },
+        ].map((t) => (
+          <button key={t.id} type="button" role="tab" aria-selected={vista === t.id} onClick={() => cambiarVista(t.id)}
+            className={`relative inline-flex items-center gap-2 h-11 px-3 text-sm transition-colors ${
+              vista === t.id ? 'text-slate-900 font-semibold' : 'text-slate-500 hover:text-slate-900'
+            }`}>
+            <t.icono className="h-4 w-4" /> {t.label}
+            {vista === t.id && <span className="absolute left-0 right-0 -bottom-px h-0.5 rounded-full" style={{ background: 'var(--marca)' }} />}
+          </button>
+        ))}
       </div>
+
+      {vista === 'cuenta' ? (
+        <CuentaViaje key={viaje.id} viaje={viaje} />
+      ) : (
+        <div className="tarjeta aparecer">
+          <Toolbar
+            onOpenAgregar={() => setIsAgregarOpen(true)}
+            onOpenDesglose={() => setIsDesgloseOpen(true)}
+          />
+          <HabitacionesList />
+        </div>
+      )}
 
       <ModalAgregarHabitacion open={isAgregarOpen} onClose={() => setIsAgregarOpen(false)} />
       {isDesgloseOpen && <ModalDesgloseGeneral onClose={() => setIsDesgloseOpen(false)} />}

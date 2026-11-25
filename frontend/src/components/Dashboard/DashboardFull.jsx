@@ -76,6 +76,8 @@ export const DashboardFull = ({ onSelectViaje }) => {
     acc.porCobrar += v.total_por_cobrar;
     acc.pagado += v.total_pagado;
     acc.pendiente += v.pendiente;
+    acc.transferido += v.total_transferido || 0;
+    acc.enCuenta += v.en_cuenta || 0;
     acc.habitaciones += v.total_habitaciones;
     acc.personas += v.total_personas;
     acc.ganancia += ganancia;
@@ -85,7 +87,7 @@ export const DashboardFull = ({ onSelectViaje }) => {
     if (v.pendiente > 0) acc.viajesConSaldo += 1;
     if (v.ganancia_tipo !== 'ninguna') acc.conGanancia = true;
     return acc;
-  }, { porCobrar: 0, pagado: 0, pendiente: 0, habitaciones: 0, personas: 0, ganancia: 0, gananciaCobrada: 0, viajesConSaldo: 0, conGanancia: false });
+  }, { porCobrar: 0, pagado: 0, pendiente: 0, transferido: 0, enCuenta: 0, habitaciones: 0, personas: 0, ganancia: 0, gananciaCobrada: 0, viajesConSaldo: 0, conGanancia: false });
 
   return (
     <div className="space-y-5">

@@ -73,9 +73,9 @@ export const FechasViajes = ({ viajes, divisa, onSelectViaje }) => {
       </div>
 
       <div className="rounded-[0.875rem] p-5 sm:p-6 animate-fade-in-up border"
-        style={{ background: '#fdf8e6', borderColor: '#f3e3a8', animationDelay: '300ms' }}>
+        style={{ background: 'var(--aviso-fondo)', borderColor: 'var(--aviso-borde)', animationDelay: '300ms' }}>
         <div className="flex items-start gap-3">
-          <span className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: '#fbe7b0' }}>
+          <span className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'var(--aviso-icono)' }}>
             <AlertTriangle className="h-4 w-4 text-amber-700" />
           </span>
           <div>
@@ -88,7 +88,7 @@ export const FechasViajes = ({ viajes, divisa, onSelectViaje }) => {
 
         <div className="mt-4 space-y-3">
           {terminados.map((v) => (
-            <div key={v.id} className="bg-white rounded-xl border p-3.5" style={{ borderColor: '#f3e3a8' }}>
+            <div key={v.id} className="bg-white rounded-xl border p-3.5" style={{ borderColor: 'var(--aviso-borde)' }}>
               <div className="flex items-start justify-between gap-2">
                 <button type="button" onClick={() => onSelectViaje(v)}
                   className="text-sm font-semibold text-slate-900 text-left hover:underline">

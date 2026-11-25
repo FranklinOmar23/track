@@ -108,7 +108,7 @@ const MenuUsuario = ({ className = '' }) => {
       {abierto && posicion && (
         <Portal>
         <div role="menu" ref={menuRef} className="fixed w-56 rounded-xl overflow-hidden animate-fade-in-scale origin-top-left"
-          style={{ top: posicion.top, left: posicion.left, zIndex: 70, background: '#ffffff', border: '1px solid rgba(15,23,42,0.1)', boxShadow: '0 12px 32px rgba(0,0,0,0.5)' }}>
+          style={{ top: posicion.top, left: posicion.left, zIndex: 70, background: 'var(--superficie)', border: '1px solid rgba(15,23,42,0.1)', boxShadow: '0 12px 32px rgba(0,0,0,0.5)' }}>
           <div className="px-3.5 py-2.5 border-b border-slate-200">
             <p className="text-sm font-semibold text-slate-900 truncate">{user.nombreDisplay || user.username}</p>
             <p className="text-[11px] text-slate-500">{esAdmin ? 'Administrador' : `@${user.username}`}</p>

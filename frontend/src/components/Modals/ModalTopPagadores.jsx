@@ -65,7 +65,7 @@ const ModalTopPagadores = ({ habitaciones, onClose }) => {
                   {ranking.map((p, idx) => (
                     <div key={`${p.nombre}-${idx}`} className="flex items-center gap-3 px-4 py-3 border-b border-slate-100 last:border-b-0">
                       <span className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-[11px] font-bold"
-                        style={idx < 3 ? { background: MEDALLA[idx].bg, color: MEDALLA[idx].text } : { background: '#f1f5f9', color: '#64748b' }}>
+                        style={idx < 3 ? { background: MEDALLA[idx].bg, color: MEDALLA[idx].text } : { background: 'var(--suave)', color: 'var(--tinta-3)' }}>
                         {idx + 1}
                       </span>
                       <div className="flex-1 min-w-0">

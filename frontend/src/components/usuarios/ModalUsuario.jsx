@@ -13,7 +13,7 @@ const generarPassword = () => {
 const Interruptor = ({ activo, onChange, disabled }) => (
   <button type="button" role="switch" aria-checked={activo} onClick={() => onChange(!activo)} disabled={disabled}
     className={`relative w-9 h-5 rounded-full transition-colors shrink-0 disabled:opacity-40 ${activo ? 'bg-teal-700' : 'bg-slate-300'}`}>
-    <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${activo ? 'translate-x-4' : ''}`} />
+    <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-[#ffffff] shadow-sm transition-transform ${activo ? 'translate-x-4' : ''}`} />
   </button>
 );
 

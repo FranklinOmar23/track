@@ -8,7 +8,7 @@ const fechaCorta = (f) => (f ? new Intl.DateTimeFormat('es-DO', { dateStyle: 'me
 /** Botón "Poner en revisión" (va junto al selector de centro). */
 export const BotonRevision = ({ onClick }) => (
   <button type="button" onClick={onClick}
-    className="h-[2.65rem] shrink-0 inline-flex items-center justify-center gap-2 px-4 rounded-[0.6rem] text-sm font-semibold text-amber-900 bg-amber-50 border border-amber-200 hover:bg-amber-100 transition-colors">
+    className="w-full h-10 shrink-0 inline-flex items-center justify-center gap-2 px-4 rounded-[0.6rem] text-sm font-semibold text-amber-900 bg-amber-50 border border-amber-200 hover:bg-amber-100 transition-colors">
     <Flag className="h-4 w-4" /> Poner en revisión
   </button>
 );

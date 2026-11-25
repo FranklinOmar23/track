@@ -6,7 +6,7 @@ const NINO_VACIO = { nombre: '', edad: '', gratis: false };
 
 const Check = ({ activo, color, size = 'w-4 h-4', text = 'text-[10px]' }) => (
   <div className={`${size} rounded flex items-center justify-center shrink-0`}
-    style={{ background: activo ? color : 'rgba(15,23,42,0.1)', transition: 'background 150ms' }}>
+    style={{ background: activo ? color : 'rgba(var(--tinta-rgb),0.1)', transition: 'background 150ms' }}>
     {activo && <span className={`${text} font-bold text-white`}>✓</span>}
   </div>
 );
@@ -56,11 +56,11 @@ export const NinosFields = ({
         <button type="button" disabled={disabled} onClick={toggle}
           className="flex items-center gap-2.5 w-full px-3.5 py-2.5 rounded-xl transition-all duration-200"
           style={{
-            background: hayNinos ? 'rgba(245,158,11,0.1)' : 'rgba(15,23,42,0.04)',
-            border: `1px solid ${hayNinos ? 'rgba(245,158,11,0.3)' : 'rgba(15,23,42,0.08)'}`,
+            background: hayNinos ? 'rgba(245,158,11,0.1)' : 'rgba(var(--tinta-rgb),0.04)',
+            border: `1px solid ${hayNinos ? 'rgba(245,158,11,0.3)' : 'rgba(var(--tinta-rgb),0.08)'}`,
           }}>
           <Check activo={hayNinos} color="#f59e0b" />
-          <span className="text-sm font-medium" style={{ color: hayNinos ? '#b45309' : 'rgba(15,23,42,0.5)' }}>
+          <span className="text-sm font-medium" style={{ color: hayNinos ? '#b45309' : 'rgba(var(--tinta-rgb),0.5)' }}>
             ¿Hay niños en esta habitación?
           </span>
         </button>
@@ -70,7 +70,7 @@ export const NinosFields = ({
         <div className="space-y-2 pl-1 animate-fade-in-up">
           {ninos.map((nino, idx) => (
             <div key={nino.id ?? idx} className="rounded-xl p-3 space-y-2"
-              style={{ background: nino.gratis ? 'rgba(16,185,129,0.05)' : 'rgba(15,23,42,0.03)', border: `1px solid ${nino.gratis ? 'rgba(16,185,129,0.2)' : 'rgba(15,23,42,0.06)'}`, transition: 'all 200ms' }}>
+              style={{ background: nino.gratis ? 'rgba(16,185,129,0.05)' : 'rgba(var(--tinta-rgb),0.03)', border: `1px solid ${nino.gratis ? 'rgba(16,185,129,0.2)' : 'rgba(var(--tinta-rgb),0.06)'}`, transition: 'all 200ms' }}>
               <div className="flex gap-2 items-center">
                 <input className="input-dark flex-1" type="text" value={nino.nombre}
                   onChange={(e) => actualizar(idx, 'nombre', e.target.value)}
@@ -89,10 +89,10 @@ export const NinosFields = ({
               <button type="button" disabled={disabled}
                 onClick={() => actualizar(idx, 'gratis', !nino.gratis)}
                 className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg transition-all duration-150 text-left w-full"
-                style={{ background: nino.gratis ? 'rgba(16,185,129,0.1)' : 'rgba(15,23,42,0.03)', border: `1px solid ${nino.gratis ? 'rgba(16,185,129,0.25)' : 'rgba(15,23,42,0.06)'}` }}>
+                style={{ background: nino.gratis ? 'rgba(16,185,129,0.1)' : 'rgba(var(--tinta-rgb),0.03)', border: `1px solid ${nino.gratis ? 'rgba(16,185,129,0.25)' : 'rgba(var(--tinta-rgb),0.06)'}` }}>
                 <Check activo={nino.gratis} color="#10b981" size="w-3.5 h-3.5" text="text-[9px]" />
-                <Gift className="h-3 w-3 shrink-0" style={{ color: nino.gratis ? '#047857' : 'rgba(15,23,42,0.3)' }} />
-                <span className="text-xs" style={{ color: nino.gratis ? '#047857' : 'rgba(15,23,42,0.35)' }}>
+                <Gift className="h-3 w-3 shrink-0" style={{ color: nino.gratis ? '#047857' : 'rgba(var(--tinta-rgb),0.3)' }} />
+                <span className="text-xs" style={{ color: nino.gratis ? '#047857' : 'rgba(var(--tinta-rgb),0.35)' }}>
                   {nino.gratis ? 'No paga — entra gratis' : 'Marcar como gratis (no paga)'}
                 </span>
               </button>
@@ -132,15 +132,15 @@ export const StackToggle = ({ activo, onChange, disabled }) => (
     <button type="button" disabled={disabled} onClick={() => onChange(!activo)}
       className="flex items-center gap-2.5 w-full px-3.5 py-2.5 rounded-xl transition-all duration-200"
       style={{
-        background: activo ? 'rgba(16,185,129,0.1)' : 'rgba(15,23,42,0.04)',
-        border: `1px solid ${activo ? 'rgba(16,185,129,0.3)' : 'rgba(15,23,42,0.08)'}`,
+        background: activo ? 'rgba(16,185,129,0.1)' : 'rgba(var(--tinta-rgb),0.04)',
+        border: `1px solid ${activo ? 'rgba(16,185,129,0.3)' : 'rgba(var(--tinta-rgb),0.08)'}`,
       }}>
       <Check activo={activo} color="#10b981" />
       <div className="text-left">
-        <span className="text-sm font-bold" style={{ color: activo ? '#047857' : 'rgba(15,23,42,0.5)' }}>
+        <span className="text-sm font-bold" style={{ color: activo ? '#047857' : 'rgba(var(--tinta-rgb),0.5)' }}>
           STACK
         </span>
-        <span className="text-xs ml-2" style={{ color: 'rgba(15,23,42,0.3)' }}>
+        <span className="text-xs ml-2" style={{ color: 'rgba(var(--tinta-rgb),0.3)' }}>
           {activo ? 'Habitación stack (no paga)' : 'Habitación normal'}
         </span>
       </div>

@@ -89,7 +89,7 @@ const UsuariosView = () => {
               style={{ animationDelay: `${i * 50}ms` }}>
               <div className="flex flex-wrap items-start gap-3">
                 <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-slate-900 shrink-0"
-                  style={{ background: u.esAdmin ? 'rgba(13,148,136,0.35)' : 'rgba(15,23,42,0.08)' }}>
+                  style={{ background: u.esAdmin ? 'rgba(13,148,136,0.35)' : 'rgba(var(--tinta-rgb),0.08)' }}>
                   {(u.nombreDisplay || u.username).charAt(0).toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">

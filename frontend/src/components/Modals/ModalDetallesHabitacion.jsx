@@ -11,16 +11,17 @@ import { X, Pencil, Trash2, Tag, Crown } from 'lucide-react';
 import { avisarError } from '../../utils/avisos';
 
 /** Caja de total (Total / Recaudado / Pendiente). */
+/** Fila de total (Total / Recaudado / Pendiente): etiqueta a la izquierda, monto completo a la derecha. */
 const CajaTotal = ({ label, value, tono }) => {
   const estilos = {
-    neutro: 'bg-slate-50 border-slate-200 text-slate-900',
-    verde: 'bg-emerald-50/70 border-emerald-200 text-emerald-700',
-    rojo: 'bg-red-50/70 border-red-200 text-red-700',
+    neutro: { fila: 'bg-slate-50 border-slate-200', texto: 'text-slate-900', etiqueta: 'text-slate-600' },
+    verde: { fila: 'bg-emerald-50/70 border-emerald-200', texto: 'text-emerald-700', etiqueta: 'text-emerald-800' },
+    rojo: { fila: 'bg-red-50/70 border-red-200', texto: 'text-red-700', etiqueta: 'text-red-800' },
   }[tono];
   return (
-    <div className={`rounded-xl border p-3 sm:p-4 ${estilos}`}>
-      <p className={`text-xs sm:text-[13px] ${tono === 'neutro' ? 'text-slate-600' : tono === 'verde' ? 'text-emerald-800' : 'text-red-800'}`}>{label}</p>
-      <p className="text-base sm:text-xl font-bold tabular-nums mt-0.5 whitespace-nowrap">{value}</p>
+    <div className={`flex items-center justify-between gap-3 rounded-xl border px-3.5 py-2.5 ${estilos.fila}`}>
+      <span className={`text-[13px] ${estilos.etiqueta}`}>{label}</span>
+      <span className={`text-lg font-bold tabular-nums whitespace-nowrap ${estilos.texto}`}>{value}</span>
     </div>
   );
 };
@@ -101,11 +102,11 @@ const ModalDetallesHabitacion = ({ habitacion: habitacionProp, onClose }) => {
   return (
     <>
       <div className="modal-overlay-dark" onClick={onClose}>
-        <div className="modal-card-dark w-full max-w-[600px]" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-card-dark w-full max-w-5xl" onClick={(e) => e.stopPropagation()}>
           <div className="flex flex-col" style={{ maxHeight: 'calc(100vh - 2rem)' }}>
 
           {/* Encabezado */}
-          <div className="flex items-start justify-between gap-3 px-5 sm:px-7 pt-6 pb-5 border-b border-slate-100">
+          <div className="flex items-start justify-between gap-3 px-5 sm:px-6 pt-5 pb-4 border-b border-slate-100">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2.5">
                 <h2 className="text-xl sm:text-2xl font-bold text-slate-900">Habitación {habitacion.num}</h2>
@@ -113,51 +114,70 @@ const ModalDetallesHabitacion = ({ habitacion: habitacionProp, onClose }) => {
                 {habitacion.stack && <span className="etiqueta-tipo bg-violet-50 text-violet-700">Stack</span>}
               </div>
               {subtitulo && (
-                <p className="flex items-center gap-1.5 mt-1.5 text-sm text-slate-500 truncate">
+                <p className="flex items-center gap-1.5 mt-1 text-sm text-slate-500 truncate">
                   <Tag className="h-3.5 w-3.5 shrink-0" /> {subtitulo}
                 </p>
               )}
             </div>
             <div className="flex items-center gap-2 shrink-0">
               {!soloLectura && (
-                <button type="button" onClick={() => setEditarOpen(true)} title="Editar habitación" aria-label="Editar habitación"
-                  className="h-10 w-10 rounded-xl border border-slate-200 flex items-center justify-center text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors">
-                  <Pencil className="h-4 w-4" />
-                </button>
+                <>
+                  <button type="button" onClick={() => setEditarOpen(true)} title="Editar habitación" aria-label="Editar habitación"
+                    className="h-9 w-9 rounded-xl border border-slate-200 flex items-center justify-center text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors">
+                    <Pencil className="h-4 w-4" />
+                  </button>
+                  <button type="button" onClick={handleDelete} title="Eliminar habitación" aria-label="Eliminar habitación"
+                    className="h-9 w-9 rounded-xl border border-slate-200 flex items-center justify-center text-slate-500 hover:text-red-700 hover:border-red-200 hover:bg-red-50 transition-colors">
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </>
               )}
               <button type="button" onClick={onClose} aria-label="Cerrar"
-                className="h-10 w-10 rounded-xl flex items-center justify-center text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors">
+                className="h-9 w-9 rounded-xl flex items-center justify-center text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors">
                 <X className="h-5 w-5" />
               </button>
             </div>
           </div>
 
-          {/* Contenido */}
-          <div className="flex-1 overflow-y-auto px-5 sm:px-7 py-6 space-y-6">
-            <div className="grid grid-cols-3 gap-2.5 sm:gap-3">
-              <CajaTotal label="Total" value={fmt(totalReal)} tono="neutro" />
-              <CajaTotal label="Recaudado" value={fmt(totalPagado)} tono="verde" />
-              <CajaTotal label="Pendiente" value={fmt(pendiente)} tono="rojo" />
-            </div>
-
-            {totalReal > 0 && (
-              <div>
-                <div className="flex justify-between text-sm mb-2">
-                  <span className="text-slate-600">Progreso de pago</span>
-                  <span className="font-semibold tabular-nums" style={{ color: colorBarra }}>{porcentaje}%</span>
+          {/* Contenido: resumen (izquierda) y personas (derecha). En pantallas grandes cada columna se desplaza sola */}
+          <div className="flex-1 min-h-0 overflow-y-auto lg:overflow-hidden grid grid-cols-1 lg:grid-cols-[minmax(0,340px)_minmax(0,1fr)]">
+            {/* ── Resumen ── */}
+            <div className="px-5 sm:px-6 py-5 space-y-4 lg:overflow-y-auto scroll-fino lg:border-r border-slate-100">
+              {confirmDelete && (
+                <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 animate-fade-in-up">
+                  <p className="text-sm text-red-800 font-semibold mb-2.5">¿Eliminar esta habitación y todos sus pagos?</p>
+                  <div className="flex gap-2">
+                    <button type="button" className="btn btn-borde flex-1" onClick={() => setConfirmDelete(false)}>Cancelar</button>
+                    <button type="button" className="btn flex-1 text-white bg-red-600 hover:bg-red-700" onClick={handleDelete}>
+                      <Trash2 className="h-4 w-4" /> Sí, eliminar
+                    </button>
+                  </div>
                 </div>
-                <div className="barra !h-2"><span style={{ width: `${porcentaje}%`, background: colorBarra }} /></div>
-              </div>
-            )}
+              )}
 
-            {/* Centro / etiqueta + revisión */}
-            <div className="space-y-3">
-              <div>
-                <label className="modal-section-label" htmlFor={`centro-${habitacion.id}`}>Centro / etiqueta</label>
-                <div className="flex flex-col sm:flex-row gap-3">
+              <div className="space-y-2">
+                <CajaTotal label="Total" value={fmt(totalReal)} tono="neutro" />
+                <CajaTotal label="Recaudado" value={fmt(totalPagado)} tono="verde" />
+                <CajaTotal label="Pendiente" value={fmt(pendiente)} tono="rojo" />
+              </div>
+
+              {totalReal > 0 && (
+                <div>
+                  <div className="flex justify-between text-[13px] mb-1.5">
+                    <span className="text-slate-600">Progreso de pago</span>
+                    <span className="font-semibold tabular-nums" style={{ color: colorBarra }}>{porcentaje}%</span>
+                  </div>
+                  <div className="barra !h-2"><span style={{ width: `${porcentaje}%`, background: colorBarra }} /></div>
+                </div>
+              )}
+
+              {/* Centro / etiqueta + revisión */}
+              <div className="space-y-2.5">
+                <div>
+                  <label className="modal-section-label" htmlFor={`centro-${habitacion.id}`}>Centro / etiqueta</label>
                   <select
                     id={`centro-${habitacion.id}`}
-                    className="input-dark flex-1"
+                    className="input-dark !py-2"
                     disabled={soloLectura}
                     value={etiqueta}
                     onChange={(e) => {
@@ -169,32 +189,47 @@ const ModalDetallesHabitacion = ({ habitacion: habitacionProp, onClose }) => {
                     {etiquetasExistentes.map((e) => <option key={e} value={e}>{e}</option>)}
                     <option value="__nueva__">+ Nueva etiqueta...</option>
                   </select>
-                  {mostrarBotonRevision && <BotonRevision onClick={() => setEditandoRevision(true)} />}
+                  {etiqueta === '__nueva__' && (
+                    <div className="flex gap-2 mt-2 animate-fade-in-up">
+                      <input className="input-dark flex-1 !py-2" type="text" value={etiquetaPersonalizada}
+                        onChange={(e) => setEtiquetaPersonalizada(e.target.value)} placeholder="Nombre de la etiqueta" autoFocus />
+                      <button type="button" className="btn btn-primario shrink-0 !h-auto" onClick={() => handleSaveEtiqueta('__nueva__')}
+                        disabled={!etiquetaPersonalizada.trim()}>
+                        Guardar
+                      </button>
+                    </div>
+                  )}
                 </div>
-                {etiqueta === '__nueva__' && (
-                  <div className="flex gap-2 mt-2 animate-fade-in-up">
-                    <input className="input-dark flex-1" type="text" value={etiquetaPersonalizada}
-                      onChange={(e) => setEtiquetaPersonalizada(e.target.value)} placeholder="Nombre de la etiqueta" autoFocus />
-                    <button type="button" className="btn-modal-primary shrink-0" onClick={() => handleSaveEtiqueta('__nueva__')}
-                      disabled={!etiquetaPersonalizada.trim()}>
-                      Guardar
-                    </button>
-                  </div>
-                )}
+                {mostrarBotonRevision && <BotonRevision onClick={() => setEditandoRevision(true)} />}
+                <RevisionHabitacion habitacion={habitacion} soloLectura={soloLectura}
+                  editando={editandoRevision} onCerrarEdicion={() => setEditandoRevision(false)} />
               </div>
-              <RevisionHabitacion habitacion={habitacion} soloLectura={soloLectura}
-                editando={editandoRevision} onCerrarEdicion={() => setEditandoRevision(false)} />
+
+              {/* Notas */}
+              <div>
+                <label className="modal-section-label" htmlFor={`nota-${habitacion.id}`}>Notas</label>
+                <textarea
+                  id={`nota-${habitacion.id}`}
+                  className="input-dark resize-none !py-2"
+                  value={nota}
+                  onChange={(e) => setNota(e.target.value)}
+                  onBlur={soloLectura ? undefined : handleSaveNota}
+                  readOnly={soloLectura}
+                  placeholder={soloLectura ? 'Sin notas' : 'Añadir notas...'}
+                  rows={2}
+                />
+              </div>
             </div>
 
-            {/* Personas */}
-            <div>
+            {/* ── Personas ── */}
+            <div className="px-5 sm:px-6 py-5 lg:overflow-y-auto scroll-fino border-t lg:border-t-0 border-slate-100">
               <div className="flex items-baseline justify-between gap-3 mb-3">
                 <p className="label-mayus !text-xs">Personas ({personas.length})</p>
                 {puedeCambiarTitular && (
-                  <p className="text-xs text-slate-500">Arrastra a alguien sobre el titular para cambiarlo</p>
+                  <p className="text-xs text-slate-500 hidden sm:block">Arrastra a alguien sobre el titular para cambiarlo</p>
                 )}
               </div>
-              <div className="space-y-3">
+              <div className="space-y-2.5">
                 {personas.map((persona, i) => {
                   const esTitular = i === 0;
                   const arrastrable = puedeCambiarTitular && !esTitular;
@@ -247,46 +282,6 @@ const ModalDetallesHabitacion = ({ habitacion: habitacionProp, onClose }) => {
                 {personas.length === 0 && <p className="text-sm text-slate-400 italic">Sin personas asignadas.</p>}
               </div>
             </div>
-
-            {/* Notas */}
-            <div>
-              <label className="modal-section-label" htmlFor={`nota-${habitacion.id}`}>Notas</label>
-              <textarea
-                id={`nota-${habitacion.id}`}
-                className="input-dark resize-none"
-                value={nota}
-                onChange={(e) => setNota(e.target.value)}
-                onBlur={soloLectura ? undefined : handleSaveNota}
-                readOnly={soloLectura}
-                placeholder={soloLectura ? 'Sin notas' : 'Añadir notas...'}
-                rows={3}
-                style={{ minHeight: '72px' }}
-              />
-            </div>
-
-            {confirmDelete && (
-              <div className="p-4 rounded-xl bg-red-50 border border-red-200 animate-fade-in-up">
-                <p className="text-sm text-red-800 font-semibold mb-3">¿Eliminar esta habitación y todos sus pagos?</p>
-                <div className="flex gap-2">
-                  <button type="button" className="btn-modal-secondary flex-1" onClick={() => setConfirmDelete(false)}>Cancelar</button>
-                  <button type="button" className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-[0.6rem] text-sm font-semibold text-white bg-red-600 hover:bg-red-700 transition-colors"
-                    onClick={handleDelete}>
-                    <Trash2 className="h-4 w-4" /> Sí, eliminar
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Pie */}
-          <div className="flex items-center justify-between gap-3 px-5 sm:px-7 py-4 border-t border-slate-100">
-            {!soloLectura && !confirmDelete ? (
-              <button type="button" onClick={handleDelete}
-                className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-red-700 transition-colors">
-                <Trash2 className="h-4 w-4" /> Eliminar habitación
-              </button>
-            ) : <span />}
-            <button type="button" className="btn-modal-secondary" onClick={onClose}>Cerrar</button>
           </div>
           </div>
         </div>
@@ -315,7 +310,7 @@ const ModalDetallesHabitacion = ({ habitacion: habitacionProp, onClose }) => {
             onClick={(e) => e.stopPropagation()}>
             <div className="p-6 text-center">
               <span className="mx-auto h-12 w-12 rounded-full flex items-center justify-center animate-pop-in"
-                style={{ background: '#fbf1d3', color: '#a16207' }}>
+                style={{ background: 'var(--titular-fondo)', color: 'var(--titular-texto)' }}>
                 <Crown className="h-6 w-6" />
               </span>
               <h3 id="titulo-cambiar-titular" className="mt-4 text-lg font-bold text-slate-900">

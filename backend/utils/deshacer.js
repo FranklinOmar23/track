@@ -34,8 +34,10 @@ const insertarPersona = (conn, p) => conn.query(
   'INSERT INTO personas (id, habitacion_id, nombre, posicion, es_nino, es_gratis, es_stack) VALUES (?, ?, ?, ?, ?, ?, ?)',
   [p.id, p.habitacion_id, p.nombre, p.posicion, p.es_nino, p.es_gratis, p.es_stack || 0]);
 const insertarPago = (conn, p) => conn.query(
-  'INSERT INTO pagos (id, persona_id, mes, anio, monto, created_at) VALUES (?, ?, ?, ?, ?, ?)',
-  [p.id, p.persona_id, p.mes, p.anio, p.monto, fecha(p.created_at)]);
+  'INSERT INTO pagos (id, persona_id, mes, anio, monto, fecha_recibido, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+  [p.id, p.persona_id, p.mes, p.anio, p.monto,
+    p.fecha_recibido ? String(p.fecha_recibido).slice(0, 10) : null,
+    fecha(p.created_at)]);
 
 const existe = async (conn, tabla, id) => {
   const [rows] = await conn.query(`SELECT id FROM ${tabla} WHERE id = ?`, [id]);
@@ -44,7 +46,7 @@ const existe = async (conn, tabla, id) => {
 
 const pagoActual = async (conn, pagoId) => {
   const [rows] = await conn.query(
-    `SELECT p.id, p.persona_id, p.mes, p.anio, p.monto, pe.habitacion_id
+    `SELECT p.id, p.persona_id, p.mes, p.anio, p.monto, p.fecha_recibido, pe.habitacion_id
      FROM pagos p JOIN personas pe ON pe.id = p.persona_id WHERE p.id = ?`, [pagoId]);
   return rows[0] || null;
 };
@@ -71,8 +73,13 @@ export const OPERACIONES = {
     if (!actual) throw new ErrorDeshacer('El pago ya no existe.');
     if (!mismosCampos(actual, d.despues)) throw new ErrorDeshacer(CAMBIO_POSTERIOR);
     await viajeAbiertoPorHabitacion(conn, actual.habitacion_id);
-    await conn.query('UPDATE pagos SET mes = ?, anio = ?, monto = ? WHERE id = ?',
-      [d.antes.mes, d.antes.anio, d.antes.monto, d.pagoId]);
+    if (d.antes.fecha_recibido !== undefined) {
+      await conn.query('UPDATE pagos SET mes = ?, anio = ?, monto = ?, fecha_recibido = ? WHERE id = ?',
+        [d.antes.mes, d.antes.anio, d.antes.monto, d.antes.fecha_recibido, d.pagoId]);
+    } else {
+      await conn.query('UPDATE pagos SET mes = ?, anio = ?, monto = ? WHERE id = ?',
+        [d.antes.mes, d.antes.anio, d.antes.monto, d.pagoId]);
+    }
   },
 
   'pago.eliminar': async (conn, d) => {
@@ -130,6 +137,32 @@ export const OPERACIONES = {
     if (d.tipoHabitacionAntes) {
       await conn.query('UPDATE habitaciones SET tipo = ? WHERE id = ?', [d.tipoHabitacionAntes, persona.habitacion_id]);
     }
+  },
+
+  // ── Transferencias al hotel ──
+  'transferencia.crear': async (conn, d) => {
+    const [rows] = await conn.query('SELECT fecha, monto FROM transferencias WHERE id = ?', [d.transferenciaId]);
+    if (!rows[0]) throw new ErrorDeshacer('La transferencia ya no existe.');
+    if (!mismosCampos(rows[0], d.despues)) throw new ErrorDeshacer(CAMBIO_POSTERIOR);
+    await conn.query('DELETE FROM transferencias WHERE id = ?', [d.transferenciaId]);
+  },
+
+  'transferencia.editar': async (conn, d) => {
+    const [rows] = await conn.query(
+      'SELECT fecha, monto, corte, referencia, nota FROM transferencias WHERE id = ?', [d.transferenciaId]);
+    if (!rows[0]) throw new ErrorDeshacer('La transferencia ya no existe.');
+    if (!mismosCampos(rows[0], d.despues)) throw new ErrorDeshacer(CAMBIO_POSTERIOR);
+    await conn.query('UPDATE transferencias SET fecha = ?, monto = ?, corte = ?, referencia = ?, nota = ? WHERE id = ?',
+      [d.antes.fecha, d.antes.monto, d.antes.corte, d.antes.referencia, d.antes.nota, d.transferenciaId]);
+  },
+
+  'transferencia.eliminar': async (conn, d) => {
+    const t = d.transferencia;
+    if (await existe(conn, 'transferencias', t.id)) throw new ErrorDeshacer('La transferencia ya fue restaurada.');
+    if (!(await existe(conn, 'viajes', t.viaje_id))) throw new ErrorDeshacer('El viaje ya no existe.');
+    await conn.query(
+      'INSERT INTO transferencias (id, viaje_id, fecha, monto, corte, referencia, nota, creado_por, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [t.id, t.viaje_id, t.fecha, t.monto, t.corte, t.referencia, t.nota, t.creado_por, fecha(t.created_at)]);
   },
 
   'persona.titular': async (conn, d) => {

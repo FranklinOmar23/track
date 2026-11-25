@@ -39,7 +39,7 @@ export const contextoHabitacion = async (conn, habitacionId) => {
 
 export const fotoPago = async (conn, pagoId) => {
   const [rows] = await conn.query(
-    'SELECT id, persona_id, mes, anio, monto, created_at FROM pagos WHERE id = ?', [pagoId]);
+    'SELECT id, persona_id, mes, anio, monto, fecha_recibido, created_at FROM pagos WHERE id = ?', [pagoId]);
   if (!rows[0]) return null;
   return { ...rows[0], monto: Number(rows[0].monto) };
 };
@@ -50,7 +50,7 @@ export const fotoPersona = async (conn, personaId) => {
     [personaId]);
   if (!rows[0]) return null;
   const [pagos] = await conn.query(
-    'SELECT id, persona_id, mes, anio, monto, created_at FROM pagos WHERE persona_id = ?', [personaId]);
+    'SELECT id, persona_id, mes, anio, monto, fecha_recibido, created_at FROM pagos WHERE persona_id = ?', [personaId]);
   return { persona: rows[0], pagos: pagos.map((p) => ({ ...p, monto: Number(p.monto) })) };
 };
 
@@ -66,7 +66,7 @@ export const fotoHabitacion = async (conn, habitacionId) => {
       'SELECT id, habitacion_id, nombre, posicion, es_nino, COALESCE(es_gratis, 0) AS es_gratis, COALESCE(es_stack, 0) AS es_stack FROM personas WHERE habitacion_id = ?',
       [habitacionId]),
     conn.query(
-      `SELECT pg.id, pg.persona_id, pg.mes, pg.anio, pg.monto, pg.created_at
+      `SELECT pg.id, pg.persona_id, pg.mes, pg.anio, pg.monto, pg.fecha_recibido, pg.created_at
        FROM pagos pg JOIN personas p ON p.id = pg.persona_id WHERE p.habitacion_id = ?`, [habitacionId]),
   ]);
   if (!rows[0]) return null;

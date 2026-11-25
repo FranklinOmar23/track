@@ -11,6 +11,7 @@ const VALOR_ORDEN = {
   pendiente: (v) => v.pendiente || 0,
   ganancia: (v) => calcularGananciaResumen(v),
   progreso: (v) => v.pct || 0,
+  cuenta: (v) => v.en_cuenta || 0,
 };
 
 /** Encabezado que ordena al hacer clic (1er clic: mayor a menor; 2º: menor a mayor; 3º: orden original). */
@@ -57,7 +58,7 @@ export const ViajesTable = ({ viajes, onSelectViaje }) => {
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full text-sm min-w-[680px]">
+        <table className="w-full text-sm min-w-[780px]">
           <thead>
             <tr className="bg-slate-50 border-y border-slate-100 text-left">
               <Encabezado campo="nombre" className="pl-5 sm:pl-6" {...props}>Viaje</Encabezado>
@@ -65,6 +66,7 @@ export const ViajesTable = ({ viajes, onSelectViaje }) => {
               <Encabezado campo="total" className="text-right" {...props}>Total</Encabezado>
               <Encabezado campo="pagado" className="text-right" {...props}>Pagado</Encabezado>
               <Encabezado campo="pendiente" className="text-right" {...props}>Pendiente</Encabezado>
+              <Encabezado campo="cuenta" className="text-right" {...props}>En cuenta</Encabezado>
               <Encabezado campo="progreso" {...props}>Progreso</Encabezado>
               <th className="px-4 pr-5 sm:pr-6 h-11 font-normal text-right"><span className="tabla-th">Acción</span></th>
             </tr>
@@ -88,6 +90,10 @@ export const ViajesTable = ({ viajes, onSelectViaje }) => {
                   <td className="px-4 py-3.5 text-right tabular-nums text-slate-900">{formatCurrency(v.total_por_cobrar, divisa)}</td>
                   <td className="px-4 py-3.5 text-right tabular-nums font-semibold text-emerald-700">{formatCurrency(v.total_pagado, divisa)}</td>
                   <td className="px-4 py-3.5 text-right tabular-nums font-semibold text-red-700">{formatCurrency(v.pendiente, divisa)}</td>
+                  <td className="px-4 py-3.5 text-right tabular-nums text-teal-800"
+                    title={v.total_transferido ? `Transferido al hotel: ${formatCurrency(v.total_transferido, divisa)}` : 'Sin transferencias registradas'}>
+                    {formatCurrency(v.en_cuenta, divisa)}
+                  </td>
                   <td className="px-4 py-3.5">
                     <div className="flex items-center gap-3">
                       <div className="barra w-20"><span className="bg-emerald-600" style={{ width: `${Math.min(100, pct)}%` }} /></div>
