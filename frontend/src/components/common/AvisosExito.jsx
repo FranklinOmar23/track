@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { X } from 'lucide-react';
+import { X, RefreshCw } from 'lucide-react';
 import { escucharAvisos } from '../../utils/avisos';
 import Portal from './Portal';
 
-const DURACION = { exito: 2400, error: 6000 };
+const DURACION = { exito: 2400, error: 6000, info: 3200 };
 
 /** Check verde que se dibuja (círculo que "salta" + palomita trazada). */
 export const CheckAnimado = ({ tamano = 28 }) => (
@@ -55,9 +55,13 @@ const AvisosExito = () => {
             <div key={a.id}
               role={error ? 'alert' : undefined}
               className={`pointer-events-auto flex items-center gap-3 pl-2.5 py-2.5 bg-white border shadow-[0_12px_32px_-12px_rgba(15,23,42,0.35)] ${
-                error ? 'rounded-2xl border-red-200 pr-2.5 w-full' : 'rounded-full border-emerald-200 pr-5'
+                error ? 'rounded-2xl border-red-200 pr-2.5 w-full' : a.tipo === 'info' ? 'rounded-full border-teal-200 pr-5' : 'rounded-full border-emerald-200 pr-5'
               } ${a.saliendo ? 'aviso-salida' : 'aviso-entrada'}`}>
-              {error ? <ErrorAnimado /> : <CheckAnimado />}
+              {error ? <ErrorAnimado /> : a.tipo === 'info' ? (
+                <span className="h-7 w-7 rounded-full bg-teal-50 text-teal-700 inline-flex items-center justify-center shrink-0 animate-pop-in">
+                  <RefreshCw className="h-3.5 w-3.5" />
+                </span>
+              ) : <CheckAnimado />}
               <span className={`text-sm font-semibold ${error ? 'text-red-800 flex-1' : 'text-slate-900 whitespace-nowrap'}`}>
                 {a.mensaje}
               </span>

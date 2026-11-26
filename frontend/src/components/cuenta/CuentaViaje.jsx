@@ -2,12 +2,14 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Send, Landmark, Pencil, Trash2, Paperclip, ArrowDownLeft, ArrowUpRight, Wallet, Scale, Check, X, Info } from 'lucide-react';
 import { useHabitacionesContext } from '../../Context/HabitacionesContext';
 import { useAuthContext } from '../../Context/AuthContext';
+import { useAlCambiarRemoto } from '../../utils/enVivo';
 import { fetchTransferencias, eliminarTransferencia, guardarSaldoBanco } from '../../utils/api';
 import { formatCurrency, MESES } from '../../utils/formatters';
 import { avisarError, avisarExito } from '../../utils/avisos';
 import InputMonto from '../common/InputMonto';
 import { Hueso } from '../common/Esqueleto';
 import ModalTransferencia from './ModalTransferencia';
+import { usePenalidades } from '../../hooks/usePenalidades';
 
 const fechaCorta = (iso) => (iso ? new Date(`${String(iso).slice(0, 10)}T00:00:00`).toLocaleDateString('es-DO', { day: 'numeric', month: 'short', year: 'numeric' }) : '—');
 const fechaHora = (f) => (f ? new Intl.DateTimeFormat('es-DO', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(f)) : '');
@@ -63,6 +65,9 @@ const CuentaViaje = ({ viaje }) => {
     return () => { cancelado = true; };
   }, [viaje.id]);
 
+  // Cambios de otra persona: recargar
+  useAlCambiarRemoto(() => { cargar(); });
+
   // Cada pago como un movimiento de entrada con su fecha real
   const movimientos = useMemo(() => state.habitaciones.flatMap((h) => h.personas.flatMap((p) =>
     (p.pagos || []).map((pg) => ({
@@ -74,7 +79,10 @@ const CuentaViaje = ({ viaje }) => {
   const sinFecha = movimientos.filter((m) => !m.fecha).reduce((a, m) => ({ n: a.n + 1, total: a.total + m.monto }), { n: 0, total: 0 });
   const cobrado = movimientos.reduce((s, m) => s + m.monto, 0);
   const transferido = transferencias.reduce((s, t) => s + t.monto, 0);
-  const enCuenta = cobrado - transferido;
+  // Penalidades: van por fuera de los montos del viaje, pero su dinero sí entra (y sale) de esta cuenta
+  const { resumen: penalidades } = usePenalidades(viaje.id);
+  const enCuentaViaje = cobrado - transferido;
+  const enCuenta = enCuentaViaje + penalidades.enCuenta;
   const saldoBanco = datos?.resumen?.saldoBanco ?? null;
   const diferencia = saldoBanco === null ? null : saldoBanco - enCuenta;
 
@@ -152,7 +160,9 @@ const CuentaViaje = ({ viaje }) => {
           <Cifra icono={ArrowUpRight} label="Transferido al hotel" value={fmt(transferido)} tono="azul"
             detalle={transferencias.length ? `${transferencias.length} envío${transferencias.length !== 1 ? 's' : ''} · último ${fechaCorta(transferencias[0].fecha)}` : 'Aún no hay envíos'} />
           <Cifra icono={Wallet} label="En cuenta (sin enviar)" value={fmt(enCuenta)} tono="marca" destacado
-            detalle={despuesDelCorte !== null ? `${fmt(despuesDelCorte)} entraron después del último corte (${fechaCorta(ultimoCorte)})` : 'Todo lo cobrado sigue en la cuenta'} />
+            detalle={penalidades.cantidad > 0
+              ? `${fmt(enCuentaViaje)} del viaje + ${fmt(penalidades.enCuenta)} de penalidades`
+              : despuesDelCorte !== null ? `${fmt(despuesDelCorte)} entraron después del último corte (${fechaCorta(ultimoCorte)})` : 'Todo lo cobrado sigue en la cuenta'} />
 
           {/* Conciliación con el banco */}
           <div className="tarjeta p-4 sm:p-5">
@@ -196,6 +206,18 @@ const CuentaViaje = ({ viaje }) => {
               </>
             )}
           </div>
+        </div>
+      )}
+
+      {penalidades.cantidad > 0 && datos && (
+        <div className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <Info className="h-4 w-4 mt-0.5 shrink-0" />
+          <p>
+            <span className="font-semibold">Penalidades en la cuenta: {fmt(penalidades.enCuenta)}</span>
+            {' '}— cobrado a clientes {fmt(penalidades.cobrado)}{penalidades.pagadoHotel > 0 && <> − pagado al hotel {fmt(penalidades.pagadoHotel)}</>}.
+            {' '}No se suman al recaudado del viaje, pero sí al dinero que debería haber en el banco.
+            {penalidades.porCobrar > 0 && <> Faltan {fmt(penalidades.porCobrar)} por cobrar.</>}
+          </p>
         </div>
       )}
 

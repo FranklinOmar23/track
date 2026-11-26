@@ -9,6 +9,9 @@ import authRoutes from './routes/auth.js';
 import logsRoutes from './routes/logs.js';
 import usuariosRoutes from './routes/usuarios.js';
 import transferenciasRoutes from './routes/transferencias.js';
+import penalidadesRoutes from './routes/penalidades.js';
+import cambiosRoutes from './routes/cambios.js';
+import { anotarCambios, programarLimpiezaCambios } from './utils/cambios.js';
 import comprobantesRoutes from './routes/comprobantes.js';
 import clientesRoutes from './routes/clientes.js';
 import { requierePermiso, requiereAdmin } from './utils/permisos.js';
@@ -40,7 +43,7 @@ const corsOptions = {
     callback(null, false);
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Cliente'],
   credentials: true,
   optionsSuccessStatus: 204,
 };
@@ -77,6 +80,9 @@ app.use((req, res, next) => {
 
   next();
 });
+
+// Anota cada escritura exitosa para que las demás pantallas se actualicen solas (ver utils/cambios.js)
+app.use(anotarCambios);
 
 app.get('/api/health', (req, res) => {
   res.json({ ok: true, message: 'Backend en funcionamiento' });
@@ -180,6 +186,8 @@ app.use('/api/stats', requireAuth, statsRoutes); // 👈 NUEVA
 app.use('/api/logs', requireAuth, requierePermiso('actividad'), logsRoutes);
 app.use('/api/usuarios', requireAuth, requiereAdmin, usuariosRoutes);
 app.use('/api/transferencias', requireAuth, transferenciasRoutes);
+app.use('/api/penalidades', requireAuth, penalidadesRoutes);
+app.use('/api/cambios', requireAuth, cambiosRoutes);
 app.use('/api/comprobantes', requireAuth, comprobantesRoutes);
 app.use('/api/clientes', requireAuth, clientesRoutes);
 
@@ -218,6 +226,7 @@ initDb()
   .then(() => {
     registrarLog('sistema', 'info', 'server', null, 'Backend iniciado correctamente').catch(() => {});
     programarLimpiezaLogs();
+    programarLimpiezaCambios();
     console.log('Base de datos lista');
     app.listen(port, () => {
       console.log(`Backend listo en http://localhost:${port}`);

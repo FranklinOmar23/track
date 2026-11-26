@@ -7,6 +7,7 @@ import ModalNumerosHabitaciones from '../Modals/ModalNumerosHabitaciones';
 import ModalTopPagadores from '../Modals/ModalTopPagadores';
 import MontoCard from '../common/MontoCard';
 import { BarraCobrado } from '../Dashboard/DashboardStats';
+import { usePenalidades } from '../../hooks/usePenalidades';
 
 /** Un contador de la franja (Habitaciones, Completadas, Stack, En revisión). */
 const Contador = ({ label, value, color = 'text-slate-900', onClick, titulo, className = '' }) => {
@@ -28,6 +29,7 @@ const StatsGrid = () => {
   const { fmt } = useDivisa();
   const viaje = state.viajes.find((v) => v.id === state.selectedViajeId);
   const ganancia = calcularGanancia(viaje, state.habitaciones);
+  const { resumen: penalidades } = usePenalidades(state.selectedViajeId);
   const [modalNumerosOpen, setModalNumerosOpen] = useState(false);
   const [modalPagadoresOpen, setModalPagadoresOpen] = useState(false);
   const { total, pagado, pendiente } = calcularEstadisticas(state.habitaciones);
@@ -51,7 +53,16 @@ const StatsGrid = () => {
 
         <MontoCard icono={Check} label="Recaudado" value={fmt(pagado)} color="text-emerald-700" acento="5,150,105" indice={1}
           onClick={() => setModalPagadoresOpen(true)}
-          pie={<div className="pr-6"><BarraCobrado porcentaje={porcentaje} /></div>} />
+          pie={(
+            <div className="pr-6 space-y-1.5">
+              <BarraCobrado porcentaje={porcentaje} />
+              {penalidades.cantidad > 0 && (
+                <p className="text-xs text-slate-500" title="Las penalidades no se suman al recaudado; es dinero aparte que está en la cuenta">
+                  + Penalidades en cuenta <span className="font-semibold text-amber-700">{fmt(penalidades.enCuenta)}</span>
+                </p>
+              )}
+            </div>
+          )} />
 
         <MontoCard icono={Clock} label="Pendiente" value={fmt(pendiente)} color="text-red-700" acento="220,38,38" indice={2}
           pie={<p className="text-xs text-slate-500">{habitaciones - completas} habitaciones con saldo</p>} />

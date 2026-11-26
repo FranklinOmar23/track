@@ -1,7 +1,10 @@
-import { createContext, useContext, useEffect, useReducer } from 'react';
+import { createContext, useContext, useEffect, useReducer, useRef } from 'react';
 import * as api from '../utils/api';
 import { useAuthContext } from './AuthContext';
-import { avisarExito } from '../utils/avisos';
+import { avisarExito, avisarInfo } from '../utils/avisos';
+import { emitirCambiosRemotos } from '../utils/enVivo';
+
+const INTERVALO_EN_VIVO_MS = 4000;
 
 /** Envuelve una acción para mostrar el check de "cambio realizado" cuando termina bien. */
 const conAviso = (fn, mensaje) => async (...args) => {
@@ -135,8 +138,60 @@ export const useHabitacionesContext = () => {
 };
 
 export const HabitacionesProvider = ({ children }) => {
-  const { puede } = useAuthContext();
+  const { puede, isAuthenticated } = useAuthContext();
   const [state, dispatch] = useReducer(habitacionesReducer, initialState);
+
+  // ── En vivo: si otra persona guarda algo, recargar viajes y el viaje abierto sin recargar la página ──
+  const viajeAbiertoRef = useRef(null);
+  useEffect(() => { viajeAbiertoRef.current = state.selectedViajeId; }, [state.selectedViajeId]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return undefined;
+    let activo = true;
+    let ultimo = null;
+    let consultando = false;
+
+    const consultar = async () => {
+      if (!activo || consultando || document.visibilityState !== 'visible') return;
+      consultando = true;
+      try {
+        const r = await api.fetchCambios(ultimo);
+        const huboAjenos = ultimo !== null && r.usuarios.length > 0;
+        ultimo = r.ultimo;
+        if (!huboAjenos) return;
+        const viajeId = viajeAbiertoRef.current;
+        const [viajes, habitaciones] = await Promise.all([
+          api.fetchViajes(),
+          viajeId ? api.fetchHabitaciones(viajeId) : null,
+        ]);
+        if (!activo) return;
+        dispatch({ type: 'SET_VIAJES', payload: viajes });
+        // Solo si sigue abierto el mismo viaje (pudo cambiar mientras llegaba la respuesta)
+        if (viajeId && habitaciones && viajeId === viajeAbiertoRef.current) {
+          dispatch({ type: 'SET_HABITACIONES', payload: habitaciones });
+        }
+        emitirCambiosRemotos({ usuarios: r.usuarios });
+        avisarInfo(`Actualizado · cambios de ${r.usuarios.join(', ')}`);
+      } catch {
+        // Sin conexión o sesión vencida: se reintenta en la próxima vuelta
+      } finally {
+        consultando = false;
+      }
+    };
+
+    consultar();
+    const intervalo = setInterval(consultar, INTERVALO_EN_VIVO_MS);
+    // Al volver a la pestaña, consultar enseguida (mientras está oculta no se consulta)
+    const alVolver = () => { if (document.visibilityState === 'visible') consultar(); };
+    document.addEventListener('visibilitychange', alVolver);
+    window.addEventListener('focus', alVolver);
+    return () => {
+      activo = false;
+      clearInterval(intervalo);
+      document.removeEventListener('visibilitychange', alVolver);
+      window.removeEventListener('focus', alVolver);
+    };
+  }, [isAuthenticated]);
 
   const cargarViajes = async () => {
     try {

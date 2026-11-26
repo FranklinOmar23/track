@@ -1,3 +1,5 @@
+import { ID_PESTANA } from './enVivo';
+
 const API_BASE = import.meta.env.VITE_API_URL?.trim().replace(/\/+$/g, '') || '';
 const TOKEN_KEY = 'rmt_token';
 
@@ -17,6 +19,7 @@ const request = async (path, options = {}) => {
     mode: 'cors',
     headers: {
       'Content-Type': 'application/json',
+      'X-Cliente': ID_PESTANA,
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     ...options,
@@ -270,6 +273,23 @@ export const eliminarTransferencia = (id) =>
 
 export const guardarSaldoBanco = (viajeId, saldo) =>
   request('/api/transferencias/saldo-banco', { method: 'PUT', body: JSON.stringify({ viajeId, saldo }) });
+
+// ─── CAMBIOS EN VIVO ─────────────────────────────────────────────────────────
+export const fetchCambios = (desde) => request(`/api/cambios${desde === null || desde === undefined ? '' : `?desde=${desde}`}`);
+
+// ─── PENALIDADES DEL HOTEL (por fuera de los montos del viaje) ───────────────
+export const fetchPenalidades = (viajeId) => request(`/api/penalidades?viajeId=${viajeId}`);
+
+export const fetchPersonasEliminadas = (viajeId) => request(`/api/penalidades/personas-eliminadas?viajeId=${viajeId}`);
+
+export const crearPenalidad = (datos) =>
+  request('/api/penalidades', { method: 'POST', body: JSON.stringify(datos) });
+
+export const editarPenalidad = (id, datos) =>
+  request(`/api/penalidades/${id}`, { method: 'PUT', body: JSON.stringify(datos) });
+
+export const eliminarPenalidad = (id) =>
+  request(`/api/penalidades/${id}`, { method: 'DELETE' });
 
 // ─── COMPROBANTES (vouchers) ─────────────────────────────────────────────────
 export const fetchComprobantes = (entidad, entidadId) =>

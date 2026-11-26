@@ -11,9 +11,12 @@ export const MAX_COMPROBANTE = 5 * 1024 * 1024; // 5 MB
 const TIPOS = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf'];
 const ENTIDADES = {
   transferencia: 'SELECT viaje_id FROM transferencias WHERE id = ?',
+  penalidad: 'SELECT viaje_id FROM penalidades WHERE id = ?',
   pago: `SELECT h.viaje_id FROM pagos pg JOIN personas p ON p.id = pg.persona_id
          JOIN habitaciones h ON h.id = p.habitacion_id WHERE pg.id = ?`,
 };
+
+const NOMBRES = { pago: 'un pago', transferencia: 'una transferencia', penalidad: 'una penalidad' };
 
 /** Viaje al que pertenece la transferencia o el pago (o null). */
 const viajeDe = async (entidad, entidadId) => {
@@ -77,7 +80,7 @@ router.post('/', async (req, res) => {
     [entidad, Number(entidadId), nombreLimpio, mime, buffer.length, buffer, req.usuario]);
 
   registrarLog(req.usuario, 'crear', 'comprobante', r.insertId,
-    `${req.usuario} adjuntó un comprobante (${nombreLimpio}) a ${entidad === 'pago' ? 'un pago' : 'una transferencia'} #${entidadId}`);
+    `${req.usuario} adjuntó un comprobante (${nombreLimpio}) a ${NOMBRES[entidad]} #${entidadId}`);
 
   const [rows] = await pool.query(
     'SELECT id, entidad, entidad_id, nombre, mime, tamano, subido_por, created_at FROM comprobantes WHERE id = ?', [r.insertId]);
@@ -92,7 +95,7 @@ router.delete('/:id', async (req, res) => {
 
   await pool.query('DELETE FROM comprobantes WHERE id = ?', [c.id]);
   registrarLog(req.usuario, 'eliminar', 'comprobante', c.id,
-    `${req.usuario} eliminó el comprobante ${c.nombre} de ${c.entidad === 'pago' ? 'un pago' : 'una transferencia'} #${c.entidad_id}`);
+    `${req.usuario} eliminó el comprobante ${c.nombre} de ${NOMBRES[c.entidad]} #${c.entidad_id}`);
   res.json({ ok: true });
 });
 

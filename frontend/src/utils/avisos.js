@@ -8,6 +8,8 @@ export const avisarExito = (mensaje = 'Cambio realizado') => emitir({ tipo: 'exi
 
 export const avisarError = (mensaje = 'Algo salió mal. Intenta de nuevo.') => emitir({ tipo: 'error', mensaje });
 
+export const avisarInfo = (mensaje) => emitir({ tipo: 'info', mensaje });
+
 export const escucharAvisos = (fn) => {
   oyentes.add(fn);
   return () => oyentes.delete(fn);

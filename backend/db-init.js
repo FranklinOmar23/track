@@ -236,6 +236,52 @@ export const initDb = async () => {
     console.error('No se pudo preparar la tabla de clientes:', error.message);
   }
 
+  // Penalidades del hotel, por fuera de los montos del viaje (ver migrations/012)
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS penalidades (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        viaje_id INT NOT NULL,
+        persona_nombre VARCHAR(150) NOT NULL,
+        habitacion VARCHAR(30) NULL,
+        fecha DATE NOT NULL,
+        monto DECIMAL(12,2) NOT NULL,
+        cobrado DECIMAL(12,2) NOT NULL DEFAULT 0,
+        pagada_hotel TINYINT(1) NOT NULL DEFAULT 0,
+        nota VARCHAR(255) NULL,
+        creado_por VARCHAR(50) NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_viaje_fecha (viaje_id, fecha),
+        CONSTRAINT fk_penalidad_viaje FOREIGN KEY (viaje_id) REFERENCES viajes(id) ON DELETE CASCADE
+      )
+    `);
+    // Persona asociada (sin FK: si se elimina a la persona, la penalidad la sigue recordando) y motivo
+    await pool.query(`
+      ALTER TABLE penalidades
+        ADD COLUMN IF NOT EXISTS persona_id INT NULL,
+        ADD COLUMN IF NOT EXISTS motivo VARCHAR(40) NOT NULL DEFAULT 'salida'
+    `);
+  } catch (error) {
+    console.error('No se pudo preparar la tabla de penalidades:', error.message);
+  }
+
+  // Registro corto de escrituras para actualizar en vivo las pantallas abiertas (ver utils/cambios.js)
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS cambios (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        usuario VARCHAR(50) NULL,
+        cliente VARCHAR(40) NULL,
+        metodo VARCHAR(10) NOT NULL,
+        ruta VARCHAR(200) NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_created (created_at)
+      )
+    `);
+  } catch (error) {
+    console.error('No se pudo preparar la tabla de cambios:', error.message);
+  }
+
   for (const usuario of leerUsuariosIniciales()) {
     const passwordHash = await bcrypt.hash(usuario.password, 10);
     await pool.query(

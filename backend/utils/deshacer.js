@@ -173,6 +173,36 @@ export const OPERACIONES = {
       [t.id, t.viaje_id, t.fecha, t.monto, t.corte, t.referencia, t.nota, t.creado_por, fecha(t.created_at)]);
   },
 
+  // ── Penalidades del hotel ──
+  'penalidad.crear': async (conn, d) => {
+    const [rows] = await conn.query('SELECT fecha, monto, cobrado FROM penalidades WHERE id = ?', [d.penalidadId]);
+    if (!rows[0]) throw new ErrorDeshacer('La penalidad ya no existe.');
+    if (!mismosCampos(rows[0], d.despues)) throw new ErrorDeshacer(CAMBIO_POSTERIOR);
+    await conn.query('DELETE FROM penalidades WHERE id = ?', [d.penalidadId]);
+  },
+
+  'penalidad.editar': async (conn, d) => {
+    const [rows] = await conn.query(
+      'SELECT persona_id, persona_nombre, habitacion, motivo, fecha, monto, cobrado, pagada_hotel, nota FROM penalidades WHERE id = ?', [d.penalidadId]);
+    if (!rows[0]) throw new ErrorDeshacer('La penalidad ya no existe.');
+    if (!mismosCampos(rows[0], d.despues)) throw new ErrorDeshacer(CAMBIO_POSTERIOR);
+    const a = d.antes;
+    await conn.query(
+      `UPDATE penalidades SET persona_id = ?, persona_nombre = ?, habitacion = ?, motivo = ?, fecha = ?, monto = ?, cobrado = ?,
+         pagada_hotel = ?, nota = ? WHERE id = ?`,
+      [a.persona_id ?? null, a.persona_nombre, a.habitacion, a.motivo || 'salida', a.fecha, a.monto, a.cobrado, a.pagada_hotel, a.nota, d.penalidadId]);
+  },
+
+  'penalidad.eliminar': async (conn, d) => {
+    const p = d.penalidad;
+    if (await existe(conn, 'penalidades', p.id)) throw new ErrorDeshacer('La penalidad ya fue restaurada.');
+    if (!(await existe(conn, 'viajes', p.viaje_id))) throw new ErrorDeshacer('El viaje ya no existe.');
+    await conn.query(
+      `INSERT INTO penalidades (id, viaje_id, persona_id, persona_nombre, habitacion, motivo, fecha, monto, cobrado, pagada_hotel, nota, creado_por, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [p.id, p.viaje_id, p.persona_id ?? null, p.persona_nombre, p.habitacion, p.motivo || 'salida', p.fecha, p.monto, p.cobrado, p.pagada_hotel, p.nota, p.creado_por, fecha(p.created_at)]);
+  },
+
   // ── Clientes ──
   'cliente.crear': async (conn, d) => {
     if (!(await existe(conn, 'clientes', d.clienteId))) throw new ErrorDeshacer('El cliente ya no existe.');

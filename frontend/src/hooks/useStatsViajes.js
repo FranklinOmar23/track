@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { fetchDashboardStats } from '../utils/api';
 import { useHabitacionesContext } from '../Context/HabitacionesContext';
+import { useAlCambiarRemoto } from '../utils/enVivo';
 
 const VACIO = { total_por_cobrar: 0, total_pagado: 0, pendiente: 0, total_habitaciones: 0, total_personas: 0, personas_pagan: 0, total_transferido: 0, en_cuenta: 0 };
 
@@ -13,6 +14,8 @@ export const useStatsViajes = () => {
   const [statsMap, setStatsMap] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [version, setVersion] = useState(0);
+  useAlCambiarRemoto(() => setVersion((v) => v + 1));
 
   useEffect(() => {
     let cancelado = false;
@@ -40,7 +43,7 @@ export const useStatsViajes = () => {
       })
       .finally(() => { if (!cancelado) setLoading(false); });
     return () => { cancelado = true; };
-  }, []);
+  }, [version]);
 
   // Todos los datos del viaje del contexto (fechas, nota, política, ganancia, estado) + totales del API.
   const viajes = useMemo(() => state.viajes.map((v) => {

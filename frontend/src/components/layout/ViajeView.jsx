@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
-import { ChevronRight, Share2, Pencil, Lock, Eye, BedDouble, Landmark } from 'lucide-react';
+import { ChevronRight, Share2, Pencil, Lock, Eye, BedDouble, Landmark, CircleAlert } from 'lucide-react';
 import { useHabitacionesContext } from '../../Context/HabitacionesContext';
 import { useAuthContext } from '../../Context/AuthContext';
 import { rutaViaje } from '../../utils/rutas';
@@ -16,6 +16,7 @@ import ModalCompartir from '../Modals/ModalCompartir';
 import ModalEditarViaje from '../Modals/ModalEditarViaje';
 import Portal from '../common/Portal';
 import CuentaViaje from '../cuenta/CuentaViaje';
+import PenalidadesViaje from '../penalidades/PenalidadesViaje';
 import { EsqueletoViaje } from '../common/Esqueleto';
 
 const ViajeView = () => {
@@ -30,8 +31,8 @@ const ViajeView = () => {
   const [loading, setLoading] = useState(true);
   // Pestaña en la URL (?vista=cuenta) para que se conserve al recargar o compartir el enlace
   const [params, setParams] = useSearchParams();
-  const vista = params.get('vista') === 'cuenta' ? 'cuenta' : 'habitaciones';
-  const cambiarVista = (v) => setParams(v === 'cuenta' ? { vista: 'cuenta' } : {}, { replace: true });
+  const vista = ['cuenta', 'penalidades'].includes(params.get('vista')) ? params.get('vista') : 'habitaciones';
+  const cambiarVista = (v) => setParams(v === 'habitaciones' ? {} : { vista: v }, { replace: true });
   const [viajeCargado, setViajeCargado] = useState(null);
 
   // Recargar cada vez que cambia el slug (p. ej. al elegir otro viaje en el selector).
@@ -130,13 +131,14 @@ const ViajeView = () => {
       <StatsGrid />
 
       {/* Pestañas del viaje */}
-      <div className="flex gap-1 border-b border-slate-200" role="tablist" aria-label="Secciones del viaje">
+      <div className="flex gap-1 border-b border-slate-200 overflow-x-auto scroll-fino" role="tablist" aria-label="Secciones del viaje">
         {[
           { id: 'habitaciones', label: 'Habitaciones', icono: BedDouble },
           { id: 'cuenta', label: 'Cuenta y transferencias', icono: Landmark },
+          { id: 'penalidades', label: 'Penalidades', icono: CircleAlert },
         ].map((t) => (
           <button key={t.id} type="button" role="tab" aria-selected={vista === t.id} onClick={() => cambiarVista(t.id)}
-            className={`relative inline-flex items-center gap-2 h-11 px-3 text-sm transition-colors ${
+            className={`relative inline-flex items-center gap-2 h-11 px-3 text-sm whitespace-nowrap shrink-0 transition-colors ${
               vista === t.id ? 'text-slate-900 font-semibold' : 'text-slate-500 hover:text-slate-900'
             }`}>
             <t.icono className="h-4 w-4" /> {t.label}
@@ -147,6 +149,8 @@ const ViajeView = () => {
 
       {vista === 'cuenta' ? (
         <CuentaViaje key={viaje.id} viaje={viaje} />
+      ) : vista === 'penalidades' ? (
+        <PenalidadesViaje key={viaje.id} viaje={viaje} />
       ) : (
         <div className="tarjeta aparecer">
           <Toolbar
